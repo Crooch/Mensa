@@ -1,0 +1,279 @@
+# API REST — Mensa Scolastica Caltavuturo
+
+Tutte le funzionalità dell'applicazione passano da questo layer: il frontend web incluso nel
+progetto è solo un client. Le API sono progettate per essere consumate senza modifiche anche da
+una futura app nativa Android/iOS.
+
+## Convenzioni
+
+- Base URL: `https://dominio{base_path}` — es. `https://dominio/api/auth/login`
+- Formato: JSON in richiesta e risposta (eccezione: pubblicazione menu, `multipart/form-data`)
+- Autenticazione: header `Authorization: Bearer <token>`
+  (fallback accettati: `?token=` in query e cookie `mensa_token`, usati dalla web UI per le immagini)
+- Risposta di successo: `{ "ok": true, "dati": <payload> }`
+- Risposta di errore: `{ "ok": false, "errore": "messaggio", "dettagli": [] }`
+- Codici: `200` ok · `401` non autenticato/token scaduto · `403` ruolo non autorizzato ·
+  `404` non trovato · `405` metodo non consentito · `422` validazione · `500` errore interno
+- Date: `YYYY-MM-DD`. Orari: `HH:MM`. Importi: decimali con punto. Buoni: interi.
+- Ruoli: `admin`, `operatore`, `scuola`, `catering`, `genitore`
+
+---
+
+## Autenticazione
+
+| Metodo | Endpoint | Ruoli | Descrizione |
+|---|---|---|---|
+| POST | `/api/auth/login` | pubblico | Emette il token |
+| POST | `/api/auth/logout` | tutti | Revoca il token corrente |
+| GET | `/api/auth/profilo` | tutti | Profilo dell'utente autenticato |
+| POST | `/api/auth/password` | tutti | Cambio password dell'utente corrente |
+
+**POST /api/auth/login**
+```json
+{ "username": "lobianco.g", "password": "Genitore2026!" }
+```
+```json
+{ "ok": true, "dati": { "token": "…64 hex…",
+  "utente": { "id": 7, "ruolo": "genitore", "username": "lobianco.g",
+              "nome_completo": "Lo Bianco Giuseppe", "plesso_id": null, "genitore_id": 1 } } }
+```
+Il token ha validità configurabile (`auth.token_durata_ore`, default 12 ore).
+
+---
+
+## Riferimenti comuni
+
+| Metodo | Endpoint | Ruoli | Descrizione |
+|---|---|---|---|
+| GET | `/api/riferimenti` | tutti | Plessi, tipologie menu e classi attive |
+
+---
+
+## Area Genitore
+
+| Metodo | Endpoint | Descrizione |
+|---|---|---|
+| GET | `/api/genitore/dashboard` | Saldi per plesso (con stato colore), figli con classe/dieta e stato di oggi, movimenti, feedback |
+| GET | `/api/genitore/figli/{id}/calendario?anno&mese` | Calendario mensile con le tre fonti e lo stato effettivo |
+| GET | `/api/genitore/figli/{id}/giornata?data` | Stato di una singola giornata + informazioni di cutoff |
+| POST | `/api/genitore/presenze/dichiarazione` | Dichiarazione di eccezione presenza/assenza |
+| GET | `/api/genitore/feedback` | Storico dei feedback inseriti |
+| POST | `/api/genitore/feedback` | Nuovo feedback (voto 1–5 e/o commento) |
+| GET | `/api/genitore/menu?data` | Menu pubblicati per i plessi dei propri figli |
+
+**POST /api/genitore/presenze/dichiarazione**
+```json
+{ "bambino_id": 1, "data": "2026-09-15", "stato": "assente" }
+```
+```json
+{ "ok": true, "dati": { "stato_effettivo": "assente", "fuori_cutoff": false, "effetto": "applicato" } }
+```
+`fuori_cutoff: true` + `effetto: "registrato_senza_effetto"` indica che la dichiarazione è stata
+salvata per tracciabilità ma non modifica il conteggio della giornata. Le dichiarazioni su date
+passate sono rifiutate (`422`).
+
+**POST /api/genitore/feedback**
+```json
+{ "bambino_id": 1, "data": "2026-09-15", "voto": 4, "commento": "Buono il primo piatto" }
+```
+Almeno uno tra `voto` e `commento` deve essere presente. I feedback non sono mai sovrascritti.
+
+---
+
+## Area Operatore comunale (accessibile anche ad Admin)
+
+| Metodo | Endpoint | Descrizione |
+|---|---|---|
+| GET | `/api/famiglie?q=&includi_cancellati=0|1` | Ricerca famiglie per cognome/nome/telefono/email |
+| GET | `/api/famiglie/{id}` | Scheda: genitore, figli con storico classi, override tariffari, crediti, movimenti |
+| POST | `/api/famiglie` | Nuovo genitore **con relativa utenza** |
+| PUT | `/api/famiglie/{id}` | Modifica dati genitore |
+| DELETE | `/api/famiglie/{id}` | Cancellazione **logica** |
+| POST | `/api/bambini` | Nuovo alunno (con prima assegnazione classe opzionale) |
+| PUT | `/api/bambini/{id}` | Modifica nome/cognome/tipologia menu |
+| DELETE | `/api/bambini/{id}` | Cancellazione **logica** |
+| POST | `/api/bambini/{id}/assegnazioni` | Cambio classe con storicizzazione |
+| GET | `/api/bambini/{id}/assegnazioni` | Storico assegnazioni |
+| GET | `/api/tariffe/attiva?genitore_id&plesso_id&data` | Tariffa applicabile e sua origine |
+| POST | `/api/tariffe/override` | Nuovo override tariffario motivato |
+| POST | `/api/crediti/acquisti` | Acquisto buoni (calcolo importo lato server) |
+| POST | `/api/crediti/rettifiche` | Rettifica manuale motivata del saldo |
+| GET | `/api/crediti/situazione` | Situazione crediti di tutte le famiglie |
+| GET | `/api/solleciti` | Log dei solleciti inviati |
+
+**POST /api/famiglie**
+```json
+{ "nome": "Anna", "cognome": "Russo", "telefono": "3331234567",
+  "email": "anna.russo@example.it", "username": "russo.a", "password": "Password2026" }
+```
+`telefono` obbligatorio, `email` facoltativa (usata per l'escalation debito).
+
+**POST /api/bambini**
+```json
+{ "nome": "Marco", "cognome": "Russo", "genitore_id": 11,
+  "tipologia_menu_id": 1, "classe_sezione_id": 3, "data_inizio": "2026-09-15" }
+```
+
+**POST /api/bambini/{id}/assegnazioni**
+```json
+{ "classe_sezione_id": 5, "data_inizio": "2027-01-15" }
+```
+Chiude l'assegnazione corrente al giorno precedente e apre la nuova.
+
+**GET /api/tariffe/attiva** → `{ "tariffa": 1.8, "origine": "override|base", "override": {…}|null }`
+
+**POST /api/crediti/acquisti**
+```json
+{ "genitore_id": 3, "plesso_id": 1, "numero_buoni": 10, "note": "Incasso allo sportello" }
+```
+```json
+{ "ok": true, "dati": { "movimento_id": 141, "importo": 18.0, "tariffa": 1.8,
+                        "origine_tariffa": "override", "saldo": 26 } }
+```
+L'importo non è accettato in input: viene sempre calcolato come `numero_buoni × tariffa attiva`.
+
+**POST /api/tariffe/override**
+```json
+{ "genitore_id": 3, "plesso_id": 1, "tariffa": 1.2,
+  "motivazione": "Agevolazione servizi sociali - delibera G.C. n. 84/2026" }
+```
+
+**POST /api/crediti/rettifiche**
+```json
+{ "genitore_id": 3, "plesso_id": 1, "delta": -12, "note": "Riporto debito pregresso" }
+```
+
+---
+
+## Area Scuola (vincolata al plesso dell'utenza; admin/operatore senza vincolo)
+
+| Metodo | Endpoint | Descrizione |
+|---|---|---|
+| GET | `/api/scuola/classi?plesso_id&anno_scolastico` | Classi visibili all'utenza |
+| GET | `/api/scuola/classi/{id}/giornata?data` | Vista giornaliera: tre fonti, stato effettivo, cutoff, assenza di massa |
+| POST | `/api/scuola/assenze-massa` | Assenza di massa per classe/data |
+| GET | `/api/scuola/assenze-massa?data_da&data_a&plesso_id` | Elenco assenze di massa |
+| POST | `/api/scuola/presenze/override` | Override motivato di un singolo alunno |
+
+**GET /api/scuola/classi/{id}/giornata**
+```json
+{ "ok": true, "dati": {
+  "classe": { "id": 3, "nome": "1ª A", "plesso_nome": "Scuola Primaria - Plesso Centrale" },
+  "data": "2026-09-15", "cutoff_orario": "09:30", "oltre_cutoff": false,
+  "assenza_massa": null,
+  "alunni": [ { "bambino_id": 12, "nome": "Noemi", "cognome": "Panzarella",
+                "tipologia_nome": "Dieta in bianco (temporanea)",
+                "default_calcolato": "presente", "dichiarazione_genitore": null,
+                "override_scuola": null, "override_motivazione": null,
+                "stato_effettivo": "presente", "fuori_cutoff": 0, "congelato": 0 } ] } }
+```
+
+**POST /api/scuola/presenze/override**
+```json
+{ "bambino_id": 12, "data": "2026-09-15", "stato": "assente",
+  "motivazione": "Comunicazione telefonica della famiglia" }
+```
+`motivazione` obbligatoria. Se l'alunno non appartiene al plesso dell'utenza → `403`.
+
+**POST /api/scuola/assenze-massa**
+```json
+{ "classe_sezione_id": 4, "data": "2026-09-16", "motivo": "Uscita didattica a Himera" }
+```
+
+---
+
+## Area Catering
+
+| Metodo | Endpoint | Ruoli | Descrizione |
+|---|---|---|---|
+| GET | `/api/catering/report?data&plesso_id` | catering, admin, operatore | Pasti da preparare per plesso e tipologia |
+| GET | `/api/catering/menu?data&plesso_id` | catering, admin, operatore, scuola | Menu pubblicati |
+| POST | `/api/catering/menu` | catering, admin | Pubblicazione menu (`multipart/form-data`) |
+| GET | `/api/catering/feedback?data_da&data_a&plesso_id&classe_id&tipologia_id` | catering, admin, operatore | Feedback in sola lettura |
+
+**GET /api/catering/report**
+```json
+{ "ok": true, "dati": { "data": "2026-09-15", "totale_pasti": 15, "plessi": [
+  { "plesso_id": 2, "plesso_nome": "Scuola Primaria - Plesso Centrale",
+    "cutoff_orario": "09:30", "definitivo": true, "totale_pasti": 7,
+    "tipologie": [ { "tipologia_id": 1, "tipologia_nome": "Standard", "pasti": 6 },
+                   { "tipologia_id": 3, "tipologia_nome": "Vegano", "pasti": 1 } ] } ] } }
+```
+`definitivo: false` = cutoff non ancora superato, conteggio provvisorio.
+Il report non contiene alcuna informazione economica o di credito: un alunno presente genera
+sempre un pasto, qualunque sia il saldo della famiglia.
+
+**POST /api/catering/menu** (`multipart/form-data`)
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `plesso_id` | int | obbligatorio |
+| `tipologia_menu_id` | int | obbligatorio |
+| `data` | date | default oggi |
+| `descrizione` | string | almeno uno tra descrizione e foto |
+| `foto` | file | jpg/png/webp, max 4 MB |
+
+La foto è salvata in `storage/menu/{plesso_id}_{tipologia_id}/{data}.jpg` ed è servita da
+`GET /storage/menu/{plesso_id}_{tipologia_id}/{data}.jpg` (richiede utente autenticato).
+
+Il feedback per il catering è anonimizzato: solo iniziali dell'alunno, classe, plesso, tipologia.
+
+---
+
+## Area Admin
+
+| Metodo | Endpoint | Descrizione |
+|---|---|---|
+| GET/POST | `/api/admin/plessi` | Elenco / creazione plessi |
+| PUT/DELETE | `/api/admin/plessi/{id}` | Modifica / cancellazione logica |
+| GET/POST | `/api/admin/classi` | Elenco / creazione classi-sezioni |
+| PUT/DELETE | `/api/admin/classi/{id}` | Modifica / cancellazione logica |
+| GET/POST | `/api/admin/tipologie` | Elenco / creazione tipologie menu |
+| PUT/DELETE | `/api/admin/tipologie/{id}` | Modifica / cancellazione logica |
+| GET/POST | `/api/admin/utenti` | Elenco / creazione utenze |
+| PUT | `/api/admin/utenti/{id}` | Attivazione-disattivazione, nome, plesso, reset password |
+| GET/POST | `/api/admin/modelli-email` | Modelli di sollecito (uno per plesso) |
+| GET/POST | `/api/admin/destinatari` | Lista unica destinatari in CC |
+| PUT | `/api/admin/destinatari/{id}` | Modifica/attivazione destinatario |
+| GET/POST | `/api/admin/impostazioni` | Configurazione SMTP ed email protocollo |
+| POST | `/api/admin/email-prova` | Invio email di prova |
+
+**POST /api/admin/plessi**
+```json
+{ "nome": "Scuola Primaria - Plesso Centrale", "tariffa_base_pasto": 3.00,
+  "fido_buoni": 15, "cutoff_orario": "09:30",
+  "dirigente_email": "dirigente@iccaltavuturo.edu.it", "email_protocollo": null }
+```
+
+**POST /api/admin/modelli-email**
+```json
+{ "plesso_id": 2, "oggetto": "Mensa {plesso} - posizione oltre fido ({saldo} buoni)",
+  "testo": "Gentile {genitore}, …", "attivo": true }
+```
+Placeholder: `{genitore}`, `{alunno}`, `{plesso}`, `{saldo}`, `{fido}`, `{data}`.
+
+**POST /api/admin/impostazioni** — chiavi ammesse: `smtp_host`, `smtp_port`, `smtp_security`
+(`tls|ssl|none`), `smtp_username`, `smtp_password`, `smtp_from`, `smtp_from_name`,
+`email_protocollo`. In lettura la password è mascherata (`********`) e inviarla mascherata non
+sovrascrive il valore memorizzato.
+
+---
+
+## Job giornaliero
+
+| Metodo | Endpoint | Ruoli | Descrizione |
+|---|---|---|---|
+| POST | `/api/job/scheduler` | admin | Valuta tutti i plessi ed esegue quelli oltre cutoff non ancora elaborati |
+| POST | `/api/job/plessi/{id}` | admin | Forza l'esecuzione per un plesso (`{"data": "YYYY-MM-DD"}` opzionale) |
+| GET | `/api/job/esecuzioni` | admin, operatore | Storico esecuzioni |
+| GET | `/scheduler?key=…` | — (chiave) | Endpoint per cron HTTP del pannello hosting |
+
+Esito tipico di un'esecuzione:
+```json
+{ "plesso_id": 2, "plesso": "Scuola Primaria - Plesso Centrale", "stato": "eseguito",
+  "presenze": { "presente": 7, "assente": 1 }, "consumi": 7, "pasti_report": 7,
+  "solleciti": { "controllati": 3, "inviati": 3, "errori": 0, "dettagli": [ … ] } }
+```
+Stati possibili: `eseguito`, `gia_eseguito`, `cutoff_non_raggiunto`, `errore`.
+Il job è idempotente: i consumi non vengono duplicati e i solleciti sono inviati una sola volta
+per genitore/plesso/giorno.

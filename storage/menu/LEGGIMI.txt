@@ -1,0 +1,2 @@
+Cartella di storage per le foto dei menu.
+Struttura: menu/{plesso_id}_{tipologia_id}/{YYYY-MM-DD}.jpg

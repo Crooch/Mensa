@@ -1,0 +1,117 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Service;
+
+use App\Repository\BambinoRepository;
+use App\Repository\JobRepository;
+use App\Repository\PlessoRepository;
+use App\Repository\PresenzaRepository;
+
+/**
+ * Job giornaliero, eseguito una volta al giorno PER PLESSO subito dopo il
+ * rispettivo cutoff (i cutoff possono essere diversi: lo scheduler valuta ogni
+ * plesso separatamente, non esiste un orario unico di sistema).
+ *
+ * Passi per plesso:
+ *  1. congelamento presenze (stato_effettivo fissato)
+ *  2. consumo crediti (-1 buono per ogni presente, senza alcun controllo di saldo)
+ *  3. report pasti per il catering (aggregato per plesso/tipologia)
+ *  4. verifica debiti oltre fido -> escalation email (mai al catering)
+ */
+final class JobGiornalieroService
+{
+    public function __construct(
+        private PlessoRepository $plessi,
+        private BambinoRepository $bambini,
+        private PresenzaRepository $presenze,
+        private PresenzaService $presenzaService,
+        private CreditoService $crediti,
+        private SollecitoService $solleciti,
+        private JobRepository $job
+    ) {
+    }
+
+    /**
+     * Esegue lo scheduler: per ogni plesso il cui cutoff e' passato e che non ha
+     * ancora l'esecuzione della giornata, lancia il job. Idempotente.
+     *
+     * @return array<int, array> esito per plesso
+     */
+    public function eseguiScheduler(?string $data = null): array
+    {
+        $data ??= date('Y-m-d');
+        $adesso = new \DateTimeImmutable('now');
+        $risultati = [];
+
+        foreach ($this->plessi->elenco() as $plesso) {
+            $plessoId = (int) $plesso['id'];
+            $esecuzione = $this->job->esecuzione($plessoId, $data);
+            if ($esecuzione !== null && $esecuzione['esito'] === 'ok') {
+                $risultati[] = ['plesso_id' => $plessoId, 'plesso' => $plesso['nome'], 'stato' => 'gia_eseguito'];
+                continue;
+            }
+            if (!$this->presenzaService->oltreCutoff($plesso, $data, $adesso)) {
+                $risultati[] = ['plesso_id' => $plessoId, 'plesso' => $plesso['nome'], 'stato' => 'cutoff_non_raggiunto',
+                    'cutoff' => substr((string) $plesso['cutoff_orario'], 0, 5)];
+                continue;
+            }
+            $risultati[] = $this->eseguiPerPlesso($plessoId, $data);
+        }
+
+        return $risultati;
+    }
+
+    /** Esecuzione forzata per un plesso (pulsante "esegui ora" lato Admin). */
+    public function eseguiPerPlesso(int $plessoId, ?string $data = null): array
+    {
+        $data ??= date('Y-m-d');
+        $plesso = $this->plessi->trova($plessoId);
+        $esecuzioneId = $this->job->apri($plessoId, $data);
+
+        try {
+            $conteggi = $this->presenzaService->congelaPlesso($plessoId, $data);
+
+            $consumi = 0;
+            foreach ($this->bambini->elencoPerPlesso($plessoId, $data) as $bambino) {
+                $record = $this->presenze->trovaPresenza((int) $bambino['id'], $data);
+                if ($record === null || $record['stato_effettivo'] !== 'presente') {
+                    continue;
+                }
+                // Nessun controllo di saldo: il pasto viene sempre erogato e addebitato.
+                $movimento = $this->crediti->registraConsumo(
+                    (int) $bambino['genitore_id'],
+                    $plessoId,
+                    (int) $bambino['id'],
+                    $data
+                );
+                if ($movimento !== null) {
+                    $this->presenze->modificaPresenza((int) $record['id'], ['consumo_registrato' => 1]);
+                    $consumi++;
+                }
+            }
+
+            $report = $this->presenze->reportPasti($data, $plessoId);
+            $solleciti = $this->solleciti->inviaSollecitiPlesso($plessoId, $data);
+
+            $dettaglio = [
+                'presenze'      => $conteggi,
+                'consumi'       => $consumi,
+                'pasti_report'  => array_sum(array_map('intval', array_column($report, 'pasti'))),
+                'solleciti'     => $solleciti,
+            ];
+            $this->job->chiudi($esecuzioneId, 'ok', $dettaglio);
+
+            return ['plesso_id' => $plessoId, 'plesso' => $plesso['nome'], 'stato' => 'eseguito'] + $dettaglio;
+        } catch (\Throwable $e) {
+            $this->job->chiudi($esecuzioneId, 'errore', ['messaggio' => $e->getMessage()]);
+            return ['plesso_id' => $plessoId, 'plesso' => $plesso['nome'] ?? '', 'stato' => 'errore', 'messaggio' => $e->getMessage()];
+        }
+    }
+
+    public function ultimeEsecuzioni(): array
+    {
+        return $this->job->ultimeEsecuzioni();
+    }
+}
