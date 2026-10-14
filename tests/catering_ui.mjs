@@ -68,7 +68,7 @@ const dati19 = {
 richieste[2].resolve(dati19);
 await new Promise((resolve) => setImmediate(resolve));
 await new Promise((resolve) => setImmediate(resolve));
-assert.match(elemento('report-stato').textContent, /^Report visualizzato: 19\/10\/2026/, 'Stato report: ' + elemento('report-stato').textContent + '; errori=' + errori.join(';'));
+assert.match(elemento('report-stato').textContent, /^Pasti per il 19\/10\/2026/, 'Stato report: ' + elemento('report-stato').textContent + '; errori=' + errori.join(';'));
 assert.match(elemento('report').innerHTML, /Sezione D/, 'Report mancante: ' + elemento('report-stato').textContent + '; errori=' + errori.join(';'));
 assert.equal(elemento('btn-report').disabled, false);
 
