@@ -37,7 +37,7 @@ require __DIR__ . '/partials/testa.php';
     <p class="nota">Un saldo negativo non blocca il pasto.</p>
     <div class="tabella-scroll">
         <table class="table" data-testid="situazione-crediti-tabella">
-            <thead><tr><th>Famiglia</th><th>Telefono</th><th>Plesso</th><th>Saldo buoni</th><th>Soglia per il sollecito</th><th>Situazione</th></tr></thead>
+            <thead><tr><th>Famiglia</th><th>Telefono</th><th>Plesso</th><th>Saldo buoni</th><th>Fido concesso</th><th>Situazione</th></tr></thead>
             <tbody id="crediti-corpo"></tbody>
         </table>
     </div>
