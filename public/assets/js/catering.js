@@ -60,8 +60,11 @@ function sincronizzaMenuSelezionato() {
     stato.className = 'stato-operazione catering-menu-stato stato-operazione--' +
         (esistente ? 'info' : 'non-previsto');
     stato.textContent = esistente
-        ? 'Menu già pubblicato per ' + plesso.nome + ' · ' + tipologia.nome +
-          ' (oggi). Aggiornerai solo questo menu: gli altri non cambiano.'
+        ? (esistente.origine === 'settimanale'
+            ? 'Menu previsto dal modello settimanale per ' + plesso.nome + ' · ' + tipologia.nome +
+              '. Salvando creerai una modifica valida soltanto per oggi.'
+            : 'Menu già pubblicato per ' + plesso.nome + ' · ' + tipologia.nome +
+              ' (oggi). Aggiornerai solo questo menu: gli altri non cambiano.')
         : 'Nessun menu ancora pubblicato per ' + plesso.nome + ' · ' + tipologia.nome +
           ' (oggi). Verrà creato solo questo menu.';
     fotoStato.textContent = esistente
@@ -74,6 +77,7 @@ function sincronizzaMenuSelezionato() {
 
 abilitaSchede((vista) => {
     if (vista === 'menu') caricaMenu().catch((e) => UI.stato('menu-stato', 'Non è possibile mostrare il menu: ' + e.message, 'errore'));
+    if (vista === 'settimane') caricaSettimane().catch((e) => UI.stato('settimana-stato', 'Non è possibile caricare i menu settimanali: ' + e.message, 'errore'));
     if (vista === 'feedback') caricaFeedback().catch((e) => UI.stato('feedback-stato', 'Non è possibile mostrare le valutazioni: ' + e.message, 'errore'));
 });
 
@@ -156,6 +160,7 @@ async function caricaMenu() {
                 <article class="card-mensa catering-menu-card" data-testid="menu-card-${m.id}">
                     <h3>${esc(m.plesso_nome)}</h3>
                     <p class="catering-menu-card__tipo">${esc(m.tipologia_nome)}</p>
+                    ${m.origine === 'settimanale' ? `<span class="badge-stato badge-neutro">Da menu settimanale: ${esc(m.modello_nome)}</span>` : ''}
                     <p class="menu-descrizione">${esc(m.descrizione || 'Solo foto pubblicata')}</p>
                     ${m.foto_path ? `<img src="${BASE}/storage/${esc(m.foto_path)}" alt="Foto del menu">` : ''}
                     <button type="button" class="btn btn-outline-primary" data-menu-modifica="${m.id}" data-testid="menu-modifica-${m.id}">Modifica menu</button>
