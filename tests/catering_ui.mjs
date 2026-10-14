@@ -9,6 +9,7 @@ const elemento = (id) => {
     if (!elementi.has(id)) {
         elementi.set(id, {
             value: '', innerHTML: '', textContent: '', disabled: false,
+            checked: false, hidden: false,
             files: [], handlers: {}, dataset: {}, focus() {},
             addEventListener(nome, fn) { this.handlers[nome] = fn; }
         });
@@ -55,11 +56,15 @@ const context = {
             tipologia_menu_id: Number(fd.get('tipologia_menu_id')),
             data: fd.get('data'),
             descrizione: fd.get('descrizione'),
+            rimuovi_foto: fd.get('rimuovi_foto'),
         };
         salvataggi.push(dati);
         const riga = menuPubblicati.find((m) =>
             m.plesso_id === dati.plesso_id && m.tipologia_menu_id === dati.tipologia_menu_id);
-        if (riga) riga.descrizione = dati.descrizione;
+        if (riga) {
+            riga.descrizione = dati.descrizione;
+            if (dati.rimuovi_foto === '1') riga.foto_path = null;
+        }
         else menuPubblicati.push({
             id: 10, plesso_id: dati.plesso_id, tipologia_menu_id: dati.tipologia_menu_id,
             plesso_nome: 'Secondaria', tipologia_nome: 'Senza glutine',
@@ -186,3 +191,27 @@ assert.equal(menuPubblicati.find((m) => m.id === 9).descrizione, 'Minestra');
 assert.equal(elemento('menu-descrizione').value, 'Pasta aggiornata');
 assert.equal(elemento('menu-submit').textContent, 'Aggiorna menu');
 console.log('OK: menu precompilati, creazione, aggiornamento isolato, conferma e foto conservata.');
+
+/* Pubblicare testo multilinea non deve collassare i ritorni a capo.
+   Una foto esistente puo' essere rimossa senza sostituirla. */
+elemento('menu-descrizione').value = 'Primo: pasta\nSecondo: pollo\n\nFrutta';
+await elemento('form-menu').handlers.submit({ preventDefault() {} });
+assert.equal(salvataggi.at(-1).descrizione, 'Primo: pasta\nSecondo: pollo\n\nFrutta');
+assert.match(elemento('menu-lista').innerHTML, /Primo: pasta\nSecondo: pollo\n\nFrutta/);
+assert.match(elemento('menu-lista').innerHTML, /class="menu-descrizione"/);
+assert.equal(elemento('menu-rimuovi-foto-opzione').hidden, false);
+assert.equal(elemento('menu-rimuovi-foto').checked, false);
+elemento('menu-rimuovi-foto').checked = true;
+elemento('menu-rimuovi-foto').handlers.change();
+assert.equal(elemento('menu-foto').disabled, true);
+assert.match(elemento('menu-foto-stato').textContent, /foto verrà rimossa/);
+await elemento('form-menu').handlers.submit({ preventDefault() {} });
+assert.equal(salvataggi.at(-1).rimuovi_foto, '1');
+assert.equal(menuPubblicati.find((m) => m.id === 7).foto_path, null);
+assert.equal(elemento('menu-rimuovi-foto-opzione').hidden, true);
+assert.equal(elemento('menu-rimuovi-foto').checked, false);
+assert.equal(elemento('menu-foto').disabled, false);
+assert.equal(menuPubblicati.find((m) => m.id === 8).descrizione, 'Riso');
+assert.equal(menuPubblicati.find((m) => m.id === 9).descrizione, 'Minestra');
+assert.match(conferme.at(-1)[1], /La foto verrà rimossa/);
+console.log('OK: descrizione multilinea visibile e rimozione immagine isolata e confermata.');
