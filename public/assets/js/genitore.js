@@ -41,7 +41,7 @@ async function caricaDashboard() {
         const s = f.stato_oggi;
         const dichiarazione = s ? testoScelta(s.dichiarazione_genitore) : 'Nessuna comunicazione';
         return `
-        <article class="card-mensa" data-testid="figlio-card-${f.id}">
+        <article class="card-mensa card-figlio" data-testid="figlio-card-${f.id}">
             <h3>${esc(f.cognome)} ${esc(f.nome)}</h3>
             <dl>
                 <dt>Scuola</dt><dd>${esc(f.plesso_nome || 'non assegnato')}</dd>
@@ -53,18 +53,19 @@ async function caricaDashboard() {
                 <dt>Modifiche fino alle</dt><dd>${s ? 'Ore ' + esc(s.cutoff_orario) + (s.oltre_cutoff ? ' (oggi non puoi più modificare)' : '') : '-'}</dd>
             </dl>
             ${statoApp.messaggi[f.id] ? '<p class="stato-operazione stato-operazione--ok" role="status">' + esc(statoApp.messaggi[f.id]) + '</p>' : ''}
-            ${s ? `<div class="riga-filtri" style="margin-top:.75rem">
-                ${s.oltre_cutoff ? '<p class="nota">Per oggi è passato l’orario limite. Puoi ancora indicare un giorno futuro.</p>' : ''}
-                <label for="figlio-data-${f.id}">Per quale giorno?</label>
-                <input type="date" id="figlio-data-${f.id}" value="${giorniSelezionati[f.id] || oggi()}" min="${oggi()}" data-testid="figlio-data-${f.id}">
-                <p id="anteprima-figlio-${f.id}" class="stato-operazione" role="status">Caricamento della situazione del giorno…</p>
-                <div class="azioni-giorno">
+            ${s ? `<div class="figlio-comandi">
+                <div class="figlio-selezione-data">
+                    <label for="figlio-data-${f.id}">Per quale giorno?</label>
+                    <input type="date" id="figlio-data-${f.id}" value="${giorniSelezionati[f.id] || oggi()}" min="${oggi()}" data-testid="figlio-data-${f.id}">
+                </div>
+                <p id="anteprima-figlio-${f.id}" class="stato-operazione figlio-stato" role="status">Caricamento della situazione del giorno…</p>
+                <div class="figlio-azioni" hidden>
                     <button class="btn btn-primary" data-azione="presente" data-figlio="${f.id}" data-testid="dichiara-presente-${f.id}" hidden disabled>Segnala presenza</button>
                     <button class="btn btn-primary" data-azione="assente" data-figlio="${f.id}" data-testid="dichiara-assente-${f.id}" hidden disabled>Segnala assenza</button>
                     <button class="btn btn-outline-primary" data-pasta="1" data-figlio="${f.id}" data-testid="pasta-richiesta-${f.id}" hidden disabled>Chiedi pasta in bianco</button>
                     <button class="btn btn-outline-primary" data-pasta="0" data-figlio="${f.id}" data-testid="pasta-annulla-${f.id}" hidden disabled>Annulla pasta in bianco</button>
                 </div>
-                <button class="btn btn-outline-primary btn-sm" data-apri-calendario="${f.id}">Vedi tutti i giorni nel calendario</button>
+                <button class="btn btn-outline-primary btn-sm figlio-calendario" data-apri-calendario="${f.id}">Vedi tutti i giorni nel calendario</button>
             </div>` : '<p class="nota">Nessuna classe attiva: contattare l\'ufficio comunale.</p>'}
         </article>`;
     }).join('') || '<p class="vuoto">Nessun figlio associato.</p>';
@@ -139,8 +140,16 @@ async function anteprimaGiorno(bambinoId) {
     richiesteAnteprima.set(bambinoId, versione);
     const azioni = Array.from(document.querySelectorAll('[data-figlio="' + bambinoId + '"]'))
         .filter((b) => b.dataset.azione || b.dataset.pasta !== undefined);
+    const gruppoAzioni = input.closest('.figlio-comandi')?.querySelector('.figlio-azioni');
+    const aggiornaLayoutAzioni = () => {
+        if (!gruppoAzioni) return;
+        const disponibili = azioni.filter((b) => !b.hidden && !b.disabled).length;
+        gruppoAzioni.hidden = disponibili === 0;
+        gruppoAzioni.classList.toggle('figlio-azioni--singola', disponibili === 1);
+    };
     // Fino al caricamento nessuna azione deve partire usando dati precedenti.
     azioni.forEach((b) => { b.hidden = true; b.disabled = true; });
+    aggiornaLayoutAzioni();
     UI.stato('anteprima-figlio-' + bambinoId, 'Controllo del ' + dataIt(data) + '…', 'caricamento');
     try {
         const g = await API.get('/api/genitore/figli/' + bambinoId +
@@ -161,6 +170,7 @@ async function anteprimaGiorno(bambinoId) {
             b.hidden = !mostra;
             b.disabled = !mostra;
         }
+        aggiornaLayoutAzioni();
         let messaggio = !attivo ? motivoChiusura(g.servizio_mensa?.motivo)
             : presente ? 'Pasto previsto' : 'Pasto non previsto';
         if (presente && g.pasta_in_bianco) messaggio += ' · Pasta in bianco richiesta';
@@ -169,6 +179,7 @@ async function anteprimaGiorno(bambinoId) {
         UI.stato('anteprima-figlio-' + bambinoId, messaggio, !attivo ? 'info' : 'ok');
     } catch (errore) {
         if (richiesteAnteprima.get(bambinoId) !== versione) return;
+        aggiornaLayoutAzioni();
         UI.stato('anteprima-figlio-' + bambinoId,
             'Dati non disponibili: ' + errore.message, 'errore');
     }
