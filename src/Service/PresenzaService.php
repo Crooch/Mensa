@@ -119,6 +119,9 @@ final class PresenzaService
         $this->validaDataDichiarazione($data);
         $bambino = $this->bambinoConPlesso($bambinoId, $data);
         $plessoId = (int) $bambino['plesso_id'];
+        if ($this->presenze->assenzaMassa((int) $bambino['classe_sezione_id'], $data) !== null) {
+            throw HttpException::nonValido('La classe non mangia a mensa in questa giornata (gita o uscita).');
+        }
         if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
             throw HttpException::nonValido('Non e previsto servizio mensa in questa data');
         }
@@ -171,6 +174,9 @@ final class PresenzaService
         $this->validaDataDichiarazione($data);
         $bambino = $this->bambinoConPlesso($bambinoId, $data);
         $plessoId = (int) $bambino['plesso_id'];
+        if ($richiesta && $this->presenze->assenzaMassa((int) $bambino['classe_sezione_id'], $data) !== null) {
+            throw HttpException::nonValido('La classe non mangia a mensa in questa giornata.');
+        }
         if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
             throw HttpException::nonValido('Non e previsto servizio mensa in questa data');
         }
@@ -216,6 +222,9 @@ final class PresenzaService
         }
         $bambino = $this->bambinoConPlesso($bambinoId, $data);
         $plessoId = (int) $bambino['plesso_id'];
+        if ($this->presenze->assenzaMassa((int) $bambino['classe_sezione_id'], $data) !== null) {
+            throw HttpException::nonValido('Assenza di tutta la classe registrata: non e possibile confermare un pasto.');
+        }
         if ($plessoUtente !== null && $plessoId !== $plessoUtente) {
             throw HttpException::nonAutorizzato('Alunno non appartenente al plesso assegnato');
         }
@@ -364,18 +373,16 @@ final class PresenzaService
                 ]);
                 foreach ($this->bambini->elencoPerClasse($classeSezioneId, $data) as $bambino) {
                     $record = $this->presenze->trovaPresenza((int) $bambino['id'], $data);
-                    if ($record === null || (int) $record['congelato'] === 1) {
-                        continue;
+                    if ($record !== null && (int) $record['congelato'] !== 1) {
+                        // La gita ha precedenza su precedenti comunicazioni della
+                        // famiglia e della scuola. Le fonti restano nello storico.
+                        $this->presenze->modificaPresenza((int) $record['id'], [
+                            'default_calcolato' => 'assente',
+                            'stato_effettivo' => 'assente',
+                        ]);
                     }
-                    $record['default_calcolato'] = 'assente';
-                    $nuovoStato = $this->calcolaStatoEffettivo($record);
-                    $this->presenze->modificaPresenza((int) $record['id'], [
-                        'default_calcolato' => 'assente',
-                        'stato_effettivo' => $nuovoStato,
-                    ]);
-                    if ($nuovoStato === 'assente') {
-                        $this->annullaPastaSeAssente((int) $bambino['id'], $data, $utenteId);
-                    }
+                    // Annulla anche eventuali richieste speciali preesistenti.
+                    $this->annullaPastaSeAssente((int) $bambino['id'], $data, $utenteId);
                 }
                 return $id;
             });
@@ -414,9 +421,16 @@ final class PresenzaService
                 $riga['stato_effettivo'] = null;
                 continue;
             }
+            if ($assenzaMassa !== null) {
+                // La lettura resta corretta anche per gite già inserite
+                // con la vecchia logica e record individuali preesistenti.
+                $riga['default_calcolato'] = 'assente';
+                $riga['stato_effettivo'] = 'assente';
+            } elseif ($riga['presenza_id'] === null) {
+                $riga['default_calcolato'] = 'presente';
+                $riga['stato_effettivo'] = 'presente';
+            }
             if ($riga['presenza_id'] === null) {
-                $riga['default_calcolato'] = $assenzaMassa !== null ? 'assente' : 'presente';
-                $riga['stato_effettivo'] = $riga['default_calcolato'];
                 $riga['fuori_cutoff'] = 0;
                 $riga['congelato'] = 0;
             }
@@ -459,6 +473,11 @@ final class PresenzaService
             $servizio = $plessoId !== null ? $this->calendario->previsto($plessoId, $data)
                 : ['attivo' => false, 'motivo' => 'nessuna_classe'];
             $registrato = $salvati[$data] ?? null;
+            $gita = $assegnazione !== null &&
+                $this->presenze->assenzaMassa((int) $assegnazione['classe_sezione_id'], $data) !== null;
+            if ($gita && $servizio['attivo'] === true) {
+                $servizio = ['attivo' => false, 'motivo' => 'assenza_classe'];
+            }
             $attivo = $servizio['attivo'] === true;
             $default = $attivo ? ($registrato['default_calcolato'] ?? $this->defaultCalcolato($bambinoId, $data)) : null;
             $stato = $attivo && ($registrato !== null || $data >= $oggi)
@@ -493,6 +512,10 @@ final class PresenzaService
         $plesso = $this->plessi->trova((int) $bambino['plesso_id']);
         $record = $this->presenze->trovaPresenza($bambinoId, $data);
         $servizio = $this->calendario->previsto((int) $bambino['plesso_id'], $data);
+        if ($servizio['attivo'] === true &&
+            $this->presenze->assenzaMassa((int) $bambino['classe_sezione_id'], $data) !== null) {
+            $servizio = ['attivo' => false, 'motivo' => 'assenza_classe'];
+        }
         $attivo = $servizio['attivo'] === true;
         $default = $attivo
             ? ($record['default_calcolato'] ?? $this->defaultCalcolato($bambinoId, $data))
