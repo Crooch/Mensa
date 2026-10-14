@@ -29,7 +29,8 @@ final class JobGiornalieroService
         private PresenzaService $presenzaService,
         private CreditoService $crediti,
         private SollecitoService $solleciti,
-        private JobRepository $job
+        private JobRepository $job,
+        private CalendarioService $calendario
     ) {
     }
 
@@ -47,6 +48,11 @@ final class JobGiornalieroService
 
         foreach ($this->plessi->elenco() as $plesso) {
             $plessoId = (int) $plesso['id'];
+            $calendario = $this->calendario->verifica($plessoId, $data);
+            if (!$calendario['attivo']) {
+                $risultati[] = ['plesso_id' => $plessoId, 'plesso' => $plesso['nome'], 'stato' => 'fuori_calendario', 'motivo' => $calendario['motivo']];
+                continue;
+            }
             $esecuzione = $this->job->esecuzione($plessoId, $data);
             if ($esecuzione !== null && $esecuzione['esito'] === 'ok') {
                 $risultati[] = ['plesso_id' => $plessoId, 'plesso' => $plesso['nome'], 'stato' => 'gia_eseguito'];
@@ -68,6 +74,10 @@ final class JobGiornalieroService
     {
         $data ??= date('Y-m-d');
         $plesso = $this->plessi->trova($plessoId);
+        $calendario = $this->calendario->verifica($plessoId, $data);
+        if (!$calendario['attivo']) {
+            return ['plesso_id' => $plessoId, 'plesso' => $plesso['nome'] ?? '', 'stato' => 'fuori_calendario', 'motivo' => $calendario['motivo']];
+        }
         $esecuzioneId = $this->job->apri($plessoId, $data);
 
         try {
