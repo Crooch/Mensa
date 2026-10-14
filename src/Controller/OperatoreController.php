@@ -94,7 +94,8 @@ final class OperatoreController
             (int) $r->obbligatorio('plesso_id'),
             (int) $r->obbligatorio('numero_buoni'),
             (int) $utente['id'],
-            $r->input('note')
+            $r->input('note'),
+            $r->input('richiesta_id') !== null ? (string) $r->input('richiesta_id') : null
         );
     }
 
