@@ -15,7 +15,8 @@ require __DIR__ . '/partials/testa.php';
     <h1>La mia mensa</h1>
     <div id="crediti-cards" class="griglia-cards" data-testid="crediti-cards"></div>
     <h2>Presenze e assenze dei miei figli</h2>
-    <p class="nota">Di solito tuo figlio risulta presente nei giorni in cui è prevista la mensa. Se non mangerà a scuola, comunicaci l'assenza scegliendo il giorno. Puoi cambiare la scelta fino all'orario indicato.</p>
+    <p class="nota">Nei giorni di mensa tuo figlio risulta normalmente presente. Se non mangerà a scuola, scegli il giorno e premi «Non mangerà a mensa». Puoi cambiare la scelta fino all'orario indicato.</p>
+    <p class="nota">Per chiedere pasta in bianco, scegli il giorno e premi «Chiedi pasta in bianco». Non serve un certificato e puoi annullare la richiesta entro l'orario limite.</p>
     <div id="figli-lista" class="griglia-cards" data-testid="figli-lista"></div>
     <h2>Menu pubblicato oggi</h2>
     <div id="menu-oggi" class="griglia-cards" data-testid="menu-oggi"></div>
