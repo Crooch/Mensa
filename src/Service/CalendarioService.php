@@ -4,59 +4,171 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Core\HttpException;
 use App\Repository\CalendarioRepository;
+use App\Repository\PlessoRepository;
 
 /**
- * Regole di erogazione per singolo plesso. Impostazione prudenziale:
- * in assenza di configurazione non si congelano presenze e non si addebitano buoni.
+ * Calendario del servizio per plesso.
+ * Regola fail-closed: senza configurazione non si congelano presenze ne' si addebitano buoni.
+ * Sabati, domeniche e festivita' nazionali sono sempre esclusi.
  */
 final class CalendarioService
 {
-    public function __construct(private CalendarioRepository $calendari)
-    {
+    private const GIORNI = [
+        1 => 'lunedi', 2 => 'martedi', 3 => 'mercoledi', 4 => 'giovedi',
+        5 => 'venerdi', 6 => 'sabato', 7 => 'domenica',
+    ];
+
+    public function __construct(
+        private CalendarioRepository $calendari,
+        private PlessoRepository $plessi
+    ) {
     }
 
+    /** Il job puo' essere eseguito esclusivamente nella data odierna. */
     public function verifica(int $plessoId, string $data): array
     {
-        $giorno = \DateTimeImmutable::createFromFormat('!Y-m-d', $data);
-        if ($giorno === false || $giorno->format('Y-m-d') !== $data) {
+        if (!self::dataValida($data)) {
             return ['attivo' => false, 'motivo' => 'data_non_valida'];
         }
-
-        // Nessun addebito per date passate o future tramite esecuzione manuale.
         if ($data !== date('Y-m-d')) {
             return ['attivo' => false, 'motivo' => 'data_non_odierna'];
         }
+        return $this->previsto($plessoId, $data);
+    }
 
+    /** Consultazione anche futura, senza effetti sui consumi. */
+    public function previsto(int $plessoId, string $data): array
+    {
+        if (!self::dataValida($data)) {
+            return ['attivo' => false, 'motivo' => 'data_non_valida'];
+        }
+        $plesso = $this->plessi->trova($plessoId);
+        if ($plesso === null || (int) $plesso['cancellato_logicamente'] === 1) {
+            return ['attivo' => false, 'motivo' => 'plesso_non_attivo'];
+        }
         $config = $this->calendari->configurazione($plessoId);
         if ($config === null) {
             return ['attivo' => false, 'motivo' => 'calendario_non_configurato'];
         }
-        if ($data < $config['data_inizio']) {
+        return self::valutaRegole($config, $this->calendari->eccezione($plessoId, $data), $data);
+    }
+
+    /** Funzione pura, utilizzabile nei test senza collegarsi al database. */
+    public static function valutaRegole(array $config, ?array $eccezione, string $data): array
+    {
+        if (!self::dataValida($data)) {
+            return ['attivo' => false, 'motivo' => 'data_non_valida'];
+        }
+        $giorno = new \DateTimeImmutable($data);
+        if ($data < (string) $config['data_inizio']) {
             return ['attivo' => false, 'motivo' => 'servizio_non_avviato'];
         }
-        if ($config['data_fine'] !== null && $data > $config['data_fine']) {
+        if (($config['data_fine'] ?? null) !== null && $data > $config['data_fine']) {
             return ['attivo' => false, 'motivo' => 'servizio_terminato'];
         }
 
-        $eccezione = $this->calendari->eccezione($plessoId, $data);
-        if ($eccezione !== null) {
-            return [
-                'attivo' => (bool) $eccezione['servizio_attivo'],
-                'motivo' => (bool) $eccezione['servizio_attivo'] ? 'apertura_straordinaria' : 'chiusura_programmata',
-            ];
+        // Vincolo assoluto, anche in presenza di una eventuale apertura straordinaria.
+        if ((int) $giorno->format('N') >= 6) {
+            return ['attivo' => false, 'motivo' => 'fine_settimana'];
         }
-
-        if ((bool) $config['escludi_festivita_nazionali'] && self::festivitaNazionale($giorno)) {
+        if (self::festivitaNazionale($giorno)) {
             return ['attivo' => false, 'motivo' => 'festivita_nazionale'];
         }
 
-        $giorni = [1 => 'lunedi', 2 => 'martedi', 3 => 'mercoledi', 4 => 'giovedi',
-            5 => 'venerdi', 6 => 'sabato', 7 => 'domenica'];
-        $colonna = $giorni[(int) $giorno->format('N')];
-        return (bool) $config[$colonna]
+        if ($eccezione !== null) {
+            return [
+                'attivo' => (int) $eccezione['servizio_attivo'] === 1,
+                'motivo' => (int) $eccezione['servizio_attivo'] === 1
+                    ? 'apertura_straordinaria' : 'chiusura_programmata',
+            ];
+        }
+        $colonna = self::GIORNI[(int) $giorno->format('N')];
+        return (int) ($config[$colonna] ?? 0) === 1
             ? ['attivo' => true, 'motivo' => 'giorno_di_servizio']
             : ['attivo' => false, 'motivo' => 'giorno_senza_servizio'];
+    }
+
+    public function dettaglio(int $plessoId): array
+    {
+        $this->richiediPlesso($plessoId);
+        return [
+            'plesso_id' => $plessoId,
+            'configurazione' => $this->calendari->configurazione($plessoId),
+            'eccezioni' => $this->calendari->eccezioni($plessoId),
+        ];
+    }
+
+    public function salvaConfigurazione(int $plessoId, array $input): void
+    {
+        $this->richiediPlesso($plessoId);
+        $inizio = (string) ($input['data_inizio'] ?? '');
+        $fine = $input['data_fine'] ?? null;
+        if (!self::dataValida($inizio) || ($fine !== null && $fine !== '' && !self::dataValida((string) $fine))) {
+            throw HttpException::nonValido('Data inizio/fine non valida (YYYY-MM-DD)');
+        }
+        $fine = $fine === '' ? null : $fine;
+        if ($fine !== null && $fine < $inizio) {
+            throw HttpException::nonValido('La data di fine non puo\' precedere quella di inizio');
+        }
+        $dati = ['data_inizio' => $inizio, 'data_fine' => $fine];
+        foreach (['lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi'] as $campo) {
+            if (!array_key_exists($campo, $input) || !in_array($input[$campo], [0, 1, '0', '1', false, true], true)) {
+                throw HttpException::nonValido('Giorno della settimana non valido: ' . $campo);
+            }
+            $dati[$campo] = (int) $input[$campo];
+        }
+        $dati['sabato'] = 0;
+        $dati['domenica'] = 0;
+        $dati['escludi_festivita_nazionali'] = 1;
+        $this->calendari->salvaConfigurazione($plessoId, $dati);
+    }
+
+    public function salvaEccezione(int $plessoId, string $data, array $input): void
+    {
+        $this->richiediPlesso($plessoId);
+        if (!self::dataValida($data)) {
+            throw HttpException::nonValido('Data non valida (YYYY-MM-DD)');
+        }
+        $attivo = $input['servizio_attivo'] ?? null;
+        if (!in_array($attivo, [0, 1, '0', '1', false, true], true)) {
+            throw HttpException::nonValido('Stato della giornata non valido');
+        }
+        $motivo = trim((string) ($input['motivazione'] ?? ''));
+        if ($motivo === '' || mb_strlen($motivo) > 255) {
+            throw HttpException::nonValido('Indicare una motivazione (massimo 255 caratteri)');
+        }
+        if ((int) $attivo === 1) {
+            $giorno = new \DateTimeImmutable($data);
+            if ((int) $giorno->format('N') >= 6 || self::festivitaNazionale($giorno)) {
+                throw HttpException::nonValido('Non e\' consentita l\'apertura nei fine settimana o nelle festivita\' nazionali');
+            }
+        }
+        $this->calendari->salvaEccezione($plessoId, $data, (bool) $attivo, $motivo);
+    }
+
+    public function cancellaEccezione(int $plessoId, string $data): void
+    {
+        $this->richiediPlesso($plessoId);
+        if (!self::dataValida($data)) {
+            throw HttpException::nonValido('Data non valida');
+        }
+        $this->calendari->cancellaEccezione($plessoId, $data);
+    }
+
+    private function richiediPlesso(int $plessoId): void
+    {
+        $plesso = $this->plessi->trova($plessoId);
+        if ($plesso === null || (int) $plesso['cancellato_logicamente'] === 1) {
+            throw HttpException::nonTrovato('Plesso inesistente o non attivo');
+        }
+    }
+
+    private static function dataValida(string $data): bool
+    {
+        $giorno = \DateTimeImmutable::createFromFormat('!Y-m-d', $data);
+        return $giorno !== false && $giorno->format('Y-m-d') === $data;
     }
 
     private static function festivitaNazionale(\DateTimeImmutable $giorno): bool
@@ -66,7 +178,8 @@ final class CalendarioService
         if (in_array($giorno->format('m-d'), $fisse, true)) {
             return true;
         }
-        // Pasqua e lunedi' dell'Angelo: calcolo gregoriano, senza estensioni PHP.
+
+        // Pasqua e Lunedi' dell'Angelo, algoritmo gregoriano.
         $anno = (int) $giorno->format('Y');
         $a = $anno % 19;
         $b = intdiv($anno, 100);
