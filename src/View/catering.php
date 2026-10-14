@@ -19,6 +19,7 @@ require __DIR__ . '/partials/testa.php';
         <button class="btn btn-primary btn-sm" type="button" id="btn-report" data-testid="report-carica-button">Aggiorna i pasti</button>
     </div>
     <p class="nota" id="report-stato" role="status" aria-live="polite" data-testid="report-stato">Seleziona una data per consultare i pasti.</p>
+    <div id="report-riepilogo" class="riepilogo-mensa" aria-live="polite"></div>
     <p class="nota">I numeri possono cambiare fino all'orario limite indicato. Dopo il conteggio automatico, il report sarà indicato come «Confermato». Le richieste di pasta in bianco mostrano il nome del bambino e la classe.</p>
     <div id="report" class="griglia-cards" data-testid="report-plessi"></div>
 </section>
