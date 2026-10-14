@@ -3,8 +3,8 @@ const utente = proteggi('catering');
 let riferimenti = { plessi: [], tipologie: [] };
 
 abilitaSchede((vista) => {
-    if (vista === 'menu') caricaMenu();
-    if (vista === 'feedback') caricaFeedback();
+    if (vista === 'menu') caricaMenu().catch((e) => UI.stato('menu-stato', 'Non è possibile mostrare il menu: ' + e.message, 'errore'));
+    if (vista === 'feedback') caricaFeedback().catch((e) => UI.stato('feedback-stato', 'Non è possibile mostrare le valutazioni: ' + e.message, 'errore'));
 });
 
 let ultimaRichiestaReport = 0;
@@ -68,7 +68,9 @@ async function caricaReport() {
 }
 
 async function caricaMenu() {
+    UI.stato('menu-stato', 'Caricamento del menu…', 'caricamento');
     const menu = await API.get('/api/catering/menu?data=' + oggi());
+    UI.stato('menu-stato', 'Menu aggiornato alle ' + UI.oraAggiornamento(), 'ok');
     document.getElementById('menu-lista').innerHTML = menu.length === 0
         ? '<p class="vuoto">Nessuna pubblicazione per oggi.</p>'
         : menu.map((m) => `
@@ -80,6 +82,7 @@ async function caricaMenu() {
 }
 
 async function caricaFeedback() {
+    UI.stato('feedback-stato', 'Caricamento delle valutazioni…', 'caricamento');
     const parametri = new URLSearchParams();
     const da = document.getElementById('fb-da').value;
     const a = document.getElementById('fb-a').value;
@@ -88,6 +91,7 @@ async function caricaFeedback() {
     if (document.getElementById('fb-plesso').value) parametri.set('plesso_id', document.getElementById('fb-plesso').value);
     if (document.getElementById('fb-tipologia').value) parametri.set('tipologia_id', document.getElementById('fb-tipologia').value);
     const elenco = await API.get('/api/catering/feedback?' + parametri.toString());
+    UI.stato('feedback-stato', elenco.length + ' valutazioni trovate · aggiornato alle ' + UI.oraAggiornamento(), 'ok');
     document.getElementById('feedback-corpo').innerHTML = elenco.map((f) => `
         <tr><td>${dataIt(f.data)}</td><td>${esc(f.alunno_iniziali)}</td><td>${esc(f.plesso_nome || '-')}</td>
         <td>${esc(f.classe_nome || '-')}</td><td>${esc(f.tipologia_nome)}</td>
@@ -125,7 +129,7 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
 document.getElementById('btn-report').addEventListener('click', caricaReport);
 // Aggiorna anche scegliendo una data diversa dal calendario.
 document.getElementById('report-data').addEventListener('change', caricaReport);
-document.getElementById('btn-feedback').addEventListener('click', caricaFeedback);
+document.getElementById('btn-feedback').addEventListener('click', () => caricaFeedback().catch((e) => UI.stato('feedback-stato', e.message, 'errore')));
 
 (async () => {
     // Imposta subito la data, prima della richiesta iniziale dei riferimenti:
