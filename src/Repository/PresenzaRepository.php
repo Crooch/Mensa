@@ -62,8 +62,10 @@ final class PresenzaRepository extends Repository
     public function calendarioBambino(int $bambinoId, string $dataDa, string $dataA): array
     {
         return $this->tutti(
-            'SELECT pg.*, ud.username AS dichiarato_da, uo.username AS override_da
+            'SELECT pg.*, COALESCE(rp.richiesta, 0) AS pasta_in_bianco,
+                    ud.username AS dichiarato_da, uo.username AS override_da
              FROM presenze_giornaliere pg
+             LEFT JOIN richieste_pasta_bianco rp ON rp.bambino_id = pg.bambino_id AND rp.data = pg.data
              LEFT JOIN utenti ud ON ud.id = pg.dichiarazione_utente_id
              LEFT JOIN utenti uo ON uo.id = pg.override_utente_id
              WHERE pg.bambino_id = :b AND pg.data BETWEEN :da AND :a
