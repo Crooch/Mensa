@@ -58,12 +58,12 @@ async function caricaDashboard() {
                 <label for="figlio-data-${f.id}">Per quale giorno?</label>
                 <input type="date" id="figlio-data-${f.id}" value="${giorniSelezionati[f.id] || oggi()}" min="${oggi()}" data-testid="figlio-data-${f.id}">
                 <p id="anteprima-figlio-${f.id}" class="stato-operazione" role="status">Caricamento della situazione del giorno…</p>
-                <button class="btn-azione" data-azione="presente" data-figlio="${f.id}" data-testid="dichiara-presente-${f.id}">Ripristina pasto</button>
-                <button class="btn-azione" data-azione="assente" data-figlio="${f.id}" data-testid="dichiara-assente-${f.id}">Segnala assenza</button>
-                <details><summary>Pasta in bianco</summary><div class="azioni-giorno">
-                    <button class="btn-azione" data-pasta="1" data-figlio="${f.id}" data-testid="pasta-richiesta-${f.id}">Chiedi pasta in bianco</button>
-                    <button class="btn-azione" data-pasta="0" data-figlio="${f.id}" data-testid="pasta-annulla-${f.id}">Annulla richiesta pasta in bianco</button>
-                </div></details>
+                <div class="azioni-giorno">
+                    <button class="btn btn-primary" data-azione="presente" data-figlio="${f.id}" data-testid="dichiara-presente-${f.id}" hidden disabled>Segnala presenza</button>
+                    <button class="btn btn-primary" data-azione="assente" data-figlio="${f.id}" data-testid="dichiara-assente-${f.id}" hidden disabled>Segnala assenza</button>
+                    <button class="btn btn-outline-primary" data-pasta="1" data-figlio="${f.id}" data-testid="pasta-richiesta-${f.id}" hidden disabled>Chiedi pasta in bianco</button>
+                    <button class="btn btn-outline-primary" data-pasta="0" data-figlio="${f.id}" data-testid="pasta-annulla-${f.id}" hidden disabled>Annulla pasta in bianco</button>
+                </div>
                 <button class="btn btn-outline-primary btn-sm" data-apri-calendario="${f.id}">Vedi tutti i giorni nel calendario</button>
             </div>` : '<p class="nota">Nessuna classe attiva: contattare l\'ufficio comunale.</p>'}
         </article>`;
@@ -129,7 +129,7 @@ async function caricaDashboard() {
     caricaMenu();
 }
 
-/** Anticipa il risultato del giorno scelto ed evita pulsanti inutili. */
+/** Mostra solo le azioni possibili per il bambino e il giorno scelto. */
 const richiesteAnteprima = new Map();
 async function anteprimaGiorno(bambinoId) {
     const input = document.getElementById('figlio-data-' + bambinoId);
@@ -137,32 +137,42 @@ async function anteprimaGiorno(bambinoId) {
     const data = input.value;
     const versione = (richiesteAnteprima.get(bambinoId) || 0) + 1;
     richiesteAnteprima.set(bambinoId, versione);
-    const azioni = Array.from(document.querySelectorAll('[data-figlio="' + bambinoId + '"]'));
-    UI.stato('anteprima-figlio-' + bambinoId, 'Controllo della mensa del ' + dataIt(data) + '…', 'caricamento');
+    const azioni = Array.from(document.querySelectorAll('[data-figlio="' + bambinoId + '"]'))
+        .filter((b) => b.dataset.azione || b.dataset.pasta !== undefined);
+    // Fino al caricamento nessuna azione deve partire usando dati precedenti.
+    azioni.forEach((b) => { b.hidden = true; b.disabled = true; });
+    UI.stato('anteprima-figlio-' + bambinoId, 'Controllo del ' + dataIt(data) + '…', 'caricamento');
     try {
-        const g = await API.get('/api/genitore/figli/' + bambinoId + '/giornata?data=' + encodeURIComponent(data));
+        const g = await API.get('/api/genitore/figli/' + bambinoId +
+            '/giornata?data=' + encodeURIComponent(data));
         if (richiesteAnteprima.get(bambinoId) !== versione || input.value !== data) return;
-        const attivo = g.servizio_mensa && g.servizio_mensa.attivo;
-        const modificabile = attivo && !g.oltre_cutoff && !g.congelato;
-        azioni.filter((b) => b.dataset.azione || b.dataset.pasta).forEach((b) => {
-            b.disabled = !modificabile;
-            if (b.dataset.azione) b.hidden = attivo && g.stato_effettivo === b.dataset.azione;
-            if (b.dataset.pasta) b.hidden = attivo &&
-                Number(b.dataset.pasta) === (g.pasta_in_bianco ? 1 : 0);
-        });
-        const testo = !attivo ? 'Il ' + dataIt(data) + ' non è prevista la mensa.'
-            : (g.stato_effettivo === 'presente' ? 'Pasto previsto' : 'Pasto non previsto') +
-              ' per il ' + dataIt(data) + '.' + (g.pasta_in_bianco ? ' Hai richiesto pasta in bianco.' : '') +
-              (modificabile ? '' : ' Non puoi più modificare questa giornata.');
-        UI.stato('anteprima-figlio-' + bambinoId, testo, !attivo ? 'info' : 'ok');
+        const attivo = g.servizio_mensa?.attivo === true;
+        const presente = attivo && g.stato_effettivo === 'presente';
+        const assente = attivo && g.stato_effettivo === 'assente';
+        const modificabile = attivo && !g.oltre_cutoff && !g.congelato && data >= oggi();
+        // Una correzione di assenza effettuata dalla scuola prevale sulla famiglia.
+        const presenzaBloccataDallaScuola = assente && g.override_scuola === 'assente';
+        for (const b of azioni) {
+            const mostra = modificabile &&
+                (b.dataset.azione === 'assente' && presente ||
+                 b.dataset.azione === 'presente' && assente && !presenzaBloccataDallaScuola ||
+                 b.dataset.pasta === '1' && presente && !g.pasta_in_bianco ||
+                 b.dataset.pasta === '0' && presente && !!g.pasta_in_bianco);
+            b.hidden = !mostra;
+            b.disabled = !mostra;
+        }
+        let messaggio = !attivo ? motivoChiusura(g.servizio_mensa?.motivo)
+            : presente ? 'Pasto previsto' : 'Pasto non previsto';
+        if (presente && g.pasta_in_bianco) messaggio += ' · Pasta in bianco richiesta';
+        if (presenzaBloccataDallaScuola) messaggio += ' · Per modifiche contatta la scuola';
+        else if (attivo && !modificabile) messaggio += ' · Modifiche chiuse';
+        UI.stato('anteprima-figlio-' + bambinoId, messaggio, !attivo ? 'info' : 'ok');
     } catch (errore) {
         if (richiesteAnteprima.get(bambinoId) !== versione) return;
-        azioni.filter((b) => b.dataset.azione || b.dataset.pasta).forEach((b) => { b.disabled = true; });
         UI.stato('anteprima-figlio-' + bambinoId,
-            'Non riesco a controllare la data: ' + errore.message + '. Riprova o usa il calendario.', 'errore');
+            'Dati non disponibili: ' + errore.message, 'errore');
     }
 }
-
 
 function riempiSelectFigli() {
     const campoCalendario = document.getElementById('cal-figlio');
@@ -288,15 +298,25 @@ function mostraDettaglio(r, bambinoId) {
     const stato = !attivo ? motivoChiusura(r.servizio_mensa?.motivo)
         : r.stato_effettivo === null ? 'Pasto da verificare'
         : testoPasto(r.stato_effettivo);
-    const azioni = attivo && r.modificabile
-        ? '<div class="azioni-giorno">' +
-          '<button type="button" class="btn btn-primary" data-cal-stato="' +
-          (r.stato_effettivo === 'assente' ? 'presente' : 'assente') +
-          '" data-testid="cal-modifica-pasto">' + (r.stato_effettivo === 'assente' ? 'Ripristina il pasto' : 'Segnala assenza') +
-          '</button><button type="button" class="btn btn-outline-primary" data-cal-pasta="' +
-          (Number(r.pasta_in_bianco) === 1 ? '0' : '1') + '" data-testid="cal-modifica-pasta">' +
-          (Number(r.pasta_in_bianco) === 1 ? 'Annulla pasta in bianco' : 'Chiedi pasta in bianco') + '</button></div>'
-        : (attivo ? '<p class="nota">Modifiche non disponibili per questo giorno.</p>' : '');
+    const presente = r.stato_effettivo === 'presente';
+    const assente = r.stato_effettivo === 'assente';
+    const assenzaDellaScuola = assente && r.override_scuola === 'assente';
+    const comandi = [];
+    if (attivo && r.modificabile) {
+        if (presente) {
+            comandi.push('<button type="button" class="btn btn-primary" data-cal-stato="assente" data-testid="cal-modifica-pasto">Segnala assenza</button>');
+            comandi.push(Number(r.pasta_in_bianco) === 1
+                ? '<button type="button" class="btn btn-outline-primary" data-cal-pasta="0" data-testid="cal-modifica-pasta">Annulla pasta in bianco</button>'
+                : '<button type="button" class="btn btn-outline-primary" data-cal-pasta="1" data-testid="cal-modifica-pasta">Chiedi pasta in bianco</button>');
+        } else if (assente && !assenzaDellaScuola) {
+            comandi.push('<button type="button" class="btn btn-primary" data-cal-stato="presente" data-testid="cal-modifica-pasto">Segnala presenza</button>');
+        }
+    }
+    const azioni = comandi.length
+        ? '<div class="azioni-giorno">' + comandi.join('') + '</div>'
+        : assenzaDellaScuola ? '<p class="nota">Per modifiche contatta la scuola.</p>'
+        : attivo && !r.modificabile ? '<p class="nota">Modifiche chiuse.</p>' : '';
+
     nodo.innerHTML = '<h2>' + dataIt(r.data) + '</h2>' +
         '<p class="stato-operazione stato-operazione--info">' + esc(stato) + '</p>' +
         (attivo ? '<dl class="card-mensa"><dt>Hai comunicato</dt><dd>' + testoScelta(r.dichiarazione_genitore) +
