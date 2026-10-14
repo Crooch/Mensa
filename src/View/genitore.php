@@ -6,7 +6,7 @@ require __DIR__ . '/partials/testa.php';
 ?>
 <nav class="schede" role="tablist">
     <button class="scheda attiva" data-vista="riepilogo" data-testid="tab-riepilogo">Riepilogo</button>
-    <button class="scheda" data-vista="calendario" data-testid="tab-calendario">Calendario presenze</button>
+    <button class="scheda" data-vista="calendario" data-testid="tab-calendario">Calendario</button>
     <button class="scheda" data-vista="pagamenti" data-testid="tab-pagamenti">Pagamenti</button>
     <button class="scheda" data-vista="feedback" data-testid="tab-feedback">Feedback</button>
 </nav>
@@ -14,9 +14,8 @@ require __DIR__ . '/partials/testa.php';
 <section id="vista-riepilogo" class="vista" data-testid="genitore-dashboard">
     <h1>La mia mensa</h1>
     <div id="crediti-cards" class="griglia-cards" data-testid="crediti-cards"></div>
-    <h2>Presenze e assenze dei miei figli</h2>
-    <p class="nota">Nei giorni di mensa tuo figlio risulta normalmente presente. Se non mangerà a scuola, scegli il giorno e premi «Non mangerà a mensa». Puoi cambiare la scelta fino all'orario indicato.</p>
-    <p class="nota">Per chiedere pasta in bianco, scegli il giorno e premi «Chiedi pasta in bianco». Non serve un certificato e puoi annullare la richiesta entro l'orario limite.</p>
+    <h2>Presenze e assenze</h2>
+    <p class="nota">Scegli un giorno per comunicare un'assenza o chiedere pasta in bianco.</p>
     <div id="figli-lista" class="griglia-cards" data-testid="figli-lista"></div>
     <h2>Il menu di oggi</h2>
     <div id="menu-oggi" class="griglia-cards" data-testid="menu-oggi"></div>
@@ -24,7 +23,7 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-calendario" class="vista" hidden>
     <h1>Calendario della mensa</h1>
-    <p class="nota">Scegli tuo figlio e il mese, poi premi «Mostra calendario». Tocca un giorno per controllare le tue comunicazioni e le eventuali correzioni della scuola.</p>
+    <p class="nota">Scegli un giorno per vedere o modificare il pasto.</p>
     <div class="riga-filtri">
         <label for="cal-figlio">Scegli il figlio</label>
         <select id="cal-figlio" data-testid="calendario-figlio-select"></select>
@@ -32,17 +31,16 @@ require __DIR__ . '/partials/testa.php';
         <input type="month" id="cal-mese" data-testid="calendario-mese-input">
         <button class="btn btn-primary btn-sm" id="btn-carica-calendario" data-testid="calendario-carica-button">Mostra calendario</button>
     </div>
-    <p class="nota"><strong>Verde:</strong> pasto previsto. <strong>Rosso:</strong> pasto non previsto. «Hai comunicato» indica un giorno per cui hai fatto una scelta. I giorni senza indicazioni non sono necessariamente giorni di chiusura.</p>
     <p id="calendario-stato" class="stato-operazione" role="status" aria-live="polite" hidden></p>
     <div id="calendario" class="calendario" data-testid="calendario-griglia"></div>
     <div id="calendario-dettaglio" class="pannello" data-testid="calendario-dettaglio" aria-live="polite"><p class="nota">Tocca un giorno del calendario per vedere i dettagli.</p></div>
 </section>
 
 <section id="vista-pagamenti" class="vista" hidden>
-    <h1>Quando hai comprato e usato i buoni</h1>
+    <h1>Movimenti dei buoni</h1>
     <div class="tabella-scroll">
         <table class="table" data-testid="movimenti-tabella">
-            <thead><tr><th>Giorno</th><th>Scuola</th><th>Operazione</th><th>Buoni aggiunti o usati</th><th>Importo</th><th>Bambino</th><th>Note</th></tr></thead>
+            <thead><tr><th>Giorno</th><th>Scuola</th><th>Operazione</th><th>Buoni</th><th>Importo</th><th>Bambino</th><th>Note</th></tr></thead>
             <tbody id="movimenti-corpo"></tbody>
         </table>
     </div>
