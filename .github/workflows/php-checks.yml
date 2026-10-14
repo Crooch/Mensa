@@ -38,6 +38,7 @@ jobs:
           node --check public/assets/js/catering.js
           node tests/catering_ui.mjs
           node tests/ui_scuola.mjs
+          node tests/ui_testi.mjs
       - name: Calendar regression tests
         run: php tests/calendario.php
       - name: Install MariaDB CLI
