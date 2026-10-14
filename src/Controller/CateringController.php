@@ -42,6 +42,7 @@ final class CateringController
         $tipologiaId = (int) ($_POST['tipologia_menu_id'] ?? 0);
         $data = (string) ($_POST['data'] ?? date('Y-m-d'));
         $descrizione = isset($_POST['descrizione']) && $_POST['descrizione'] !== '' ? (string) $_POST['descrizione'] : null;
+        $rimuoviFoto = (string) ($_POST['rimuovi_foto'] ?? '0') === '1';
 
         $id = $this->c->catering()->pubblicaMenu(
             $plessoId,
@@ -49,7 +50,8 @@ final class CateringController
             $data,
             $descrizione,
             $_FILES['foto'] ?? null,
-            (int) $utente['id']
+            (int) $utente['id'],
+            $rimuoviFoto
         );
         return ['id' => $id];
     }
