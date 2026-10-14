@@ -130,7 +130,8 @@ final class Container
             $this->bambini(),
             $this->classi(),
             $this->plessi(),
-            $this->assegnazioni()
+            $this->assegnazioni(),
+            $this->calendario()
         ));
     }
 
