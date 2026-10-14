@@ -253,3 +253,62 @@ rifiuta_gita("/api/scuola/assenze-massa", {
 }, scuola, "gita duplicata")
 assert call("/api/genitore/dashboard", token=genitore)["crediti"][0]["saldo"] == saldo_iniziale
 print("OK: gita prevale su famiglia/scuola, pasti zero, niente pasta o nuovi interventi.")
+
+# Test reale HTTP multipart: righe del menu e immagine pubblicata/rimossa.
+# I dati sono esclusivamente di staging e la foto e' un PNG sintetico 1x1.
+import base64
+
+def invia_menu_multipart(campi, immagine=None):
+    boundary = "----MensaStagingSmokeBoundary"
+    body = bytearray()
+    for nome, valore in campi.items():
+        body.extend(("--" + boundary + "\r\n"
+            'Content-Disposition: form-data; name="' + nome + '"\r\n\r\n' +
+            str(valore) + "\r\n").encode("utf-8"))
+    if immagine is not None:
+        body.extend(("--" + boundary + "\r\n"
+            'Content-Disposition: form-data; name="foto"; filename="test.png"\r\n'
+            "Content-Type: image/png\r\n\r\n").encode("utf-8"))
+        body.extend(immagine)
+        body.extend(b"\r\n")
+    body.extend(("--" + boundary + "--\r\n").encode("utf-8"))
+    req = urllib.request.Request(base + "/api/catering/menu",
+        data=bytes(body), headers={
+            "Authorization": "Bearer " + catering,
+            "Content-Type": "multipart/form-data; boundary=" + boundary
+        })
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        return json.load(resp)["dati"]
+
+riferimenti = call("/api/riferimenti", token=catering)
+plesso_menu = 1
+tipologia_menu = int(riferimenti["tipologie"][0]["id"])
+giorno_menu = "2026-10-21"
+descrizione_menu = "Primo: pasta\nSecondo: pollo\n\nFrutta"
+campi_menu = {
+    "plesso_id": plesso_menu, "tipologia_menu_id": tipologia_menu,
+    "data": giorno_menu, "descrizione": descrizione_menu
+}
+png_1x1 = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg=="
+)
+pubblicato = invia_menu_multipart(campi_menu, png_1x1)
+menu_con_foto = call("/api/catering/menu?data=" + giorno_menu, token=catering)
+riga_con_foto = next(m for m in menu_con_foto
+    if int(m["plesso_id"]) == plesso_menu and
+       int(m["tipologia_menu_id"]) == tipologia_menu)
+assert int(riga_con_foto["id"]) == int(pubblicato["id"])
+assert riga_con_foto["descrizione"] == descrizione_menu
+assert riga_con_foto["foto_path"] and riga_con_foto["foto_path"].endswith(".png")
+
+campi_menu["rimuovi_foto"] = "1"
+rimosso = invia_menu_multipart(campi_menu)
+assert int(rimosso["id"]) == int(pubblicato["id"])
+menu_senza_foto = call("/api/catering/menu?data=" + giorno_menu, token=catering)
+riga_senza_foto = next(m for m in menu_senza_foto
+    if int(m["plesso_id"]) == plesso_menu and
+       int(m["tipologia_menu_id"]) == tipologia_menu)
+assert riga_senza_foto["foto_path"] is None
+assert riga_senza_foto["descrizione"] == descrizione_menu
+assert len(menu_senza_foto) == len(menu_con_foto)
+print("OK: menu multilinea, upload PNG e rimozione foto con ID invariato.")
