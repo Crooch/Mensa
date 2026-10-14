@@ -88,3 +88,44 @@ infanzia = next(x for x in report["plessi"] if x["plesso_id"] == 1)
 assert any(int(r["bambino_id"]) == figlio for r in infanzia["pasta_in_bianco"])
 assert call("/api/genitore/dashboard", token=genitore)["crediti"][0]["saldo"] == saldo_iniziale
 print("OK: pasta solo se presente, cancellazione con assenza, riattivazione esplicita e saldo invariato")
+
+# Verifica end-to-end Scuola -> Catering -> Genitore, su dati sintetici.
+scuola = token("scuola.infanzia.staging")
+classi_scuola = call("/api/scuola/classi", token=scuola)
+classe_figlio = None
+for classe_scuola in classi_scuola:
+    vista = call("/api/scuola/classi/" + str(classe_scuola["id"]) +
+                 "/giornata?data=" + giorno, token=scuola)
+    if any(int(a["bambino_id"]) == figlio for a in vista["alunni"]):
+        classe_figlio = classe_scuola["id"]
+        break
+assert classe_figlio is not None, "Bambino di prova non trovato nelle classi della scuola"
+pasti_prima = sum(int(s["pasti"]) for s in infanzia["sezioni"])
+esito_scuola = call("/api/scuola/presenze/override", {
+    "bambino_id": figlio, "data": giorno,
+    "stato": "assente", "motivazione": "Assente, prova integrazione"
+}, token=scuola)
+assert esito_scuola["stato_effettivo"] == "assente"
+vista = call("/api/scuola/classi/" + str(classe_figlio) +
+             "/giornata?data=" + giorno, token=scuola)
+riga = next(a for a in vista["alunni"] if int(a["bambino_id"]) == figlio)
+assert riga["stato_effettivo"] == "assente"
+assert riga["override_motivazione"] == "Assente, prova integrazione"
+report_assente = call("/api/catering/report?data=" + giorno, token=catering)
+infanzia_assente = next(x for x in report_assente["plessi"] if x["plesso_id"] == 1)
+assert sum(int(s["pasti"]) for s in infanzia_assente["sezioni"]) == pasti_prima - 1
+assert all(int(a["bambino_id"]) != figlio for a in infanzia_assente["pasta_in_bianco"])
+esito_scuola = call("/api/scuola/presenze/override", {
+    "bambino_id": figlio, "data": giorno,
+    "stato": "presente", "motivazione": "Presenza verificata, prova integrazione"
+}, token=scuola)
+assert esito_scuola["stato_effettivo"] == "presente"
+report_presente = call("/api/catering/report?data=" + giorno, token=catering)
+infanzia_presente = next(x for x in report_presente["plessi"] if x["plesso_id"] == 1)
+assert sum(int(s["pasti"]) for s in infanzia_presente["sezioni"]) == pasti_prima
+stato = call("/api/genitore/figli/" + str(figlio) +
+             "/giornata?data=" + giorno, token=genitore)
+assert stato["stato_effettivo"] == "presente"
+assert not stato["pasta_in_bianco"], "La correzione scuola non deve riattivare una pasta annullata"
+assert call("/api/genitore/dashboard", token=genitore)["crediti"][0]["saldo"] == saldo_iniziale
+print("OK: Scuola -> Catering -> Genitore, motivazione salvata, conteggi e credito invariato")
