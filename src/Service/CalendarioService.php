@@ -136,7 +136,7 @@ final class CalendarioService
             throw HttpException::nonValido('Stato della giornata non valido');
         }
         $motivo = trim((string) ($input['motivazione'] ?? ''));
-        if ($motivo === '' || mb_strlen($motivo) > 255) {
+        if ($motivo === '' || strlen($motivo) > 255) {
             throw HttpException::nonValido('Indicare una motivazione (massimo 255 caratteri)');
         }
         if ((int) $attivo === 1) {
