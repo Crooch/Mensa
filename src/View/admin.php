@@ -16,6 +16,7 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-plessi" class="vista">
     <h1>Scuole e impostazioni della mensa</h1>
+    <div id="admin-riepilogo" class="riepilogo-mensa" aria-live="polite"></div>
     <p class="nota">Imposta il costo del pasto, la soglia per il sollecito e l'orario entro cui le famiglie possono modificare le presenze.</p>
     <form id="form-plesso" class="pannello" data-testid="plesso-form">
         <input type="hidden" id="plesso-id">
@@ -214,7 +215,7 @@ require __DIR__ . '/partials/testa.php';
         <select id="job-plesso" data-testid="job-plesso-select"></select>
         <button class="btn btn-outline-primary btn-sm" id="btn-job-plesso" data-testid="job-plesso-button">Conferma pasti della scuola scelta</button>
     </div>
-    <pre id="job-esito" class="esito" data-testid="job-esito"></pre>
+    <div id="job-esito" class="pannello" aria-live="polite" data-testid="job-esito"><p class="nota">Qui vedrai l’esito dell’ultima operazione eseguita manualmente.</p></div>
     <h2>Ultime esecuzioni</h2>
     <div class="tabella-scroll">
         <table class="table" data-testid="job-esecuzioni-tabella">
