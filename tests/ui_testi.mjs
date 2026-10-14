@@ -45,3 +45,14 @@ assert.match(genitore, /<dt>Fido concesso<\/dt><dd>\$\{fidoConcesso\(c\.fido_buo
 assert.match(operatore, /<dt>Fido concesso<\/dt><dd>\$\{fidoConcesso\(c\.fido_buoni\)\}<\/dd>/);
 assert.match(amministratore, /fido_buoni: Math\.abs\(Number\(document\.getElementById\('plesso-fido'\)\.value\)\)/);
 console.log('OK: fido concesso mostrato negativo con unità buoni; salvataggio in formato DB invariato.');
+
+assert.ok(!genitore.includes('Ripristina pasto') && !genitore.includes('Ripristina il pasto'),
+    'Ripristina pasto è ambiguo per le famiglie');
+assert.ok(!genitore.includes('<details><summary>Pasta in bianco'),
+    'Le richieste di pasta non devono richiedere un menu a scomparsa');
+assert.match(genitore, /data-testid="dichiara-presente-\$\{f.id\}" hidden disabled>Segnala presenza/);
+assert.match(genitore, /b\.dataset\.pasta === '1' && presente && !g\.pasta_in_bianco/);
+assert.match(genitore, /b\.dataset\.pasta === '0' && presente && !!g\.pasta_in_bianco/);
+assert.match(genitore, /if \(presente\) \{[\s\S]*?data-cal-pasta="1"/);
+assert.match(genitore, /else if \(assente && !assenzaDellaScuola\)/);
+console.log('OK: azioni genitore contestuali, pasta solo con pasto e senza menu a scomparsa.');
