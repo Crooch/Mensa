@@ -374,6 +374,30 @@ final class PresenzaService
         return $conteggi;
     }
 
+    /** Validazione lato server; nessun limite arbitrario alle assenze future. */
+    private function validaDataDichiarazione(string $data): void
+    {
+        $d = \DateTimeImmutable::createFromFormat('!Y-m-d', $data);
+        if ($d === false || $d->format('Y-m-d') !== $data) {
+            throw HttpException::nonValido('Data non valida');
+        }
+        if ($data < date('Y-m-d')) {
+            throw HttpException::nonValido('La giornata e gia trascorsa');
+        }
+    }
+
+    /** Da chiamare solo dopo aver preso il lock condiviso con lo scheduler. */
+    private function verificaModificabile(array $plesso, int $plessoId, string $data): void
+    {
+        if ($this->oltreCutoff($plesso, $data)) {
+            throw HttpException::nonValido('La giornata e chiusa: termine per le modifiche superato');
+        }
+        $esecuzione = $this->job->esecuzione($plessoId, $data);
+        if ($esecuzione !== null && in_array($esecuzione['esito'], ['ok', 'in_corso'], true)) {
+            throw HttpException::nonValido('La giornata e gia contabilizzata o in elaborazione');
+        }
+    }
+
     private function validaStato(string $stato): void
     {
         if (!in_array($stato, ['presente', 'assente'], true)) {
