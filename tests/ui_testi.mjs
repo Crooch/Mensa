@@ -86,3 +86,48 @@ for (const wf of ['.github/workflows/php-checks.yml', '.github/workflows/staging
     assert.ok(!workflow.includes('actions/checkout@v4'));
 }
 console.log('OK: colori coerenti, selettore data responsive, checkout@v5 e runner invariato.');
+
+/* Notifiche comuni: struttura, chiusura e allineamento indipendenti dal font. */
+const estrattoAvviso = common.slice(
+    common.indexOf('function avviso('),
+    common.indexOf('/** Componenti condivisi', common.indexOf('function avviso('))
+);
+assert.ok(estrattoAvviso.startsWith('function avviso('));
+const messaggi = [];
+const creaElemento = (nome) => ({
+    tagName: nome.toUpperCase(), dataset: {}, attributes: {}, children: [],
+    textContent: '', className: '', removed: false, listeners: {},
+    setAttribute(k, v) { this.attributes[k] = v; },
+    appendChild(el) { this.children.push(el); },
+    addEventListener(k, cb) { this.listeners[k] = cb; },
+    remove() { this.removed = true; }
+});
+const contenitoreAvvisi = creaElemento('div');
+const ambienteAvvisi = {
+    document: {
+        getElementById: (id) => id === 'avvisi' ? contenitoreAvvisi : null,
+        createElement: creaElemento
+    },
+    setTimeout: (f, durata) => { messaggi.push({ f, durata }); },
+    alert: () => { throw new Error('Toast container missing'); }
+};
+const mostraAvviso = vm.runInNewContext(estrattoAvviso + '\navviso', ambienteAvvisi);
+mostraAvviso('Comunicazione salvata', 'ok');
+assert.equal(contenitoreAvvisi.children.length, 1);
+const toast = contenitoreAvvisi.children[0];
+assert.equal(toast.children[0].className, 'avviso__testo');
+assert.equal(toast.children[0].textContent, 'Comunicazione salvata');
+assert.equal(toast.children[1].className, 'avviso__chiudi');
+assert.equal(toast.children[1].textContent, '', 'La X non deve dipendere dal font');
+assert.equal(toast.children[1].attributes['aria-label'], 'Chiudi messaggio');
+assert.equal(messaggi.length, 1);
+toast.children[1].listeners.click();
+assert.equal(toast.removed, true, 'Pulsante chiusura non funzionante');
+mostraAvviso('Operazione non riuscita', 'errore');
+assert.equal(contenitoreAvvisi.children[1].attributes.role, 'alert');
+assert.equal(messaggi.length, 1, 'Gli errori devono rimanere visibili');
+assert.match(css, /#avvisi \.avviso\s*\{[^}]*align-items:\s*center/s);
+assert.match(css, /#avvisi \.avviso__testo\s*\{[^}]*flex:\s*1 1 auto/s);
+assert.match(css, /#avvisi \.avviso__chiudi\s*\{[^}]*display:\s*inline-flex/s);
+assert.match(css, /#avvisi \.avviso__chiudi::before,[\s\S]*#avvisi \.avviso__chiudi::after\s*\{[^}]*top:\s*50%;[^}]*left:\s*50%/s);
+console.log('OK: notifiche allineate, X geometrica centrata, chiusura funzionante e messaggi di errore persistenti.');
