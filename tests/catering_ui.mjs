@@ -16,6 +16,7 @@ const elemento = (id) => {
     return elementi.get(id);
 };
 const richieste = [];
+const errori = [];
 const context = {
     document: {
         getElementById: elemento,
@@ -26,7 +27,7 @@ const context = {
     oggi: () => '2026-10-14',
     dataIt: (val) => val.split('-').reverse().join('/'),
     esc: (val) => String(val ?? ''),
-    avviso: (msg) => { throw new Error('Errore inatteso: ' + msg); },
+    avviso: (msg) => { errori.push(msg); },
     API: {
         get: (url) => {
             if (url === '/api/riferimenti') {
@@ -67,8 +68,8 @@ const dati19 = {
 richieste[2].resolve(dati19);
 await Promise.resolve();
 await Promise.resolve();
-assert.match(elemento('report-stato').textContent, /19\/10\/2026/);
-assert.match(elemento('report').innerHTML, /Sezione D/);
+assert.match(elemento('report-stato').textContent, /^Report visualizzato: 19\/10\/2026/, 'Stato report: ' + elemento('report-stato').textContent + '; errori=' + errori.join(';'));
+assert.match(elemento('report').innerHTML, /Sezione D/, 'Report mancante: ' + elemento('report-stato').textContent + '; errori=' + errori.join(';'));
 assert.equal(elemento('btn-report').disabled, false);
 
 // Vecchio 20/10 completato DOPO 19/10: non deve aggiornare la UI.
