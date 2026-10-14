@@ -5,7 +5,7 @@ let statoApp = { figli: [], votoSelezionato: null, messaggi: {} };
 // Etichette comprensibili senza modificare i valori usati dalle API.
 const testoPasto = (stato) => stato === 'presente' ? 'Pasto previsto' : stato === 'assente' ? 'Pasto non previsto' : 'Da verificare';
 const testoScelta = (stato) => stato === 'presente' ? 'Mangerà a mensa' : stato === 'assente' ? 'Non mangerà a mensa' : 'Nessuna comunicazione';
-const badgePasto = (stato) => `<span class="badge-stato badge-${stato === 'presente' ? 'verde' : 'rosso'}">${testoPasto(stato)}</span>`;
+const badgePasto = (stato) => `<span class="badge-stato badge-${stato === 'presente' ? 'verde' : stato === 'assente' ? 'rosso' : 'neutro'}">${testoPasto(stato)}</span>`;
 
 abilitaSchede((vista) => {
     if (vista === 'calendario') caricaCalendario();
@@ -176,7 +176,9 @@ async function anteprimaGiorno(bambinoId) {
         if (presente && g.pasta_in_bianco) messaggio += ' · Pasta in bianco richiesta';
         if (presenzaBloccataDallaScuola) messaggio += ' · Per modifiche contatta la scuola';
         else if (attivo && !modificabile) messaggio += ' · Modifiche chiuse';
-        UI.stato('anteprima-figlio-' + bambinoId, messaggio, !attivo ? 'info' : 'ok');
+        const colore = !attivo ? 'non-previsto'
+            : presente ? 'ok' : assente ? 'assente' : 'verifica';
+        UI.stato('anteprima-figlio-' + bambinoId, messaggio, colore);
     } catch (errore) {
         if (richiesteAnteprima.get(bambinoId) !== versione) return;
         aggiornaLayoutAzioni();
@@ -329,8 +331,10 @@ function mostraDettaglio(r, bambinoId) {
         : assenzaDellaScuola ? '<p class="nota">Per modifiche contatta la scuola.</p>'
         : attivo && !r.modificabile ? '<p class="nota">Modifiche chiuse.</p>' : '';
 
+    const coloreStato = !attivo ? 'non-previsto'
+        : presente ? 'ok' : assente ? 'assente' : 'verifica';
     nodo.innerHTML = '<h2>' + dataIt(r.data) + '</h2>' +
-        '<p class="stato-operazione stato-operazione--info">' + esc(stato) + '</p>' +
+        '<p class="stato-operazione stato-operazione--' + coloreStato + '">' + esc(stato) + '</p>' +
         (attivo ? '<dl class="card-mensa"><dt>Hai comunicato</dt><dd>' + testoScelta(r.dichiarazione_genitore) +
           '</dd><dt>Modifica della scuola</dt><dd>' + (r.override_scuola ? testoScelta(r.override_scuola) : 'Nessuna') +
           (r.override_motivazione ? ' — Motivo: ' + esc(r.override_motivazione) : '') +
