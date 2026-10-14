@@ -87,6 +87,16 @@ final class Container
         return $this->ottieni('r.comunicazioni', fn () => new R\ComunicazioneRepository());
     }
 
+    public function calendarioRepo(): R\CalendarioRepository
+    {
+        return $this->ottieni('r.calendario', fn () => new R\CalendarioRepository());
+    }
+
+    public function calendario(): S\CalendarioService
+    {
+        return $this->ottieni('s.calendario', fn () => new S\CalendarioService($this->calendarioRepo()));
+    }
+
     public function jobRepo(): R\JobRepository
     {
         return $this->ottieni('r.job', fn () => new R\JobRepository());
@@ -175,7 +185,8 @@ final class Container
             $this->presenzaService(),
             $this->creditoService(),
             $this->solleciti(),
-            $this->jobRepo()
+            $this->jobRepo(),
+            $this->calendario()
         ));
     }
 
