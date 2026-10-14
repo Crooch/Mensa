@@ -1,0 +1,103 @@
+<?php
+
+declare(strict_types=1);
+
+// Solo il DB effimero di CI, all'interno di una transazione con rollback.
+if (getenv('CI') !== 'true' || getenv('MENSA_TEST_DATABASE') !== 'mensa_ci') {
+    fwrite(STDERR, "Test riservato al DB isolato mensa_ci.\n");
+    exit(2);
+}
+$config = require dirname(__DIR__) . '/bootstrap.php';
+$config['db']['database'] = 'mensa_ci';
+$config['db']['password'] = (string) getenv('MYSQL_PWD');
+App\Core\Config::inizializza($config);
+$pdo = App\Core\Database::pdo();
+$pdo->beginTransaction();
+try {
+    $plessi = $pdo->query('SELECT nome, id FROM plessi')->fetchAll(PDO::FETCH_KEY_PAIR);
+    $infanzia = (int) $plessi["Scuola dell'Infanzia - Via Catania"];
+    $secondaria = (int) $plessi['Scuola Secondaria di I grado'];
+    $pdo->exec("INSERT INTO tipologie_menu (nome) VALUES ('Standard'), ('Senza glutine')");
+    $tipologie = $pdo->query('SELECT nome, id FROM tipologie_menu')->fetchAll(PDO::FETCH_KEY_PAIR);
+    $standard = (int) $tipologie['Standard'];
+    $senza = (int) $tipologie['Senza glutine'];
+
+    $repo = new App\Repository\MenuSettimanaleRepository($pdo);
+    $service = (new App\Core\Container())->catering();
+
+    $giorni = ['1' => "Primo: pasta\nSecondo: pollo", '2' => 'Riso',
+        '3' => '', '4' => 'Verdure', '5' => 'Pesce', '6' => '', '7' => ''];
+    $id = $repo->crea('Settimana A', $standard, $giorni, '2026-10-19', 0);
+    $repo->assegna([$infanzia, $secondaria], $standard, $id, '2026-10-19', 0);
+
+    foreach ([$infanzia, $secondaria] as $plesso) {
+        $righe = $service->menuDelGiorno('2026-10-19', $plesso);
+        if (count($righe) !== 1 ||
+            $righe[0]['descrizione'] !== $giorni['1'] ||
+            $righe[0]['origine'] !== 'settimanale') {
+            throw new RuntimeException('Il menu assegnato non compare su entrambi i plessi');
+        }
+    }
+    if ($service->menuDelGiorno('2026-10-15', $infanzia) !== []) {
+        throw new RuntimeException('Assegnazione applicata retroattivamente');
+    }
+    if ($service->menuDelGiorno('2026-10-20', $secondaria) !== []) {
+        throw new RuntimeException('Il modello non rispetta il calendario del plesso');
+    }
+
+    $nuovi = $giorni;
+    $nuovi['1'] = 'Primo: fusilli';
+    $repo->modifica($id, 'Settimana A aggiornata', $nuovi, '2026-10-26', 0);
+    $storico = $service->menuDelGiorno('2026-10-19', $infanzia);
+    if (count($storico) !== 1 || $storico[0]['descrizione'] !== $giorni['1']) {
+        throw new RuntimeException('La revisione ha riscritto un menu storico');
+    }
+    $futuro = $service->menuDelGiorno('2026-10-26', $infanzia);
+    if (count($futuro) !== 1 || $futuro[0]['descrizione'] !== 'Primo: fusilli') {
+        throw new RuntimeException('La revisione non vale dalle date future');
+    }
+
+    $secondo = $repo->crea('Settimana B', $standard,
+        ['1' => 'Menu B', '2' => '', '3' => '', '4' => '',
+         '5' => '', '6' => '', '7' => ''], '2026-10-26', 0);
+    $repo->assegna([$infanzia], $standard, $secondo, '2026-10-26', 0);
+    if ($service->menuDelGiorno('2026-10-26', $infanzia)[0]['descrizione'] !== 'Menu B' ||
+        $service->menuDelGiorno('2026-10-26', $secondaria)[0]['descrizione'] !== 'Primo: fusilli' ||
+        $service->menuDelGiorno('2026-10-19', $infanzia)[0]['descrizione'] !== $giorni['1']) {
+        throw new RuntimeException('Cambio di assegnazione ha modificato plessi o storia precedenti');
+    }
+
+    // Il menu del singolo giorno prevale, ma soltanto sulla combinazione scelta.
+    $giornaliero = new App\Repository\MenuGiornalieroRepository($pdo);
+    $giornaliero->salva($infanzia, $standard, '2026-10-26', 'Eccezione del 26 ottobre', null, null);
+    if ($service->menuDelGiorno('2026-10-26', $infanzia)[0]['descrizione'] !== 'Eccezione del 26 ottobre' ||
+        $service->menuDelGiorno('2026-10-26', $secondaria)[0]['descrizione'] !== 'Primo: fusilli') {
+        throw new RuntimeException('Eccezione giornaliera non isolata dal modello');
+    }
+
+    // La duplicazione è indipendente dall'originale ed eventualmente di altro tipo.
+    $copia = $service->salvaMenuSettimanale(null, 'Copia da modificare', $senza, $giorni, 0);
+    $nuovaCopia = $service->duplicaMenuSettimanale($copia, 'Copia senza glutine', $senza, 0);
+    if ($nuovaCopia === $copia || $repo->modello($nuovaCopia, '2099-01-01')['giorni']['1'] !== $giorni['1']) {
+        throw new RuntimeException('La duplicazione non è indipendente');
+    }
+    $service->salvaMenuSettimanale($nuovaCopia, 'Nuova copia', $senza,
+        ['1' => 'Pizza senza glutine'], 0);
+    if ($repo->modello($copia, '2099-01-01')['giorni']['1'] !== $giorni['1']) {
+        throw new RuntimeException('La modifica di una copia ha alterato l’originale');
+    }
+
+    // Blocca aggiornamenti manuali di giorni già trascorsi.
+    try {
+        $service->pubblicaMenu($infanzia, $standard, '2020-10-19', 'Cambio storico', null, 0);
+        throw new RuntimeException('Modifica di un giorno storico consentita');
+    } catch (App\Core\HttpException $e) {
+        if ($e->getCode() !== 422) throw $e;
+    }
+
+    echo "OK: modelli settimanali, duplicazione, plessi e tipologie isolate, override e storico immutato.\n";
+    $pdo->rollBack();
+} catch (Throwable $e) {
+    $pdo->rollBack();
+    throw $e;
+}
