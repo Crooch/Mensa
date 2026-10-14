@@ -71,7 +71,7 @@ final class MenuSettimanaleRepository extends Repository
             'menu_id' => $id,
             'valido_dal' => $dal,
             'giorni_json' => json_encode($giorni, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
-            'utente_id' => $autore,
+            'utente_id' => $autore > 0 ? $autore : null,
         ]);
     }
 
@@ -85,7 +85,7 @@ final class MenuSettimanaleRepository extends Repository
             foreach ($plessi as $plessoId) {
                 $this->inserisci('menu_settimanali_assegnazioni', [
                     'plesso_id' => (int) $plessoId, 'tipologia_menu_id' => $tipo,
-                    'menu_id' => $menuId, 'valido_dal' => $dal, 'utente_id' => $autore
+                    'menu_id' => $menuId, 'valido_dal' => $dal, 'utente_id' => $autore > 0 ? $autore : null
                 ]);
             }
             if ($transazione) $this->db->commit();
