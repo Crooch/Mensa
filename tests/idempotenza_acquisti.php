@@ -54,4 +54,24 @@ try {
         throw $e;
     }
 }
-echo "OK: acquisto ripetuto genera un solo movimento, saldo invariato e dati diversi rifiutati.\n";
+$chiaveRettifica = 'test-rettifica-idempotente-2026-002';
+$primaRettifica = $c->creditoService()->rettifica(
+    $genitore, $plesso, -2, 'Correzione sintetica in CI', $operatore, $chiaveRettifica
+);
+$secondaRettifica = $c->creditoService()->rettifica(
+    $genitore, $plesso, -2, 'Correzione sintetica in CI', $operatore, $chiaveRettifica
+);
+if ($primaRettifica !== $secondaRettifica) {
+    throw new RuntimeException('Rettifica ripetuta con movimento diverso.');
+}
+$pool = $c->crediti()->trovaPool($genitore, $plesso);
+if ((int) $pool['saldo'] !== 1) {
+    throw new RuntimeException('Saldo modificato due volte dalla rettifica.');
+}
+try {
+    $c->creditoService()->rettifica($genitore, $plesso, -3, 'Dati diversi', $operatore, $chiaveRettifica);
+    throw new RuntimeException('Token rettifica riutilizzato con dati diversi.');
+} catch (HttpException $e) {
+    if ($e->getCode() !== 422) throw $e;
+}
+echo "OK: acquisto e rettifica ripetuti non duplicano movimenti o variazioni di saldo.\n";
