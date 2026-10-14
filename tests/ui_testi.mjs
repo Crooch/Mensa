@@ -207,3 +207,23 @@ dialogoEscape.listener.cancel({ preventDefault() { prevenuto = true; } });
 assert.equal(prevenuto, true);
 assert.equal(await richiestaEscape, null);
 console.log('OK: motivazione obbligatoria, trim, conferma, annullamento ed Escape.');
+
+/* Select condivisi: icona non nativa centrata (Chrome, Safari, mobile)
+   e identica tra le diverse aree, senza modificare il valore o il picker. */
+const selettoriCss = css.slice(css.indexOf('/* Select condiviso:'));
+assert.ok(selettoriCss.startsWith('/* Select condiviso:'),
+    'Manca il componente select condiviso');
+assert.match(selettoriCss, /select:not\(\[multiple\]\):not\(\[size\]\)\s*\{[^}]*-webkit-appearance:\s*none/s);
+assert.match(selettoriCss, /select:not\(\[multiple\]\):not\(\[size\]\)\s*\{[^}]*appearance:\s*none/s);
+assert.match(selettoriCss, /background-image:\s*url\("data:image\/svg\+xml,/);
+assert.match(selettoriCss, /background-position:\s*right\s+\.85rem\s+center\s*!important/);
+assert.match(selettoriCss, /padding:\s*\.55rem\s+2\.65rem\s+\.55rem\s+\.75rem\s*!important/);
+assert.match(selettoriCss, /min-height:\s*46px/);
+assert.match(selettoriCss, /select:not\(\[multiple\]\):not\(\[size\]\):focus-visible/);
+for (const vista of ['scuola', 'catering', 'admin']) {
+    assert.match(readFileSync('src/View/' + vista + '.php', 'utf8'), /<select\b/,
+        'La regola comune deve coprire l\'area ' + vista);
+}
+assert.match(readFileSync('public/assets/js/operatore.js', 'utf8'), /<select\b/,
+    'I select dinamici operatore devono ereditare la stessa regola');
+console.log('OK: freccia select unica, centrata e accessibile in tutti i profili.');
