@@ -1,0 +1,19 @@
+name: PHP quality checks
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check PHP syntax
+        run: |
+          find src routes bin tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l bootstrap.php
+      - name: Calendar regression tests
+        run: php tests/calendario.php
