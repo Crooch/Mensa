@@ -31,12 +31,17 @@ async function chiamata(percorso, opzioni = {}) {
     if (opzioni.corpo !== undefined && !(opzioni.corpo instanceof FormData)) {
         intestazioni['Content-Type'] = 'application/json';
     }
-    const risposta = await fetch(BASE + percorso, {
-        method: opzioni.metodo || 'GET',
-        headers: intestazioni,
-        body: opzioni.corpo instanceof FormData ? opzioni.corpo
-            : (opzioni.corpo !== undefined ? JSON.stringify(opzioni.corpo) : undefined)
-    });
+    let risposta;
+    try {
+        risposta = await fetch(BASE + percorso, {
+            method: opzioni.metodo || 'GET',
+            headers: intestazioni,
+            body: opzioni.corpo instanceof FormData ? opzioni.corpo
+                : (opzioni.corpo !== undefined ? JSON.stringify(opzioni.corpo) : undefined)
+        });
+    } catch (errore) {
+        throw new Error('Impossibile collegarsi al servizio. Controlla la connessione e riprova.');
+    }
     let dati = null;
     try { dati = await risposta.json(); } catch (e) { dati = null; }
     if (risposta.status === 401 && percorso !== '/api/auth/login') {
@@ -114,6 +119,27 @@ const oggi = () => {
     return `${anno}-${mese}-${giorno}`;
 };
 const euro = (v) => (v === null || v === undefined ? '-' : Number(v).toFixed(2).replace('.', ',') + ' €');
+
+/** Testi per le persone: i codici tecnici delle API non devono apparire nelle schermate. */
+const nomeMovimento = (tipo) => ({
+    acquisto: 'Acquisto di buoni',
+    consumo_pasto: 'Pasto utilizzato',
+    rettifica_manuale: 'Correzione dei buoni'
+}[tipo] || String(tipo || '').replaceAll('_', ' '));
+const nomeRuolo = (ruolo) => ({
+    admin: 'Amministratore',
+    operatore: 'Operatore comunale',
+    scuola: 'Personale della scuola',
+    catering: 'Addetto alla mensa',
+    genitore: 'Genitore'
+}[ruolo] || String(ruolo || ''));
+const situazioneBuoni = (stato) => ({
+    verde: 'Regolare', giallo: 'Saldo da controllare', rosso: 'Ricarica consigliata'
+}[stato] || String(stato || ''));
+const esitoOperazione = (stato) => ({
+    ok: 'Completato', errore: 'Errore', in_corso: 'In corso', inviato: 'Inviato',
+    fallito: 'Non inviato'
+}[stato] || String(stato || '').replaceAll('_', ' '));
 const dataIt = (v) => (v ? v.split('-').reverse().join('/') : '-');
 const esc = (v) => (v === null || v === undefined ? '' : String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
 const badgeStato = (stato) => `<span class="badge-stato badge-${stato === 'presente' ? 'verde' : stato === 'assente' ? 'rosso' : 'neutro'}">${esc(stato || '-')}</span>`;
