@@ -39,6 +39,22 @@ final class PresenzaRepository extends Repository
         return $this->tutti($sql . ' ORDER BY am.data DESC, p.nome, cs.nome', $parametri);
     }
 
+    /** Registra ogni cambiamento con valore precedente e nuovo. */
+    public function registraAudit(int $bambinoId, string $data, string $operazione,
+                                  ?string $precedente, ?string $nuovo,
+                                  int $utenteId, ?string $motivazione = null): void
+    {
+        $this->inserisci('log_operazioni_presenze', [
+            'bambino_id' => $bambinoId,
+            'data' => $data,
+            'operazione' => $operazione,
+            'valore_precedente' => $precedente,
+            'valore_nuovo' => $nuovo,
+            'motivazione' => $motivazione,
+            'utente_id' => $utenteId,
+        ]);
+    }
+
     // ---------------- presenze giornaliere ----------------
 
     public function trovaPresenza(int $bambinoId, string $data): ?array
