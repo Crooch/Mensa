@@ -100,6 +100,18 @@ $servizio->pastaBiancoGenitore($bambino, $prossimoLunedi, false, $utente);
 $count = (int) $pdo->query("SELECT COUNT(*) FROM log_operazioni_presenze WHERE bambino_id={$bambino}")->fetchColumn();
 verifica($count === 4, 'richiesta e annullamento pasta registrati senza movimento economico');
 
+// Regressione: una dichiarazione tardiva preesistente non deve diventare
+// valida soltanto perche' il job viene eseguito dopo il cutoff.
+$pdo->exec("UPDATE presenze_giornaliere
+            SET dichiarazione_genitore='assente', fuori_cutoff=1, stato_effettivo='presente'
+            WHERE bambino_id={$bambino} AND data='{$prossimoLunedi}'");
+$servizio->congelaPlesso($plesso, $prossimoLunedi);
+$statoCongelato = $pdo->query(
+    "SELECT stato_effettivo FROM presenze_giornaliere
+     WHERE bambino_id={$bambino} AND data='{$prossimoLunedi}'"
+)->fetchColumn();
+verifica($statoCongelato === 'presente', 'congelamento ignora dichiarazioni tardive pregresse');
+
 $oggi = date('Y-m-d');
 $giorno = (int) date('N');
 if ($giorno <= 5) {
