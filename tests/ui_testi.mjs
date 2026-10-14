@@ -154,3 +154,56 @@ for (const vista of ['genitore', 'scuola', 'catering', 'admin']) {
 }
 assert.match(readFileSync('public/assets/js/operatore.js', 'utf8'), /type="date"/);
 console.log('OK: selettori data/mese/ora condivisi tra tutti i profili e modali, responsive.');
+
+/* Modale motivazione: validazione reale, annullamento e testo ripulito. */
+const estrattoUI = common.slice(common.indexOf('const UI ='), common.indexOf('\n};', common.indexOf('const UI =')) + 3);
+const modaliAperti = [];
+const nodoFinto = () => ({
+    value: '', hidden: true, attributi: {}, listener: {}, testo: '', focusCount: 0,
+    setAttribute(nome, valore) { this.attributi[nome] = valore; },
+    removeAttribute(nome) { delete this.attributi[nome]; },
+    addEventListener(nome, cb) { this.listener[nome] = cb; },
+    focus() { this.focusCount++; },
+    remove() { this.rimosso = true; }
+});
+const creaModale = () => {
+    const selettori = Object.fromEntries([
+        'h2', '.motivo-dialogo__testo', 'textarea', '.motivo-dialogo__errore',
+        '[data-annulla]', '.motivo-dialogo__chiudi', 'form'
+    ].map(k => [k, nodoFinto()]));
+    const dialogo = {
+        ...nodoFinto(), selettori,
+        querySelector(selettore) { return selettori[selettore]; },
+        showModal() { this.aperto = true; },
+        close() { this.aperto = false; }
+    };
+    modaliAperti.push(dialogo);
+    return dialogo;
+};
+const uiModale = vm.runInNewContext(estrattoUI + '\nUI', {
+    document: { createElement: creaModale, body: { appendChild() {} } }
+});
+const richiestaVuota = uiModale.chiediMotivazione('Segna assente', 'Motivo obbligatorio');
+const dialogoVuoto = modaliAperti.at(-1);
+assert.equal(dialogoVuoto.aperto, true);
+assert.equal(dialogoVuoto.selettori['textarea'].focusCount, 1);
+dialogoVuoto.selettori['form'].listener.submit({ preventDefault() {} });
+assert.equal(dialogoVuoto.selettori['.motivo-dialogo__errore'].hidden, false);
+assert.equal(dialogoVuoto.selettori['textarea'].attributi['aria-invalid'], 'true');
+assert.equal(dialogoVuoto.aperto, true, 'Non deve chiudere il modale con campo vuoto');
+dialogoVuoto.selettori['textarea'].value = '  Non si è presentato  ';
+dialogoVuoto.selettori['textarea'].listener.input();
+dialogoVuoto.selettori['form'].listener.submit({ preventDefault() {} });
+assert.equal(await richiestaVuota, 'Non si è presentato');
+assert.equal(dialogoVuoto.rimosso, true);
+const richiestaAnnullata = uiModale.chiediMotivazione('Correzione scuola');
+const dialogoAnnullato = modaliAperti.at(-1);
+dialogoAnnullato.selettori['[data-annulla]'].listener.click();
+assert.equal(await richiestaAnnullata, null);
+const richiestaEscape = uiModale.chiediMotivazione('Correzione scuola');
+const dialogoEscape = modaliAperti.at(-1);
+let prevenuto = false;
+dialogoEscape.listener.cancel({ preventDefault() { prevenuto = true; } });
+assert.equal(prevenuto, true);
+assert.equal(await richiestaEscape, null);
+console.log('OK: motivazione obbligatoria, trim, conferma, annullamento ed Escape.');
