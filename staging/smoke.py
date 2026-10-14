@@ -33,6 +33,15 @@ giorno = max(prossimo_lunedi, dt.date(2026, 10, 19)).isoformat()
 genitore = token("genitore.staging")
 dashboard = call("/api/genitore/dashboard", token=genitore)
 figlio = int(dashboard["figli"][0]["id"])
+calendario_famiglia = call(
+    "/api/genitore/figli/" + str(figlio) + "/calendario?anno=2026&mese=10", token=genitore)
+giorni = {x["data"]: x for x in calendario_famiglia["giorni"]}
+assert len(giorni) == 31, "Il calendario deve contenere tutte le date del mese"
+assert giorni["2026-10-19"]["servizio_mensa"]["attivo"] is True
+assert giorni["2026-10-20"]["servizio_mensa"]["attivo"] is True
+assert giorni["2026-10-17"]["servizio_mensa"]["attivo"] is False
+assert giorni["2026-10-17"]["stato_effettivo"] is None
+print("OK: calendario familiare completo, giorni attivi e giorni senza mensa distinti")
 saldo_iniziale = dashboard["crediti"][0]["saldo"]
 call("/api/genitore/presenze/dichiarazione", {
     "bambino_id": figlio, "data": giorno, "stato": "assente"
