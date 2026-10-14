@@ -312,6 +312,7 @@ final class PresenzaService
             'congelato'              => (int) ($record['congelato'] ?? 0),
             'cutoff_orario'          => substr((string) $plesso['cutoff_orario'], 0, 5),
             'oltre_cutoff'           => $this->oltreCutoff($plesso, $data),
+            'servizio_mensa'         => $this->calendario->previsto((int) $bambino['plesso_id'], $data),
         ];
     }
 
