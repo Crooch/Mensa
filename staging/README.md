@@ -79,3 +79,43 @@ I test in staging non verificano automaticamente la corrispondenza fra
 i **nomi e gli ID dei plessi reali** e le due regole iniziali nel database
 del Comune. Prima del rilascio occorre un controllo read-only delle anagrafiche
 dei plessi e delle sezioni di produzione.
+
+## Collaudo UX/UI — pacchetti A, B, C, D (14/10/2026)
+
+Piano e decisioni: [docs/PIANO_UX_UI_A_D_2026-10-14.md](../docs/PIANO_UX_UI_A_D_2026-10-14.md).
+Le implementazioni del pacchetto E (stampa cucina, tour avanzati, ecc.) restano escluse.
+
+Per aggiornare lo staging **senza cancellare le prove**:
+
+```bash
+cd ~/Projects/mensa-staging
+git pull --ff-only origin dev
+docker compose -f compose.staging.yml up --build -d --wait
+python3 staging/smoke.py
+```
+
+Non utilizzare `down -v`: elimina il volume contenente i dati sintetici.
+
+### Verifiche browser consigliate
+1. **Genitore:** aprire ottobre 2026, controllare 19/10 (mensa), sabato 17/10 (nessuna mensa), martedì 20/10 (infanzia attiva); selezionare il 19, segnalare assenza, verificare feedback e ripristinare. Richiedere e annullare pasta in bianco per la stessa data. Provare a cambiare data nel riepilogo e verificare che i comandi seguano il giorno selezionato.
+2. **Scuola:** cambiare rapidamente classe/data; verificare che riepilogo e tabella corrispondano sempre al filtro scelto e che nessuna modifica sia possibile su dati precedenti. Provare una correzione motivata in un giorno futuro.
+3. **Catering:** alternare rapidamente il 19 e 20 ottobre e controllare la data/ora visualizzata, i conteggi provvisori e la sezione D a zero pasti. Verificare che non compaiano saldi finanziari.
+4. **Operatore:** aprire una famiglia e verificare le conferme esplicite per acquisti/rettifiche. Tutti i test economici modificano **solo dati fittizi dello staging**. Controllare che click ripetuti non duplicano movimenti.
+5. **Admin:** controllare riepilogo scuole, calendari e accessibilità dei pulsanti. Non eseguire il conteggio finanziario manuale nel collaudo UI se non con uno scenario dedicato e isolato.
+6. Ripetere almeno Genitore e Scuola da smartphone o con finestra stretta (375 px), usando anche il tabulatore e i tasti freccia per cambiare scheda.
+
+### Modifiche del modello dati
+`005_idempotenza_acquisti.sql` aggiunge `richiesta_id` nullable e un vincolo unico ai movimenti.
+I movimenti esistenti restano invariati. Il client usa un token dedicato per
+ogni modulo di acquisto o rettifica; lo stesso token impedisce doppi addebiti
+in caso di ripetizione involontaria o connessione instabile.
+
+I test automatici verificano la migration due volte, acquistano e rettificano
+buoni di prova con token ripetuto, e confermano che lo stesso movimento
+non venga duplicato.
+
+### Nessun deploy automatico
+Questa branch non è direttamente pubblicata sulla VPS. Prima del rilascio reale
+servono backup verificato, piano di rollback, autorizzazione del Comune e
+collaudo manuale per ruolo. Lo scheduler di produzione resta spento finché
+non viene espressamente deciso di attivarlo.
