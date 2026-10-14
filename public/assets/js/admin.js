@@ -19,7 +19,7 @@ async function caricaPlessi() {
             <td>${esc(p.nome)}</td><td>${euro(p.tariffa_base_pasto)}</td><td>${p.fido_buoni}</td>
             <td>${esc(String(p.cutoff_orario).slice(0, 5))}</td><td>${esc(p.dirigente_email || '-')}</td>
             <td><button class="btn-azione" data-modifica="${p.id}" data-testid="plesso-modifica-${p.id}">Modifica</button>
-                <button class="btn-azione" data-cancella="${p.id}" data-testid="plesso-cancella-${p.id}">Cancella</button></td>
+                <button class="btn-azione" data-cancella="${p.id}" data-testid="plesso-cancella-${p.id}">Disattiva scuola</button></td>
         </tr>`).join('');
 
     document.querySelectorAll('[data-modifica]').forEach((b) => b.addEventListener('click', () => {
@@ -33,9 +33,9 @@ async function caricaPlessi() {
         document.getElementById('plesso-protocollo').value = p.email_protocollo || '';
     }));
     document.querySelectorAll('[data-cancella]').forEach((b) => b.addEventListener('click', async () => {
-        if (!confirm('Cancellazione logica del plesso: gli storici restano consultabili. Confermi?')) return;
+        if (!confirm('Vuoi disattivare questa scuola? Non potrà più essere usata per nuovi pasti. Le informazioni precedenti saranno conservate.')) return;
         await API.del('/api/admin/plessi/' + b.dataset.cancella);
-        avviso('Plesso cancellato logicamente.');
+        avviso('Scuola disattivata. Lo storico è conservato.');
         caricaPlessi();
     }));
 
@@ -58,7 +58,7 @@ document.getElementById('form-plesso').addEventListener('submit', async (e) => {
     try {
         if (id) await API.put('/api/admin/plessi/' + id, corpo);
         else await API.post('/api/admin/plessi', corpo);
-        avviso('Plesso salvato.');
+        avviso('Impostazioni della scuola salvate.');
         document.getElementById('form-plesso').reset();
         document.getElementById('plesso-id').value = '';
         caricaPlessi();
@@ -88,12 +88,12 @@ async function caricaCalendario() {
             <td>${Number(e.servizio_attivo) === 1 ? 'Apertura' : 'Chiusura'}</td>
             <td>${esc(e.motivazione)}</td>
             <td><button class="btn-azione" data-cancella-eccezione="${esc(e.giorno)}">Elimina</button></td>
-        </tr>`).join('') || '<tr><td colspan="4" class="vuoto">Nessuna eccezione.</td></tr>';
+        </tr>`).join('') || '<tr><td colspan="4" class="vuoto">Nessun giorno modificato rispetto al calendario normale.</td></tr>';
     corpo.querySelectorAll('[data-cancella-eccezione]').forEach((btn) => btn.addEventListener('click', async () => {
-        if (!confirm('Eliminare questa eccezione al calendario?')) return;
+        if (!confirm('Vuoi togliere questa modifica? Per quel giorno tornerà a valere il calendario normale.')) return;
         try {
             await API.del('/api/admin/calendari/' + id + '/eccezioni/' + btn.dataset.cancellaEccezione);
-            avviso('Eccezione eliminata.');
+            avviso('Modifica cancellata. Ora vale il calendario normale.');
             await caricaCalendario();
         } catch (err) { avviso(err.message, 'errore'); }
     }));
@@ -113,7 +113,7 @@ document.getElementById('form-calendario').addEventListener('submit', async (ev)
     giorniCalendario.forEach((g) => { dati[g] = document.getElementById('calendario-' + g).checked ? 1 : 0; });
     try {
         await API.put('/api/admin/calendari/' + id, dati);
-        avviso('Calendario salvato.');
+        avviso('Giorni della mensa salvati per la scuola selezionata.');
         await caricaCalendario();
     } catch (err) { avviso(err.message, 'errore'); }
 });
@@ -127,7 +127,7 @@ document.getElementById('form-eccezione-calendario').addEventListener('submit', 
             servizio_attivo: Number(document.getElementById('eccezione-attivo').value),
             motivazione: document.getElementById('eccezione-motivazione').value.trim()
         });
-        avviso('Eccezione salvata.');
+        avviso('Modifica al calendario salvata per la data selezionata.');
         document.getElementById('form-eccezione-calendario').reset();
         await caricaCalendario();
     } catch (err) { avviso(err.message, 'errore'); }
@@ -151,7 +151,7 @@ document.getElementById('calendario-verifica').addEventListener('click', async (
             calendario_non_configurato: 'calendario da configurare'
         };
         document.getElementById('calendario-verifica-esito').textContent =
-            (esito.attivo ? 'Servizio attivo' : 'Servizio NON attivo') +
+            (esito.attivo ? 'Sì, la mensa è prevista' : 'No, la mensa non è prevista') +
             ' — ' + (motivi[esito.motivo] || esito.motivo);
     } catch (err) { avviso(err.message, 'errore'); }
 });
@@ -161,11 +161,14 @@ async function caricaClassi() {
     const elenco = await API.get('/api/admin/classi');
     document.getElementById('classi-corpo').innerHTML = elenco.map((c) => `
         <tr><td>${esc(c.plesso_nome)}</td><td>${esc(c.nome)}</td><td>${esc(c.anno_scolastico)}</td>
-        <td><button class="btn-azione" data-cancella-classe="${c.id}" data-testid="classe-cancella-${c.id}">Cancella</button></td></tr>`).join('');
+        <td><button class="btn-azione" data-cancella-classe="${c.id}" data-testid="classe-cancella-${c.id}">Disattiva classe</button></td></tr>`).join('');
     document.querySelectorAll('[data-cancella-classe]').forEach((b) => b.addEventListener('click', async () => {
-        await API.del('/api/admin/classi/' + b.dataset.cancellaClasse);
-        avviso('Classe cancellata logicamente.');
-        caricaClassi();
+        if (!confirm('Vuoi disattivare questa classe? Le assegnazioni precedenti rimarranno nello storico.')) return;
+        try {
+            await API.del('/api/admin/classi/' + b.dataset.cancellaClasse);
+            avviso('Classe disattivata. Lo storico resta disponibile.');
+            caricaClassi();
+        } catch (err) { avviso(err.message, 'errore'); }
     }));
 }
 
@@ -188,11 +191,14 @@ async function caricaTipologie() {
     const elenco = await API.get('/api/admin/tipologie');
     document.getElementById('tipologie-corpo').innerHTML = elenco.map((t) => `
         <tr><td>${esc(t.nome)}</td>
-        <td><button class="btn-azione" data-cancella-tipologia="${t.id}" data-testid="tipologia-cancella-${t.id}">Cancella</button></td></tr>`).join('');
+        <td><button class="btn-azione" data-cancella-tipologia="${t.id}" data-testid="tipologia-cancella-${t.id}">Disattiva tipo di menu</button></td></tr>`).join('');
     document.querySelectorAll('[data-cancella-tipologia]').forEach((b) => b.addEventListener('click', async () => {
-        await API.del('/api/admin/tipologie/' + b.dataset.cancellaTipologia);
-        avviso('Tipologia cancellata logicamente.');
-        caricaTipologie();
+        if (!confirm('Vuoi disattivare questo tipo di menu? Prima verifica che non sia necessario per altri bambini.')) return;
+        try {
+            await API.del('/api/admin/tipologie/' + b.dataset.cancellaTipologia);
+            avviso('Tipo di menu disattivato.');
+            caricaTipologie();
+        } catch (err) { avviso(err.message, 'errore'); }
     }));
 }
 
@@ -200,7 +206,7 @@ document.getElementById('form-tipologia').addEventListener('submit', async (e) =
     e.preventDefault();
     try {
         await API.post('/api/admin/tipologie', { nome: document.getElementById('tipologia-nome').value });
-        avviso('Tipologia creata.');
+        avviso('Nuovo tipo di menu aggiunto.');
         document.getElementById('tipologia-nome').value = '';
         caricaTipologie();
     } catch (err) { avviso(err.message, 'errore'); }
@@ -294,10 +300,10 @@ document.getElementById('btn-email-prova').addEventListener('click', async () =>
 async function caricaUtenti() {
     const elenco = await API.get('/api/admin/utenti');
     document.getElementById('utenti-corpo').innerHTML = elenco.map((u) => `
-        <tr><td>${esc(u.username)}</td><td>${esc(u.ruolo)}</td><td>${esc(u.plesso_nome || '-')}</td>
+        <tr><td>${esc(u.username)}</td><td>${esc(nomeRuolo(u.ruolo))}</td><td>${esc(u.plesso_nome || '-')}</td>
         <td>${Number(u.attivo) === 1 ? 'sì' : 'no'}</td>
         <td><button class="btn-azione" data-toggle-utente="${u.id}" data-attivo="${u.attivo}" data-testid="utente-toggle-${u.id}">${Number(u.attivo) === 1 ? 'Disattiva' : 'Attiva'}</button>
-            <button class="btn-azione" data-password="${u.id}" data-testid="utente-password-${u.id}">Password</button></td></tr>`).join('');
+            <button class="btn-azione" data-password="${u.id}" data-testid="utente-password-${u.id}">Cambia password</button></td></tr>`).join('');
     document.querySelectorAll('[data-toggle-utente]').forEach((b) => b.addEventListener('click', async () => {
         await API.put('/api/admin/utenti/' + b.dataset.toggleUtente, { attivo: Number(b.dataset.attivo) === 1 ? 0 : 1 });
         caricaUtenti();
@@ -322,7 +328,7 @@ document.getElementById('form-utente').addEventListener('submit', async (e) => {
             password: document.getElementById('ut-password').value,
             plesso_id: plessoId ? Number(plessoId) : null
         });
-        avviso('Utenza creata.');
+        avviso('Nuovo accesso creato.');
         document.getElementById('form-utente').reset();
         caricaUtenti();
     } catch (err) { avviso(err.message, 'errore'); }
@@ -333,25 +339,29 @@ async function caricaEsecuzioni() {
     const elenco = await API.get('/api/job/esecuzioni');
     document.getElementById('job-corpo').innerHTML = elenco.map((e) => `
         <tr><td>${dataIt(e.data)}</td><td>${esc(e.plesso_nome)}</td>
-        <td><span class="badge-stato badge-${e.esito === 'ok' ? 'verde' : e.esito === 'errore' ? 'rosso' : 'giallo'}">${esc(e.esito)}</span></td>
+        <td><span class="badge-stato badge-${e.esito === 'ok' ? 'verde' : e.esito === 'errore' ? 'rosso' : 'giallo'}">${esc(esitoOperazione(e.esito))}</span></td>
         <td class="nota">${esc(e.dettaglio || '')}</td></tr>`).join('')
         || '<tr><td colspan="4" class="vuoto">Nessuna esecuzione registrata.</td></tr>';
 }
 
 document.getElementById('btn-scheduler').addEventListener('click', async () => {
+    if (!confirm('ATTENZIONE: questa operazione può confermare i pasti di oggi e scalare i buoni delle famiglie. Non è una simulazione. Vuoi eseguire il conteggio per tutte le scuole?')) return;
     try {
         const esito = await API.post('/api/job/scheduler', {});
         document.getElementById('job-esito').textContent = JSON.stringify(esito, null, 2);
-        avviso('Scheduler eseguito.');
+        avviso('Conteggio di tutte le scuole eseguito. Controlla il risultato qui sotto.');
         caricaEsecuzioni();
     } catch (err) { avviso(err.message, 'errore'); }
 });
 
 document.getElementById('btn-job-plesso').addEventListener('click', async () => {
+    const scelta = document.getElementById('job-plesso');
+    const nomeScuola = scelta.options[scelta.selectedIndex]?.text || 'la scuola selezionata';
+    if (!confirm('ATTENZIONE: il conteggio di ' + nomeScuola + ' può confermare i pasti e scalare i buoni delle famiglie. Non è una simulazione. Vuoi continuare?')) return;
     try {
         const esito = await API.post('/api/job/plessi/' + document.getElementById('job-plesso').value, {});
         document.getElementById('job-esito').textContent = JSON.stringify(esito, null, 2);
-        avviso('Job eseguito per il plesso selezionato.');
+        avviso('Conteggio della scuola eseguito. Controlla il risultato qui sotto.');
         caricaEsecuzioni();
     } catch (err) { avviso(err.message, 'errore'); }
 });
