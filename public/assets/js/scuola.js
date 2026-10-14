@@ -22,10 +22,10 @@ async function caricaGiornata() {
 
     const banner = document.getElementById('stato-cutoff');
     banner.className = 'banner ' + (vista.oltre_cutoff ? 'banner--rosso' : 'banner--verde');
-    banner.innerHTML = `Cutoff plesso <strong>${esc(vista.cutoff_orario)}</strong> · ${vista.oltre_cutoff
-        ? 'cutoff superato: puoi confermare un pasto effettivamente erogato a un alunno previsto assente. Gli altri cambiamenti sono solo tracciati, senza rimborsi automatici.'
-        : 'prima del cutoff: le correzioni modificano il conteggio dei pasti.'}
-        ${vista.assenza_massa ? `<br>Assenza di massa registrata: <strong>${esc(vista.assenza_massa.motivo)}</strong>` : ''}`;
+    banner.innerHTML = `Orario limite per modificare i pasti: <strong>${esc(vista.cutoff_orario)}</strong> · ${vista.oltre_cutoff
+        ? 'l’orario limite è passato. Puoi confermare un pasto realmente consumato da un bambino che risultava assente. Le altre modifiche vengono registrate, ma non restituiscono automaticamente i buoni.'
+        : 'puoi ancora modificare il numero dei pasti previsti.'}
+        ${vista.assenza_massa ? `<br>Tutta la classe non mangerà a mensa. Motivo: <strong>${esc(vista.assenza_massa.motivo)}</strong>` : ''}`;
 
     document.getElementById('presenze-corpo').innerHTML = vista.alunni.map((a) => `
         <tr data-testid="riga-alunno-${a.bambino_id}">
@@ -34,15 +34,15 @@ async function caricaGiornata() {
             <td>${badgeStato(a.default_calcolato)}</td>
             <td>${a.dichiarazione_genitore ? badgeStato(a.dichiarazione_genitore) : '—'}</td>
             <td>${a.override_scuola ? badgeStato(a.override_scuola) + '<br><span class="nota">' + esc(a.override_motivazione || '') + '</span>' : '—'}</td>
-            <td>${badgeStato(a.stato_effettivo)} ${Number(a.fuori_cutoff) === 1 ? '<span class="badge-stato badge-giallo">fuori cutoff</span>' : ''}</td>
+            <td>${badgeStato(a.stato_effettivo)} ${Number(a.fuori_cutoff) === 1 ? '<span class="badge-stato badge-giallo">modifica dopo l’orario limite</span>' : ''}</td>
             <td>
-                <button class="btn-azione" data-override="${a.bambino_id}" data-stato="presente" data-testid="override-presente-${a.bambino_id}">Presente</button>
-                <button class="btn-azione" data-override="${a.bambino_id}" data-stato="assente" data-testid="override-assente-${a.bambino_id}">Assente</button>
+                <button class="btn-azione" data-override="${a.bambino_id}" data-stato="presente" data-testid="override-presente-${a.bambino_id}">Conferma pasto</button>
+                <button class="btn-azione" data-override="${a.bambino_id}" data-stato="assente" data-testid="override-assente-${a.bambino_id}">Segna assente</button>
             </td>
         </tr>`).join('') || '<tr><td colspan="7" class="vuoto">Nessun alunno assegnato a questa classe nella data indicata.</td></tr>';
 
     document.querySelectorAll('[data-override]').forEach((b) => b.addEventListener('click', async () => {
-        const motivazione = prompt('Motivazione dell\'override (obbligatoria):');
+        const motivazione = prompt('Perché stai modificando la presenza? Scrivi il motivo:');
         if (!motivazione) return;
         try {
             const esito = await API.post('/api/scuola/presenze/override', {
@@ -55,7 +55,7 @@ async function caricaGiornata() {
                 pasto_contabilizzato: 'Pasto confermato e contabilizzato una sola volta.',
                 presenza_confermata: 'Presenza confermata. Nessun doppio addebito.',
                 registrato_senza_effetto: 'Segnalazione tracciata: nessuna modifica economica.',
-                applicato: 'Presenza aggiornata prima del cutoff.'
+                applicato: 'Presenza aggiornata entro l’orario limite.'
             };
             avviso(messaggi[esito.effetto] || 'Correzione registrata.', 'ok');
             caricaGiornata();
@@ -68,7 +68,7 @@ async function caricaAssenze() {
     document.getElementById('assenze-corpo').innerHTML = elenco.map((a) => `
         <tr><td>${dataIt(a.data)}</td><td>${esc(a.plesso_nome)}</td><td>${esc(a.classe_nome)}</td>
         <td>${esc(a.motivo)}</td><td>${esc(a.inserita_da || '-')}</td></tr>`).join('')
-        || '<tr><td colspan="5" class="vuoto">Nessuna assenza di massa registrata.</td></tr>';
+        || '<tr><td colspan="5" class="vuoto">Nessuna giornata con assenza dell’intera classe registrata.</td></tr>';
 }
 
 document.getElementById('btn-carica').addEventListener('click', caricaGiornata);
@@ -82,7 +82,7 @@ document.getElementById('form-assenza').addEventListener('submit', async (e) => 
             data: document.getElementById('am-data').value,
             motivo: document.getElementById('am-motivo').value
         });
-        avviso('Assenza di massa registrata: i default della giornata sono aggiornati.');
+        avviso('Assenza dell’intera classe registrata. I pasti previsti sono stati aggiornati, tenendo conto delle comunicazioni delle famiglie.');
         document.getElementById('am-motivo').value = '';
         caricaAssenze();
     } catch (err) { avviso(err.message, 'errore'); }
