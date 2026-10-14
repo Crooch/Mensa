@@ -104,7 +104,15 @@ function abilitaSchede(alCambio) {
     });
 }
 
-const oggi = () => new Date().toISOString().slice(0, 10);
+// La data operativa deve seguire il calendario locale (Europe/Rome):
+// toISOString() usa UTC e nelle prime ore del mattino puo' restituire ieri.
+const oggi = () => {
+    const data = new Date();
+    const anno = data.getFullYear();
+    const mese = String(data.getMonth() + 1).padStart(2, '0');
+    const giorno = String(data.getDate()).padStart(2, '0');
+    return `${anno}-${mese}-${giorno}`;
+};
 const euro = (v) => (v === null || v === undefined ? '-' : Number(v).toFixed(2).replace('.', ',') + ' €');
 const dataIt = (v) => (v ? v.split('-').reverse().join('/') : '-');
 const esc = (v) => (v === null || v === undefined ? '' : String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
