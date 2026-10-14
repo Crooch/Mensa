@@ -25,6 +25,39 @@ infanzia = next(x for x in report["plessi"] if x["plesso_id"] == 1)
 sezioni = {x["classe_nome"]: int(x["pasti"]) for x in infanzia["sezioni"]}
 assert set(sezioni) == {"Sezione A", "Sezione B", "Sezione C", "Sezione D"}
 assert sezioni["Sezione D"] == 0
+
+# Test regressione: mensa dell'infanzia dal 19/10, non dal 15/10.
+giorno_prima = "2026-10-15"
+scuola_prima = token("scuola.infanzia.staging")
+classe_a = next(c for c in call("/api/scuola/classi", token=scuola_prima)
+                if c["nome"] == "Sezione A")
+giornata_prima = call("/api/scuola/classi/" + str(classe_a["id"]) +
+                      "/giornata?data=" + giorno_prima, token=scuola_prima)
+assert giornata_prima["servizio_mensa"] == {
+    "attivo": False, "motivo": "servizio_non_avviato"
+}, "Il 15 ottobre il servizio deve risultare non iniziato"
+assert len(giornata_prima["alunni"]) == 2
+assert all(a["stato_effettivo"] is None and a["default_calcolato"] is None
+           for a in giornata_prima["alunni"]), "Nessun pasto previsto prima dell'avvio"
+assert call("/api/catering/report?data=" + giorno_prima, token=catering)["totale_pasti"] == 0
+try:
+    call("/api/scuola/presenze/override", {
+        "bambino_id": int(giornata_prima["alunni"][0]["bambino_id"]),
+        "data": giorno_prima, "stato": "presente",
+        "motivazione": "Test: nessun pasto prima dell'avvio"
+    }, token=scuola_prima)
+    raise AssertionError("Correzione consentita in giornata senza servizio")
+except urllib.error.HTTPError as exc:
+    assert exc.code == 422, "Le modifiche in giorni senza mensa devono essere rifiutate"
+assert all(a["stato_effettivo"] is None
+           for a in call("/api/scuola/classi/" + str(classe_a["id"]) +
+                         "/giornata?data=" + giorno_prima, token=scuola_prima)["alunni"])
+
+giornata_attiva = call("/api/scuola/classi/" + str(classe_a["id"]) +
+                       "/giornata?data=2026-10-19", token=scuola_prima)
+assert giornata_attiva["servizio_mensa"]["attivo"] is True
+assert any(a["stato_effettivo"] == "presente" for a in giornata_attiva["alunni"])
+print("OK: Scuola 15/10 senza servizio, niente pasti o correzioni; 19/10 attivo.")
 print("OK: login, calendario, report A-B-C-D con sezione D vuota")
 
 # Scenario genitore -> catering -> saldi con una data futura di mensa.
@@ -34,6 +67,13 @@ giorno = max(prossimo_lunedi, dt.date(2026, 10, 19)).isoformat()
 genitore = token("genitore.staging")
 dashboard = call("/api/genitore/dashboard", token=genitore)
 figlio = int(dashboard["figli"][0]["id"])
+stato_prima = call("/api/genitore/figli/" + str(figlio) +
+                   "/giornata?data=" + giorno_prima, token=genitore)
+assert stato_prima["servizio_mensa"]["motivo"] == "servizio_non_avviato"
+assert stato_prima["stato_effettivo"] is None
+assert stato_prima["default_calcolato"] is None
+assert stato_prima["pasta_in_bianco"] is False
+print("OK: Genitore 15/10 senza pasto, in coerenza con Scuola e Catering.")
 calendario_famiglia = call(
     "/api/genitore/figli/" + str(figlio) + "/calendario?anno=2026&mese=10", token=genitore)
 giorni = {x["data"]: x for x in calendario_famiglia["giorni"]}
