@@ -85,9 +85,13 @@ async function caricaGiornata() {
         <tr data-testid="riga-alunno-${a.bambino_id}">
             <td data-label="Alunno">${esc(a.cognome)} ${esc(a.nome)}</td>
             <td data-label="Menu">${esc(a.tipologia_nome)}</td>
-            <td data-label="Comunicazione famiglia">${servizioAttivo && a.dichiarazione_genitore ? badgePastoScuola(a.dichiarazione_genitore) : '<span class="scuola-senza-modifica">Nessuna</span>'}</td>
+            <td data-label="Comunicazione famiglia">${servizioAttivo && a.dichiarazione_genitore
+                ? '<div class="scuola-correzione">' + badgePastoScuola(a.dichiarazione_genitore) +
+                    (classeInGita ? '<small>Non applicata: gita</small>' : '') + '</div>'
+                : '<span class="scuola-senza-modifica">Nessuna</span>'}</td>
             <td data-label="Correzione scuola">${servizioAttivo && a.override_scuola ? '<div class="scuola-correzione">' + badgePastoScuola(a.override_scuola) +
                 (a.override_motivazione ? '<small>Motivo: ' + esc(a.override_motivazione) + '</small>' : '') +
+                (classeInGita ? '<small>Non applicata: gita</small>' : '') +
                 '</div>' : '<span class="scuola-senza-modifica">Nessuna</span>'}</td>
             <td data-label="Stato del pasto"><div class="scuola-stato-pasto">${badgePastoScuola(a.stato_effettivo)} ${servizioAttivo && Number(a.fuori_cutoff) === 1 ? '<small>Modifica dopo il limite</small>' : ''}</div></td>
             <td data-label="Azioni">
