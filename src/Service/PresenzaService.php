@@ -383,16 +383,56 @@ final class PresenzaService
         ];
     }
 
-    /** Calendario mensile di un bambino con dettaglio delle tre fonti. */
+    /**
+     * Calendario completo del mese, anche quando non esistono presenze registrate.
+     * NON scrive sul database. Una giornata passata senza record resta "non
+     * disponibile": non sarebbe corretto mostrarla come pasto consumato.
+     */
     public function calendarioBambino(int $bambinoId, int $anno, int $mese): array
     {
-        $inizio = sprintf('%04d-%02d-01', $anno, $mese);
-        $fine = date('Y-m-t', strtotime($inizio));
-        $giorni = [];
-        foreach ($this->presenze->calendarioBambino($bambinoId, $inizio, $fine) as $riga) {
-            $giorni[$riga['data']] = $riga;
+        if ($anno < 2000 || $anno > 2100 || $mese < 1 || $mese > 12) {
+            throw HttpException::nonValido('Indica un mese e un anno validi');
         }
-        return ['data_da' => $inizio, 'data_a' => $fine, 'giorni' => array_values($giorni)];
+        $inizio = sprintf('%04d-%02d-01', $anno, $mese);
+        $fine = (new \DateTimeImmutable($inizio))->format('Y-m-t');
+        $salvati = [];
+        foreach ($this->presenze->calendarioBambino($bambinoId, $inizio, $fine) as $riga) {
+            $salvati[$riga['data']] = $riga;
+        }
+        $oggi = date('Y-m-d');
+        $giorni = [];
+        for ($giorno = new \DateTimeImmutable($inizio); $giorno->format('Y-m-d') <= $fine; $giorno = $giorno->modify('+1 day')) {
+            $data = $giorno->format('Y-m-d');
+            $assegnazione = $this->assegnazioni->attivaAllaData($bambinoId, $data);
+            $plessoId = $assegnazione !== null ? (int) $assegnazione['plesso_id'] : null;
+            $servizio = $plessoId !== null ? $this->calendario->previsto($plessoId, $data)
+                : ['attivo' => false, 'motivo' => 'nessuna_classe'];
+            $registrato = $salvati[$data] ?? null;
+            $attivo = $servizio['attivo'] === true;
+            $default = $attivo ? ($registrato['default_calcolato'] ?? $this->defaultCalcolato($bambinoId, $data)) : null;
+            $stato = $attivo && ($registrato !== null || $data >= $oggi)
+                ? ($registrato['stato_effettivo'] ?? $default) : null;
+            $modificabile = $attivo && $data >= $oggi;
+            if ($modificabile && $data === $oggi) {
+                $plesso = $this->plessi->trova($plessoId);
+                $modificabile = !$this->oltreCutoff($plesso, $data)
+                    && ($registrato === null || (int) $registrato['congelato'] !== 1);
+            }
+            $giorni[] = [
+                'data' => $data,
+                'servizio_mensa' => $servizio,
+                'modificabile' => $modificabile,
+                'stato_effettivo' => $stato,
+                'default_calcolato' => $default,
+                'dichiarazione_genitore' => $registrato['dichiarazione_genitore'] ?? null,
+                'override_scuola' => $registrato['override_scuola'] ?? null,
+                'override_motivazione' => $registrato['override_motivazione'] ?? null,
+                'pasta_in_bianco' => (int) ($registrato['pasta_in_bianco'] ?? 0),
+                'fuori_cutoff' => (int) ($registrato['fuori_cutoff'] ?? 0),
+                'registrato' => $registrato !== null,
+            ];
+        }
+        return ['data_da' => $inizio, 'data_a' => $fine, 'giorni' => $giorni];
     }
 
     /** Stato della giornata per un bambino, con le fonti e l'informazione di cutoff. */
