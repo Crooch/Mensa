@@ -33,7 +33,7 @@ jobs:
       - name: Install MariaDB CLI
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y mariadb-client
+          sudo apt-get install -y mariadb-client php-mysql
       - name: Verify additive SQL migrations on isolated database
         env:
           MYSQL_PWD: ci_root_password
@@ -52,3 +52,8 @@ jobs:
           $DB < database/migrations/003_richieste_pasta_bianco.sql
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM calendari_servizio')" = "2"
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name = "richieste_pasta_bianco"')" = "1"
+      - name: Check catering counts and pasta requests with synthetic pupils
+        env:
+          MYSQL_PWD: ci_root_password
+          MENSA_TEST_DATABASE: mensa_ci
+        run: php tests/report_integrazione.php
