@@ -328,7 +328,7 @@ final class PresenzaService
         foreach ($this->bambini->elencoPerPlesso($plessoId, $data) as $bambino) {
             $record = $this->assicuraRecord((int) $bambino['id'], $data);
             if ((int) $record['congelato'] !== 1) {
-                $stato = $this->calcolaStatoEffettivo($record);
+                $stato = (int) $record['fuori_cutoff'] === 1 ? $record['stato_effettivo'] : $this->calcolaStatoEffettivo($record);
                 $this->presenze->modificaPresenza((int) $record['id'], [
                     'stato_effettivo' => $stato,
                     'congelato'       => 1,
