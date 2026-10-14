@@ -133,8 +133,15 @@ final class PresenzaService
                 if ((int) $record['congelato'] === 1) {
                     throw HttpException::nonValido('Giornata chiusa');
                 }
+                $pastaPrima = (int) ($this->presenze->richiestaPastaBianco($bambinoId, $data)['richiesta'] ?? 0) === 1;
                 if ($record['dichiarazione_genitore'] === $stato) {
-                    return $record + ['effetto' => 'invariato', 'fonte' => 'dichiarazione'];
+                    if ($record['stato_effettivo'] === 'assente') {
+                        $this->annullaPastaSeAssente($bambinoId, $data, $utenteId);
+                    }
+                    return $record + [
+                        'effetto' => 'invariato', 'fonte' => 'dichiarazione',
+                        'pasta_annullata' => $pastaPrima && $record['stato_effettivo'] === 'assente',
+                    ];
                 }
                 $this->presenze->modificaPresenza((int) $record['id'], [
                     'dichiarazione_genitore' => $stato,
@@ -146,7 +153,9 @@ final class PresenzaService
                     $bambinoId, $data, 'dichiarazione_genitore',
                     $record['dichiarazione_genitore'], $stato, $utenteId
                 );
-                return $this->ricalcola($bambinoId, $data, false, 'dichiarazione', $utenteId);
+                $esito = $this->ricalcola($bambinoId, $data, false, 'dichiarazione', $utenteId);
+                $esito['pasta_annullata'] = $pastaPrima && $esito['stato_effettivo'] === 'assente';
+                return $esito;
             });
         } finally {
             $this->job->rilasciaLock($plessoId, $data);
@@ -154,7 +163,7 @@ final class PresenzaService
     }
 
     /**
-     * Richiesta indipendente di pasta in bianco, per bambino e giornata.
+     * Richiesta di pasta in bianco soltanto con pasto previsto.
      * Consentita oggi entro cutoff o in un giorno futuro di effettivo servizio.
      */
     public function pastaBiancoGenitore(int $bambinoId, string $data, bool $richiesta, int $utenteId): array
