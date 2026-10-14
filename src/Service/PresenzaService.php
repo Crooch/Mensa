@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Core\HttpException;
+use App\Core\Database;
 use App\Repository\AssegnazioneClasseRepository;
 use App\Repository\BambinoRepository;
 use App\Repository\ClasseSezioneRepository;
+use App\Repository\JobRepository;
 use App\Repository\PlessoRepository;
 use App\Repository\PresenzaRepository;
 
@@ -34,7 +36,8 @@ final class PresenzaService
         private ClasseSezioneRepository $classi,
         private PlessoRepository $plessi,
         private AssegnazioneClasseRepository $assegnazioni,
-        private CalendarioService $calendario
+        private CalendarioService $calendario,
+        private JobRepository $job
     ) {
     }
 
