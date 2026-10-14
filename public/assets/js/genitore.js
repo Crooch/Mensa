@@ -39,13 +39,20 @@ async function caricaDashboard() {
                 <dt>Cutoff</dt><dd>${s ? s.cutoff_orario + (s.oltre_cutoff ? ' (superato)' : '') : '-'}</dd>
             </dl>
             ${s ? `<div class="riga-filtri" style="margin-top:.75rem">
+                <label for="figlio-data-${f.id}">Data (oggi o futura)</label>
+                <input type="date" id="figlio-data-${f.id}" value="${oggi()}" min="${oggi()}" data-testid="figlio-data-${f.id}">
                 <button class="btn-azione" data-azione="presente" data-figlio="${f.id}" data-testid="dichiara-presente-${f.id}">Sarà presente</button>
                 <button class="btn-azione" data-azione="assente" data-figlio="${f.id}" data-testid="dichiara-assente-${f.id}">Sarà assente</button>
             </div>` : '<p class="nota">Nessuna classe attiva: contattare l\'ufficio comunale.</p>'}
         </article>`;
     }).join('') || '<p class="vuoto">Nessun figlio associato.</p>';
 
-    document.querySelectorAll('[data-azione]').forEach((b) => b.addEventListener('click', () => dichiara(Number(b.dataset.figlio), b.dataset.azione)));
+    document.querySelectorAll('[data-azione]').forEach((b) => b.addEventListener('click', () => {
+        const bambinoId = Number(b.dataset.figlio);
+        const data = document.getElementById('figlio-data-' + bambinoId).value;
+        if (!data || data < oggi()) { avviso('Seleziona oggi o una data futura.', 'errore'); return; }
+        dichiara(bambinoId, b.dataset.azione, data);
+    }));
 
     document.getElementById('movimenti-corpo').innerHTML = dati.movimenti.map((m) => `
         <tr>
@@ -68,12 +75,12 @@ function riempiSelectFigli() {
     document.getElementById('fb-figlio').innerHTML = opzioni;
 }
 
-async function dichiara(bambinoId, stato) {
+async function dichiara(bambinoId, stato, data = oggi()) {
     try {
-        const esito = await API.post('/api/genitore/presenze/dichiarazione', { bambino_id: bambinoId, data: oggi(), stato });
+        const esito = await API.post('/api/genitore/presenze/dichiarazione', { bambino_id: bambinoId, data, stato });
         avviso(esito.fuori_cutoff
             ? 'Dichiarazione registrata dopo il cutoff: non modifica il pasto di oggi, ma resta tracciata.'
-            : `Dichiarazione registrata: ${esito.stato_effettivo}.`, esito.fuori_cutoff ? 'errore' : 'ok');
+            : `Dichiarazione per il ${dataIt(data)} registrata: ${esito.stato_effettivo}.`, esito.fuori_cutoff ? 'errore' : 'ok');
         caricaDashboard();
     } catch (e) { avviso(e.message, 'errore'); }
 }
