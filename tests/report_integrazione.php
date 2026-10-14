@@ -160,8 +160,9 @@ try {
         'Minestra', null, null);
     $idAltraData = $menuRepo->salva((int) $infanzia, $menu, '2026-10-20',
         'Insalata di riso', null, null);
+    $descrizioneMultiriga = "Primo: pasta e legumi\nSecondo: verdure\n\nFrutta";
     $idAggiornato = $menuRepo->salva((int) $infanzia, $menu, $dataMenu,
-        'Pasta e legumi', null, null);
+        $descrizioneMultiriga, null, null);
     if ($idAggiornato !== $idStandard) {
         throw new RuntimeException('L’aggiornamento ha creato un secondo menu');
     }
@@ -169,7 +170,7 @@ try {
         'SELECT id, descrizione, foto_path FROM menu_giornalieri WHERE id = ?'
     );
     foreach ([
-        [$idStandard, 'Pasta e legumi', 'menu/infanzia/standard.jpg'],
+        [$idStandard, $descrizioneMultiriga, 'menu/infanzia/standard.jpg'],
         [$idSenzaGlutine, 'Riso e verdure', null],
         [$idAltroPlesso, 'Minestra', null],
         [$idAltraData, 'Insalata di riso', null],
@@ -185,6 +186,26 @@ try {
         throw new RuntimeException('Duplicazione menu nella stessa giornata');
     }
     echo "OK: aggiornamento limitato a data, plesso, tipologia; foto e altri menu invariati.\n";
+    $idRimozione = $menuRepo->salva((int) $infanzia, $menu, $dataMenu,
+        $descrizioneMultiriga, null, null, true);
+    if ($idRimozione !== $idStandard) {
+        throw new RuntimeException('La rimozione della foto ha creato un duplicato');
+    }
+    $stmtMenu->execute([$idStandard]);
+    $senzaFoto = $stmtMenu->fetch(PDO::FETCH_ASSOC);
+    if ($senzaFoto['foto_path'] !== null || $senzaFoto['descrizione'] !== $descrizioneMultiriga) {
+        throw new RuntimeException('La rimozione della foto ha alterato la descrizione');
+    }
+    $stmtMenu->execute([$idAltroPlesso]);
+    if ($stmtMenu->fetch(PDO::FETCH_ASSOC)['descrizione'] !== 'Minestra') {
+        throw new RuntimeException('Rimozione foto ha alterato un altro plesso');
+    }
+    $stmtMenu->execute([$idSenzaGlutine]);
+    if ($stmtMenu->fetch(PDO::FETCH_ASSOC)['descrizione'] !== 'Riso e verdure') {
+        throw new RuntimeException('Rimozione foto ha alterato un altro tipo di menu');
+    }
+    echo "OK: descrizione multilinea persistente, foto rimossa solo dal menu selezionato.\n";
+
 
 
     $pdo->rollBack();
