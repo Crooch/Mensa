@@ -1,6 +1,8 @@
 /* Area scuola: assenze di massa e override motivati delle presenze. */
 const utente = proteggi('scuola');
 let classi = [];
+let versioneGiornata = 0;
+let giornataCaricata = null;
 const badgePastoScuola = (stato) => `<span class="badge-stato badge-${stato === 'presente' ? 'verde' : 'rosso'}">${stato === 'presente' ? 'Pasto previsto' : 'Pasto non previsto'}</span>`;
 
 abilitaSchede((vista) => { if (vista === 'assenze') caricaAssenze(); });
@@ -18,8 +20,34 @@ async function inizializza() {
 async function caricaGiornata() {
     const classeId = document.getElementById('classe').value;
     const data = document.getElementById('data').value;
-    if (!classeId) return;
-    const vista = await API.get(`/api/scuola/classi/${classeId}/giornata?data=${data}`);
+    const versione = ++versioneGiornata;
+    giornataCaricata = null;
+    const righe = document.getElementById('presenze-corpo');
+    righe.innerHTML = '<tr><td colspan="7">Sto caricando i dati della classe…</td></tr>';
+    UI.stato('scuola-stato', 'Caricamento dei pasti per il ' + dataIt(data) + '…', 'caricamento');
+    document.getElementById('scuola-riepilogo').innerHTML = '';
+    if (!classeId || !data) return;
+    let vista;
+    try {
+        vista = await API.get('/api/scuola/classi/' + classeId + '/giornata?data=' + encodeURIComponent(data));
+    } catch (errore) {
+        if (versione !== versioneGiornata) return;
+        righe.innerHTML = '';
+        UI.stato('scuola-stato', 'Non riesco a mostrare le presenze: ' + errore.message, 'errore');
+        return;
+    }
+    if (versione !== versioneGiornata || document.getElementById('classe').value !== classeId
+        || document.getElementById('data').value !== data) return;
+    giornataCaricata = { classeId, data };
+    const presenti = vista.alunni.filter((a) => a.stato_effettivo === 'presente').length;
+    const assenti = vista.alunni.length - presenti;
+    const elementoDato = (valore, etichetta) =>
+        '<div class="riepilogo-mensa__dato"><strong>' + valore + '</strong><span>' + etichetta + '</span></div>';
+    document.getElementById('scuola-riepilogo').innerHTML =
+        elementoDato(presenti, 'Pasti previsti') + elementoDato(assenti, 'Pasti non previsti') +
+        elementoDato(vista.alunni.length, 'Bambini nella classe');
+    UI.stato('scuola-stato', 'Stai guardando i dati del ' + dataIt(data) +
+        '. Aggiornati alle ' + UI.oraAggiornamento(), 'ok');
 
     const banner = document.getElementById('stato-cutoff');
     banner.className = 'banner ' + (vista.oltre_cutoff ? 'banner--rosso' : 'banner--verde');
@@ -43,14 +71,27 @@ async function caricaGiornata() {
         </tr>`).join('') || '<tr><td colspan="7" class="vuoto">Nessun alunno assegnato a questa classe nella data indicata.</td></tr>';
 
     document.querySelectorAll('[data-override]').forEach((b) => b.addEventListener('click', async () => {
+        // Evita di correggere il giorno precedente dopo che l'utente ha
+        // modificato classe o data, mentre è in corso un nuovo caricamento.
+        if (!giornataCaricata || giornataCaricata.classeId !== document.getElementById('classe').value
+            || giornataCaricata.data !== document.getElementById('data').value) {
+            UI.stato('scuola-stato', 'I dati sono cambiati: aggiorna la classe prima di fare modifiche.', 'errore');
+            return;
+        }
         if (vista.oltre_cutoff && b.dataset.stato === 'presente' && !confirm('L’orario limite è passato. Conferma solo se il bambino ha davvero mangiato: questa operazione può scalare un buono mensa. Vuoi continuare?')) return;
         if (vista.oltre_cutoff && b.dataset.stato === 'assente' && !confirm('L’orario limite è passato. La modifica sarà registrata, ma non restituisce automaticamente buoni già utilizzati. Vuoi continuare?')) return;
         const motivazione = prompt('Perché stai modificando la presenza? Scrivi il motivo:');
         if (!motivazione) return;
+        if (!giornataCaricata || document.getElementById('data').value !== data
+            || document.getElementById('classe').value !== classeId) {
+            avviso('Hai cambiato giorno o classe: carica i dati aggiornati prima di salvare.', 'errore');
+            return;
+        }
         try {
+            await UI.esegui(b, async () => {
             const esito = await API.post('/api/scuola/presenze/override', {
                 bambino_id: Number(b.dataset.override),
-                data: document.getElementById('data').value,
+                data,
                 stato: b.dataset.stato,
                 motivazione
             });
@@ -61,7 +102,8 @@ async function caricaGiornata() {
                 applicato: 'Il numero di pasti previsti è stato aggiornato.'
             };
             avviso(messaggi[esito.effetto] || 'Correzione registrata.', 'ok');
-            caricaGiornata();
+            await caricaGiornata();
+            });
         } catch (e) { avviso(e.message, 'errore'); }
     }));
 }
@@ -76,16 +118,17 @@ async function caricaAssenze() {
 
 document.getElementById('btn-carica').addEventListener('click', caricaGiornata);
 document.getElementById('classe').addEventListener('change', caricaGiornata);
+document.getElementById('data').addEventListener('change', caricaGiornata);
 
 document.getElementById('form-assenza').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
         if (!confirm('Stai segnalando che tutta la classe non mangerà a mensa nel giorno scelto. Vuoi continuare?')) return;
-        await API.post('/api/scuola/assenze-massa', {
+        await UI.esegui(e.submitter || document.querySelector('#form-assenza [type=submit]'), () => API.post('/api/scuola/assenze-massa', {
             classe_sezione_id: Number(document.getElementById('am-classe').value),
             data: document.getElementById('am-data').value,
             motivo: document.getElementById('am-motivo').value
-        });
+        }), 'Salvataggio…');
         avviso('Assenza dell’intera classe registrata. I pasti previsti sono stati aggiornati, tenendo conto delle comunicazioni delle famiglie.');
         document.getElementById('am-motivo').value = '';
         caricaAssenze();
