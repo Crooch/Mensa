@@ -15,8 +15,9 @@ require __DIR__ . '/partials/testa.php';
     <div class="riga-filtri">
         <label for="report-data">Data</label>
         <input type="date" id="report-data" data-testid="report-data-input">
-        <button class="btn btn-primary btn-sm" id="btn-report" data-testid="report-carica-button">Aggiorna</button>
+        <button class="btn btn-primary btn-sm" type="button" id="btn-report" data-testid="report-carica-button">Aggiorna</button>
     </div>
+    <p class="nota" id="report-stato" role="status" aria-live="polite" data-testid="report-stato">Seleziona una data per consultare i pasti.</p>
     <p class="nota">Conteggi per plesso, tipologia e classe/sezione. Le richieste di pasta in bianco sono riportate con il nome dell'alunno e la classe. Nessuna informazione economica viene mostrata.</p>
     <div id="report" class="griglia-cards" data-testid="report-plessi"></div>
 </section>
