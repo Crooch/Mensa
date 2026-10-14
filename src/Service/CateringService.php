@@ -123,6 +123,10 @@ final class CateringService
      */
     public function pubblicaMenu(int $plessoId, int $tipologiaId, string $data, ?string $descrizione, ?array $file, int $utenteId, bool $rimuoviFoto = false): int
     {
+        $giorno = \DateTimeImmutable::createFromFormat('!Y-m-d', $data);
+        if ($giorno === false || $giorno->format('Y-m-d') !== $data) {
+            throw HttpException::nonValido('La data del menu non è valida');
+        }
         if ($this->plessi->trova($plessoId) === null || $this->tipologie->trova($tipologiaId) === null) {
             throw HttpException::nonTrovato('Plesso o tipologia non validi');
         }
