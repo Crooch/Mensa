@@ -97,7 +97,7 @@ async function apriFamiglia(id) {
         <div class="griglia-cards">${s.crediti.map((c) => `
             <article class="card-mensa card-mensa--${c.stato}" data-testid="credito-${c.plesso_id}">
                 <h3>${esc(c.plesso_nome)}</h3><span class="saldo">${c.saldo}</span>
-                <dl><dt>Soglia di sollecito</dt><dd>-${c.fido_buoni} buoni</dd>
+                <dl><dt>Fido concesso</dt><dd>${fidoConcesso(c.fido_buoni)}</dd>
                 <dt>Costo di un pasto</dt><dd>${euro(c.tariffa_attiva)} (${c.origine_tariffa === 'override' ? 'tariffa agevolata' : 'tariffa ordinaria'})</dd></dl>
             </article>`).join('') || '<p class="vuoto">Nessun saldo buoni registrato per questa famiglia.</p>'}</div>
 
@@ -329,7 +329,7 @@ async function caricaSituazione() {
     const elenco = await API.get('/api/crediti/situazione');
     document.getElementById('crediti-corpo').innerHTML = elenco.map((r) => `
         <tr><td>${esc(r.genitore_cognome)} ${esc(r.genitore_nome)}</td><td>${esc(r.telefono)}</td>
-        <td>${esc(r.plesso_nome)}</td><td>${r.saldo}</td><td>${r.fido_buoni}</td>
+        <td>${esc(r.plesso_nome)}</td><td>${r.saldo}</td><td>${fidoConcesso(r.fido_buoni)}</td>
         <td><span class="badge-stato badge-${r.stato}">${situazioneBuoni(r.stato)}</span></td></tr>`).join('')
         || '<tr><td colspan="6" class="vuoto">Nessun dato.</td></tr>';
 }
