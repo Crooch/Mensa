@@ -84,7 +84,9 @@ final class PresenzaRepository extends Repository
         $sql = "SELECT p.id AS plesso_id, p.nome AS plesso_nome,
                        cs.id AS classe_id, cs.nome AS classe_nome,
                        t.id AS tipologia_id, t.nome AS tipologia_nome,
-                       COUNT(*) AS pasti
+                       SUM(CASE WHEN COALESCE(pg.stato_effettivo,
+                           IF(am.id IS NULL, 'presente', 'assente')) = 'presente'
+                           THEN 1 ELSE 0 END) AS pasti
                 FROM assegnazioni_classe ac
                 JOIN bambini b ON b.id = ac.bambino_id AND b.cancellato_logicamente = 0
                 JOIN classi_sezioni cs ON cs.id = ac.classe_sezione_id
@@ -92,8 +94,7 @@ final class PresenzaRepository extends Repository
                 JOIN tipologie_menu t ON t.id = b.tipologia_menu_id
                 LEFT JOIN presenze_giornaliere pg ON pg.bambino_id = b.id AND pg.data = :data
                 LEFT JOIN assenze_massa am ON am.classe_sezione_id = cs.id AND am.data = :data
-                WHERE ac.data_inizio <= :data AND (ac.data_fine IS NULL OR ac.data_fine >= :data)
-                  AND COALESCE(pg.stato_effettivo, IF(am.id IS NULL, 'presente', 'assente')) = 'presente'";
+                WHERE ac.data_inizio <= :data AND (ac.data_fine IS NULL OR ac.data_fine >= :data)";
         $parametri = ['data' => $data];
         if ($plessoId !== null) {
             $sql .= ' AND p.id = :plesso';
