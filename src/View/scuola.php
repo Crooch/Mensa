@@ -11,7 +11,7 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-giornata" class="vista">
     <h1>Chi mangerà a mensa?</h1>
-    <p class="nota">Controlla le comunicazioni delle famiglie e indica eventuali correzioni. La scuola deve sempre spiegare il motivo di una modifica.</p>
+    <p class="nota">Controlla i pasti. Per correggere una presenza, indica il motivo.</p>
     <div class="riga-filtri">
         <label for="classe">Classe/sezione</label>
         <select id="classe" data-testid="classe-select"></select>
@@ -35,7 +35,7 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-assenze" class="vista" hidden>
     <h1>Segnala che tutta la classe non mangerà a mensa</h1>
-    <p class="nota">Usa questa funzione, per esempio, quando la classe è in gita. I bambini della classe saranno considerati inizialmente assenti dalla mensa per quel giorno, salvo comunicazioni della famiglia o correzioni della scuola.</p>
+    <p class="nota">Per gite o giornate in cui tutta la classe non pranza.</p>
     <form id="form-assenza" class="pannello" data-testid="assenza-massa-form">
         <div class="riga-filtri">
             <label for="am-classe">Classe/sezione</label>
