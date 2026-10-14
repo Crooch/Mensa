@@ -16,5 +16,11 @@ $paginaJsVersione = is_file($paginaJsPath) ? (int) filemtime($paginaJsPath) : 0;
 ?>
 <script src="<?= $basePath ?>/assets/js/api.js?v=<?= $apiJsVersione ?>"></script>
 <script src="<?= $basePath ?>/assets/js/<?= htmlspecialchars($scriptPagina) ?>.js?v=<?= $paginaJsVersione ?>"></script>
+<?php if (!empty($scriptExtraPagina)):
+    $percorsoExtra = APP_ROOT . '/public/assets/js/' . $scriptExtraPagina . '.js';
+    $versioneExtra = is_file($percorsoExtra) ? (int) filemtime($percorsoExtra) : 0;
+?>
+<script src="<?= $basePath ?>/assets/js/<?= htmlspecialchars($scriptExtraPagina) ?>.js?v=<?= $versioneExtra ?>"></script>
+<?php endif; ?>
 </body>
 </html>
