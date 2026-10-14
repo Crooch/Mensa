@@ -17,7 +17,7 @@ require __DIR__ . '/partials/testa.php';
         <input type="date" id="report-data" data-testid="report-data-input">
         <button class="btn btn-primary btn-sm" id="btn-report" data-testid="report-carica-button">Aggiorna</button>
     </div>
-    <p class="nota">Il conteggio deriva solo dalle presenze effettive: nessuna informazione su pagamenti o crediti delle famiglie.</p>
+    <p class="nota">Conteggi per plesso, tipologia e classe/sezione. Le richieste di pasta in bianco sono riportate con il nome dell'alunno e la classe. Nessuna informazione economica viene mostrata.</p>
     <div id="report" class="griglia-cards" data-testid="report-plessi"></div>
 </section>
 
