@@ -23,7 +23,7 @@ require __DIR__ . '/partials/testa.php';
         <div class="riga-filtri">
             <label for="plesso-nome">Nome</label><input type="text" id="plesso-nome" data-testid="plesso-nome-input">
             <label for="plesso-tariffa">Tariffa base (€)</label><input type="number" step="0.01" min="0" id="plesso-tariffa" data-testid="plesso-tariffa-input">
-            <label for="plesso-fido">Soglia sollecito (buoni)</label><input type="number" min="0" id="plesso-fido" data-testid="plesso-fido-input">
+            <label for="plesso-fido">Fido concesso (buoni)</label><input type="number" max="0" placeholder="-5" id="plesso-fido" data-testid="plesso-fido-input">
             <label for="plesso-cutoff">Orario limite</label><input type="time" id="plesso-cutoff" data-testid="plesso-cutoff-input">
         </div>
         <div class="riga-filtri">
@@ -35,7 +35,7 @@ require __DIR__ . '/partials/testa.php';
     </form>
     <div class="tabella-scroll">
         <table class="table" data-testid="plessi-tabella">
-            <thead><tr><th>Plesso</th><th>Tariffa</th><th>Soglia avviso</th><th>Orario limite</th><th>Dirigente</th><th></th></tr></thead>
+            <thead><tr><th>Plesso</th><th>Tariffa</th><th>Fido concesso</th><th>Orario limite</th><th>Dirigente</th><th></th></tr></thead>
             <tbody id="plessi-corpo"></tbody>
         </table>
     </div>
