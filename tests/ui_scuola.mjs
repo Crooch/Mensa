@@ -113,3 +113,27 @@ assert.ok(!el('presenze-corpo').innerHTML.includes('data-override='),
     'Nessuna azione deve apparire per giorni senza mensa');
 assert.match(el('stato-cutoff').className, /banner--neutro/);
 console.log('OK: il 15 ottobre nessun pasto, nessuna assenza e nessuna azione Scuola.');
+
+/* La gita e' un vincolo su tutta la classe, anche con vecchie conferme
+   individuali. La schermata non deve mostrare pulsanti per ripristinarle. */
+el('data').value = '2026-10-20';
+el('data').handlers.change();
+await tick();
+const vistaGita = creaVista(2);
+vistaGita.assenza_massa = { motivo: 'Gita scolastica' };
+vistaGita.alunni[0].dichiarazione_genitore = 'presente';
+vistaGita.alunni[1].override_scuola = 'presente';
+vistaGita.alunni.forEach(a => { a.stato_effettivo = 'assente'; });
+chiamate.at(-1).resolve(vistaGita);
+await tick();
+assert.match(el('scuola-riepilogo').innerHTML, /<strong>0<\/strong><span>Pasti previsti/);
+assert.match(el('scuola-riepilogo').innerHTML, /<strong>2<\/strong><span>Pasti non previsti/);
+assert.match(el('scuola-stato').textContent, /Assenza dell.intera classe/);
+assert.match(el('stato-cutoff').innerHTML, /Gita scolastica/);
+assert.match(el('stato-cutoff').className, /banner--neutro/);
+assert.ok(!el('presenze-corpo').innerHTML.includes('data-override='),
+    'Non proporre conferme di pasti individuali se la classe e in gita');
+assert.match(script, /document\.getElementById\('classe'\)\.value = classeSegnalata/);
+assert.match(script, /document\.getElementById\('data'\)\.value = dataSegnalata/);
+assert.match(script, /document\.querySelector\('\.scheda\[data-vista="giornata"\]'\)\.click\(\)/);
+console.log('OK: gita visualizzata subito e azioni individuali nascoste.');
