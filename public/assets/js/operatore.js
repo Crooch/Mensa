@@ -97,7 +97,7 @@ async function apriFamiglia(id) {
         <div class="griglia-cards">${s.crediti.map((c) => `
             <article class="card-mensa card-mensa--${c.stato}" data-testid="credito-${c.plesso_id}">
                 <h3>${esc(c.plesso_nome)}</h3><span class="saldo">${c.saldo}</span>
-                <dl><dt>Avviso con saldo di</dt><dd>-${c.fido_buoni} buoni</dd>
+                <dl><dt>Soglia di sollecito</dt><dd>-${c.fido_buoni} buoni</dd>
                 <dt>Costo di un pasto</dt><dd>${euro(c.tariffa_attiva)} (${c.origine_tariffa === 'override' ? 'tariffa agevolata' : 'tariffa ordinaria'})</dd></dl>
             </article>`).join('') || '<p class="vuoto">Nessun saldo buoni registrato per questa famiglia.</p>'}</div>
 
