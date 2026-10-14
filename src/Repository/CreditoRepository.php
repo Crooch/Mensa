@@ -50,6 +50,21 @@ final class CreditoRepository extends Repository
         return $this->inserisci('movimenti_crediti', $dati);
     }
 
+    /**
+     * Identificativo unico della richiesta di acquisto: usato in caso di retry
+     * o risposta HTTP persa. Il vincolo UNIQUE DB e' l'arbitro della concorrenza.
+     */
+    public function acquistoPerRichiesta(string $richiestaId): ?array
+    {
+        return $this->uno(
+            "SELECT m.*, pc.genitore_id, pc.plesso_id
+             FROM movimenti_crediti m
+             JOIN pool_crediti pc ON pc.id = m.pool_id
+             WHERE m.richiesta_id = :id AND m.tipo = 'acquisto'",
+            ['id' => $richiestaId]
+        );
+    }
+
     public function movimenti(int $genitoreId, ?string $tipo = null, int $limite = 200): array
     {
         $sql = 'SELECT m.*, p.nome AS plesso_nome, b.nome AS bambino_nome, b.cognome AS bambino_cognome,
