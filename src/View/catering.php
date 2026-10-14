@@ -12,7 +12,6 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-report" class="vista">
     <h1>Pasti da preparare</h1>
-    <p class="nota">Scegli il giorno per vedere quanti pasti preparare, divisi per scuola, classe e tipo di menu.</p>
     <div class="riga-filtri">
         <label for="report-data">Data</label>
         <input type="date" id="report-data" data-testid="report-data-input">
@@ -20,7 +19,7 @@ require __DIR__ . '/partials/testa.php';
     </div>
     <p class="nota" id="report-stato" role="status" aria-live="polite" data-testid="report-stato">Seleziona una data per consultare i pasti.</p>
     <div id="report-riepilogo" class="riepilogo-mensa" aria-live="polite"></div>
-    <p class="nota">I numeri possono cambiare fino all'orario limite indicato. Dopo il conteggio automatico, il report sarà indicato come «Confermato». Le richieste di pasta in bianco mostrano il nome del bambino e la classe.</p>
+    <p class="nota">I conteggi sono provvisori fino alla conferma. Le richieste di pasta in bianco indicano nome e classe.</p>
     <div id="report" class="griglia-cards" data-testid="report-plessi"></div>
 </section>
 
@@ -46,7 +45,7 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-feedback" class="vista" hidden>
     <h1>Valutazioni delle famiglie</h1>
-    <p class="nota">Qui puoi leggere le valutazioni ricevute. Non sono mostrati i nomi completi dei bambini e non puoi rispondere da questa pagina.</p>
+    <p class="nota">Valutazioni ricevute, senza nomi completi.</p>
     <div class="riga-filtri">
         <label for="fb-da">Dal</label><input type="date" id="fb-da" data-testid="feedback-da-input">
         <label for="fb-a">Al</label><input type="date" id="fb-a" data-testid="feedback-a-input">
