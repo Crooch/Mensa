@@ -579,7 +579,13 @@ input[type="datetime-local"]:focus-visible {
 #vista-giornata .riepilogo-mensa__dato { padding: .6rem .8rem; }
 #vista-giornata > .banner { margin: 0 0 .85rem; line-height: 1.45; }
 .scuola-tabella { width: 100%; }
-.scuola-tabella > table.table { min-width: 850px; }
+/* Sostituisce il max-content del contenitore tabellare generico:
+   a schermo ampio l'intestazione e le righe riempiono tutta la card. */
+.scuola-tabella > table.table {
+    width: 100% !important;
+    min-width: 920px;
+    table-layout: auto;
+}
 .scuola-tabella .table th, .scuola-tabella .table td {
     padding: .65rem .7rem;
     vertical-align: middle;
@@ -647,4 +653,89 @@ input[type="datetime-local"]:focus-visible {
 @media (max-width: 440px) {
     .motivo-dialogo { padding: 1rem; }
     .motivo-dialogo__azioni .btn { flex: 1 1 130px; }
+}
+
+/* Scuola su smartphone: niente sei colonne minuscole né scroll laterale.
+   Ogni alunno è una scheda con etichette leggibili; stesso contenuto e azioni. */
+@media (max-width: 760px) {
+    .scuola-tabella {
+        width: 100%;
+        max-width: 100%;
+        border: 0;
+        overflow: visible;
+        background: transparent;
+    }
+    .scuola-tabella > table.table {
+        display: block;
+        width: 100% !important;
+        min-width: 0;
+        border-collapse: separate;
+    }
+    .scuola-tabella .table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+    .scuola-tabella .table tbody {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: .75rem;
+        width: 100%;
+    }
+    .scuola-tabella .table tbody tr {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--grigio-bordo);
+        border-radius: 10px;
+        background: #fff;
+    }
+    .scuola-tabella .table tbody td {
+        display: grid;
+        grid-template-columns: minmax(0, 43%) minmax(0, 57%);
+        align-items: start;
+        gap: .45rem;
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        padding: .65rem .8rem;
+        border-bottom: 1px solid #e4eaf0;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+    .scuola-tabella .table tbody td::before {
+        content: attr(data-label);
+        display: block;
+        min-width: 0;
+        font-size: .85rem;
+        font-weight: 600;
+        line-height: 1.4;
+        color: #536a7f;
+    }
+    .scuola-tabella .table tbody td:first-child {
+        display: block;
+        padding: .8rem;
+        background: #eef4fa;
+        color: var(--grigio-testo);
+        font-size: 1.05rem;
+        font-weight: 700;
+    }
+    .scuola-tabella .table tbody td:first-child::before { display: none; }
+    .scuola-tabella .table tbody td:last-child {
+        min-width: 0;
+        border-bottom: 0;
+    }
+    .scuola-tabella .table tbody td[colspan] {
+        display: block;
+        padding: 1rem;
+    }
+    .scuola-tabella .table tbody td[colspan]::before { display: none; }
+    .scuola-tabella .scuola-azioni { min-width: 0; }
+    .scuola-tabella .scuola-azioni .btn { min-width: 0; max-width: 100%; }
 }
