@@ -47,7 +47,9 @@ async function caricaDashboard() {
                 <dt>Scuola</dt><dd>${esc(f.plesso_nome || 'non assegnato')}</dd>
                 <dt>Classe</dt><dd>${esc(f.classe_nome || '-')} ${esc(f.anno_scolastico || '')}</dd>
                 <dt>Tipo di menu</dt><dd>${esc(f.tipologia_nome)}</dd>
-                <dt>Mensa di oggi</dt><dd>${s ? (s.servizio_mensa && !s.servizio_mensa.attivo ? 'Mensa non prevista oggi' : badgePasto(s.stato_effettivo)) : '-'}</dd>
+                <dt>Mensa di oggi</dt><dd>${s ? (s.servizio_mensa && !s.servizio_mensa.attivo
+                    ? esc(motivoChiusura(s.servizio_mensa.motivo))
+                    : badgePasto(s.stato_effettivo)) : '-'}</dd>
                 <dt>Hai comunicato</dt><dd>${esc(dichiarazione)}</dd>
                 <dt>Pasta in bianco oggi</dt><dd>${s && s.pasta_in_bianco ? 'richiesta' : 'non richiesta'}</dd>
                 <dt>Modifiche fino alle</dt><dd>${s ? 'Ore ' + esc(s.cutoff_orario) + (s.oltre_cutoff ? ' (oggi non puoi più modificare)' : '') : '-'}</dd>
@@ -231,6 +233,7 @@ const motivoChiusura = (motivo) => ({
     festivita_nazionale: 'Festività',
     chiusura_programmata: 'Mensa chiusa',
     giorno_senza_servizio: 'Mensa non prevista',
+    assenza_classe: 'Gita o uscita della classe',
     servizio_non_avviato: 'Servizio non iniziato',
     servizio_terminato: 'Servizio terminato',
     calendario_non_configurato: 'Calendario da definire',
