@@ -5,12 +5,13 @@ $scriptPagina = 'scuola';
 require __DIR__ . '/partials/testa.php';
 ?>
 <nav class="schede" role="tablist">
-    <button class="scheda attiva" data-vista="giornata" data-testid="tab-giornata">Presenze del giorno</button>
-    <button class="scheda" data-vista="assenze" data-testid="tab-assenze">Assenze di massa</button>
+    <button class="scheda attiva" data-vista="giornata" data-testid="tab-giornata">Pasti del giorno</button>
+    <button class="scheda" data-vista="assenze" data-testid="tab-assenze">Assenza di tutta la classe</button>
 </nav>
 
 <section id="vista-giornata" class="vista">
-    <h1>Verifica presenze</h1>
+    <h1>Controlla chi mangia a mensa</h1>
+    <p class="nota">Controlla le comunicazioni delle famiglie e indica eventuali correzioni. La scuola deve sempre spiegare il motivo di una modifica.</p>
     <div class="riga-filtri">
         <label for="classe">Classe/sezione</label>
         <select id="classe" data-testid="classe-select"></select>
@@ -22,8 +23,8 @@ require __DIR__ . '/partials/testa.php';
     <div class="tabella-scroll">
         <table class="table" data-testid="presenze-tabella">
             <thead><tr>
-                <th>Alunno</th><th>Tipologia</th><th>Default</th><th>Dichiarazione famiglia</th>
-                <th>Override scuola</th><th>Stato effettivo</th><th>Azioni</th>
+                <th>Alunno</th><th>Tipo di menu</th><th>Situazione iniziale</th><th>Comunicazione famiglia</th>
+                <th>Correzione scuola</th><th>Pasto previsto</th><th>Modifica</th>
             </tr></thead>
             <tbody id="presenze-corpo"></tbody>
         </table>
@@ -31,7 +32,8 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-assenze" class="vista" hidden>
-    <h1>Assenza di massa (gita, uscita didattica)</h1>
+    <h1>Segnala che tutta la classe non mangerà a mensa</h1>
+    <p class="nota">Usa questa funzione, per esempio, quando la classe è in gita. I bambini della classe saranno considerati inizialmente assenti dalla mensa per quel giorno, salvo comunicazioni della famiglia o correzioni della scuola.</p>
     <form id="form-assenza" class="pannello" data-testid="assenza-massa-form">
         <div class="riga-filtri">
             <label for="am-classe">Classe/sezione</label>
@@ -39,11 +41,11 @@ require __DIR__ . '/partials/testa.php';
             <label for="am-data">Data</label>
             <input type="date" id="am-data" data-testid="assenza-data-input">
         </div>
-        <label for="am-motivo">Motivo</label>
+        <label for="am-motivo">Perché la classe non mangerà a mensa?</label>
         <input type="text" id="am-motivo" maxlength="255" placeholder="Es. Gita a Palermo" data-testid="assenza-motivo-input">
-        <button type="submit" class="btn btn-primary" data-testid="assenza-submit-button">Registra assenza di massa</button>
+        <button type="submit" class="btn btn-primary" data-testid="assenza-submit-button">Segna tutta la classe assente</button>
     </form>
-    <h2>Assenze registrate</h2>
+    <h2>Giornate senza mensa per tutta la classe</h2>
     <div class="tabella-scroll">
         <table class="table" data-testid="assenze-tabella">
             <thead><tr><th>Data</th><th>Plesso</th><th>Classe</th><th>Motivo</th><th>Inserita da</th></tr></thead>
