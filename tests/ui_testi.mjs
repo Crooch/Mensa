@@ -227,3 +227,29 @@ for (const vista of ['scuola', 'catering', 'admin']) {
 assert.match(readFileSync('public/assets/js/operatore.js', 'utf8'), /<select\b/,
     'I select dinamici operatore devono ereditare la stessa regola');
 console.log('OK: freccia select unica, centrata e accessibile in tutti i profili.');
+
+/* Catering: filtri raggruppati e allineati per report, menu e feedback;
+   layout responsivo e modalita' di salvataggio visibile. */
+const cateringHtml = readFileSync('src/View/catering.php', 'utf8');
+const cateringJs = readFileSync('public/assets/js/catering.js', 'utf8');
+for (const variante of ['report', 'menu', 'feedback']) {
+    assert.ok(cateringHtml.includes('catering-filtri--' + variante),
+        'Filtri Catering non raggruppati: ' + variante);
+}
+for (const id of ['menu-selezione-stato', 'menu-foto-stato', 'menu-submit']) {
+    assert.ok(cateringHtml.includes('id="' + id + '"'), 'Campo Catering mancante: ' + id);
+}
+assert.match(cateringJs, /'Aggiorna questo menu'\s*:\s*'Pubblica questo menu'/);
+assert.match(cateringJs, /Aggiornerai solo questo menu: gli altri non cambiano/);
+assert.match(cateringJs, /Se non ne scegli una nuova, rimane quella attuale/);
+assert.match(cateringJs, /data-menu-modifica="/);
+assert.match(cateringJs, /UI\.conferma\(/);
+const cssCatering = css.slice(css.indexOf('/* Catering: griglie uniformi'));
+assert.ok(cssCatering.startsWith('/* Catering: griglie uniformi'));
+assert.match(cssCatering, /\.catering-filtri--report\s*\{[^}]*grid-template-columns:/s);
+assert.match(cssCatering, /\.catering-filtri--menu\s*\{[^}]*grid-template-columns:\s*repeat\(2,/s);
+assert.match(cssCatering, /\.catering-filtri--feedback\s*\{[^}]*grid-template-columns:/s);
+assert.match(cssCatering, /@media \(max-width: 980px\)/);
+assert.match(cssCatering, /@media \(max-width: 600px\)/);
+assert.match(cssCatering, /@media \(max-width: 600px\)[\s\S]*\.catering-filtri--report,[\s\S]*\.catering-filtri--menu,[\s\S]*\.catering-filtri--feedback\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\);/);
+console.log('OK: Catering allineato desktop/mobile; pubblicazione e modifica distinguibili.');
