@@ -137,3 +137,12 @@ assert.match(script, /document\.getElementById\('classe'\)\.value = classeSegnal
 assert.match(script, /document\.getElementById\('data'\)\.value = dataSegnalata/);
 assert.match(script, /document\.querySelector\('\.scheda\[data-vista="giornata"\]'\)\.click\(\)/);
 console.log('OK: gita visualizzata subito e azioni individuali nascoste.');
+
+/* Rifinitura: badge e nota devono avere un blocco comune con partenza
+   del testo allineata e senza margini ereditati, anche nelle schede mobili. */
+assert.match(css, /\.scuola-correzione,\s*\.scuola-stato-pasto\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*align-items:\s*flex-start;/s);
+assert.match(css, /\.scuola-correzione > \.badge-stato,\s*\.scuola-stato-pasto > \.badge-stato\s*\{[^}]*align-items:\s*center;/s);
+assert.match(css, /\.scuola-correzione > small,\s*\.scuola-stato-pasto > small\s*\{[^}]*margin:\s*0;[^}]*padding:\s*0 0 0 \.55rem;/s);
+assert.match(cssMobile, /\.scuola-tabella\s+\.table tbody td\s*\{[^}]*grid-template-columns:\s*minmax\(0, 43%\) minmax\(0, 57%\)/s);
+assert.match(script, /Non applicata: gita/);
+console.log('OK: badge e note allineati su desktop e smartphone, stati invariati.');
