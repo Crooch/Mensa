@@ -120,12 +120,29 @@ rifiutata(fn () => $servizio->pastaBiancoGenitore($bambino, $prossimoLunedi, tru
     'la correzione scuola impedisce la richiesta speciale');
 
 $prossimoMartedi = (new DateTimeImmutable('next tuesday'))->format('Y-m-d');
+$servizio->dichiaraGenitore($bambino, $prossimoMartedi, 'presente', $utente);
+$servizio->overrideScuola($bambino, $prossimoMartedi, 'presente', 'Conferma prima della gita', $scuola, $plesso);
 $servizio->pastaBiancoGenitore($bambino, $prossimoMartedi, true, $utente);
 $servizio->dichiaraAssenzaMassa($classe, $prossimoMartedi, 'Gita scolastica', $scuola, $plesso);
+$gitaRegistrata = $c->presenze()->trovaPresenza($bambino, $prossimoMartedi);
+verifica($gitaRegistrata['stato_effettivo'] === 'assente',
+    'la gita prevale sulle presenze gia confermate');
+verifica($gitaRegistrata['dichiarazione_genitore'] === 'presente' &&
+    $gitaRegistrata['override_scuola'] === 'presente',
+    'le comunicazioni precedenti restano nello storico');
 verifica((int) $c->presenze()->richiestaPastaBianco($bambino, $prossimoMartedi)['richiesta'] === 0,
     'assenza di tutta la classe annulla la pasta in bianco');
 rifiutata(fn () => $servizio->pastaBiancoGenitore($bambino, $prossimoMartedi, true, $utente),
     'giornata di gita senza pasto impedisce la richiesta speciale');
+rifiutata(fn () => $servizio->dichiaraGenitore($bambino, $prossimoMartedi, 'presente', $utente),
+    'la gita blocca conferme successive del genitore');
+rifiutata(fn () => $servizio->overrideScuola($bambino, $prossimoMartedi, 'presente', 'Prova di correzione', $scuola, $plesso),
+    'la gita blocca conferme successive della scuola');
+$conteggioGita = $servizio->congelaPlesso($plesso, $prossimoMartedi);
+verifica($conteggioGita['presente'] === 0 && $conteggioGita['assente'] >= 1,
+    'il job non contabilizza pasti nella gita');
+verifica($c->presenze()->trovaPresenza($bambino, $prossimoMartedi)['stato_effettivo'] === 'assente',
+    'il consolidamento non riattiva una vecchia presenza');
 
 
 // Regressione: una dichiarazione tardiva preesistente non deve diventare
