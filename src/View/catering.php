@@ -16,15 +16,15 @@ require __DIR__ . '/partials/testa.php';
     <div class="riga-filtri">
         <label for="report-data">Data</label>
         <input type="date" id="report-data" data-testid="report-data-input">
-        <button class="btn btn-primary btn-sm" type="button" id="btn-report" data-testid="report-carica-button">Aggiorna</button>
+        <button class="btn btn-primary btn-sm" type="button" id="btn-report" data-testid="report-carica-button">Aggiorna i pasti</button>
     </div>
     <p class="nota" id="report-stato" role="status" aria-live="polite" data-testid="report-stato">Seleziona una data per consultare i pasti.</p>
-    <p class="nota">Le richieste di pasta in bianco riportano il nome del bambino e la classe, per preparare il piatto corretto. Il conteggio è provvisorio finché non viene confermato dopo l'orario limite.</p>
+    <p class="nota">I numeri possono cambiare fino all'orario limite indicato. Dopo il conteggio automatico, il report sarà indicato come «Confermato». Le richieste di pasta in bianco mostrano il nome del bambino e la classe.</p>
     <div id="report" class="griglia-cards" data-testid="report-plessi"></div>
 </section>
 
 <section id="vista-menu" class="vista" hidden>
-    <h1>Pubblica il menu del giorno (facoltativo)</h1>
+    <h1>Comunica il menu di oggi</h1>
     <form id="form-menu" class="pannello" enctype="multipart/form-data" data-testid="menu-form">
         <div class="riga-filtri">
             <label for="menu-plesso">Plesso</label>
@@ -32,19 +32,19 @@ require __DIR__ . '/partials/testa.php';
             <label for="menu-tipologia">Tipologia</label>
             <select id="menu-tipologia" data-testid="menu-tipologia-select"></select>
         </div>
-        <label for="menu-descrizione">Descrizione</label>
+        <label for="menu-descrizione">Cosa si mangia oggi?</label>
         <textarea id="menu-descrizione" rows="2" data-testid="menu-descrizione-input"></textarea>
-        <label for="menu-foto">Foto (jpg, png, webp)</label>
+        <label for="menu-foto">Foto del menu (facoltativa)</label>
         <input type="file" id="menu-foto" accept="image/*" data-testid="menu-foto-input">
         <button type="submit" class="btn btn-primary" data-testid="menu-submit-button">Pubblica per oggi</button>
     </form>
-    <h2>Pubblicazioni di oggi</h2>
+    <h2>Menu già pubblicati oggi</h2>
     <div id="menu-lista" class="griglia-cards" data-testid="menu-lista"></div>
 </section>
 
 <section id="vista-feedback" class="vista" hidden>
-    <h1>Feedback delle famiglie</h1>
-    <p class="nota">Sola lettura, senza dati anagrafici. Non è prevista alcuna funzione di risposta.</p>
+    <h1>Valutazioni delle famiglie</h1>
+    <p class="nota">Qui puoi leggere le valutazioni ricevute. Non sono mostrati i nomi completi dei bambini e non puoi rispondere da questa pagina.</p>
     <div class="riga-filtri">
         <label for="fb-da">Dal</label><input type="date" id="fb-da" data-testid="feedback-da-input">
         <label for="fb-a">Al</label><input type="date" id="fb-a" data-testid="feedback-a-input">
