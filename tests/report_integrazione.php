@@ -37,7 +37,7 @@ try {
 
     $stmt = $pdo->prepare('INSERT INTO classi_sezioni (plesso_id, nome, anno_scolastico) VALUES (?, ?, ?)');
     $classi = [];
-    foreach (['A', 'B', 'C'] as $nome) {
+    foreach (['A', 'B', 'C', 'D'] as $nome) {
         $stmt->execute([(int) $infanzia, $nome, '2026/2027']);
         $classi[$nome] = (int) $pdo->lastInsertId();
     }
@@ -83,8 +83,15 @@ try {
     foreach ($righe as $riga) {
         $perSezione[$riga['classe_nome']] = (int) $riga['pasti'];
     }
-    if ($perSezione !== ['A' => 1, 'B' => 1, 'C' => 0]) {
+    if ($perSezione !== ['A' => 1, 'B' => 1, 'C' => 0, 'D' => 0]) {
         throw new RuntimeException('Conteggi per sezione non corretti: ' . json_encode($perSezione));
+    }
+
+    // Una classe vuota di anno scolastico precedente non deve apparire.
+    $stmt->execute([(int) $infanzia, 'Sezione storica', '2025/2026']);
+    $righeConStorico = $repo->reportPasti('2026-10-19', (int) $infanzia);
+    if (count($righeConStorico) !== count($righe)) {
+        throw new RuntimeException('Classe storica vuota inclusa erroneamente nel report');
     }
 
     $speciali = $repo->elencoPastaBianco('2026-10-19', (int) $infanzia);
@@ -93,7 +100,7 @@ try {
         throw new RuntimeException('Elenco pasta in bianco non coerente con le presenze');
     }
 
-    echo "OK: sezioni A=1, B=1, C=0; richieste pasta in bianco Mario, Gianni; Lucia assente esclusa.\n";
+    echo "OK: sezioni A=1, B=1, C=0, D=0 (senza alunni); pasta in bianco Mario e Gianni; Lucia assente esclusa.\n";
     $pdo->rollBack();
 } catch (Throwable $e) {
     $pdo->rollBack();
