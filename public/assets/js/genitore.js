@@ -32,7 +32,7 @@ async function caricaDashboard() {
                 <p class="nota">buoni mensa disponibili</p>
                 <span class="badge-stato badge-${c.stato}">${situazioneBuoni(c.stato)}</span>
                 <dl>
-                    <dt>Soglia di sollecito</dt><dd>-${c.fido_buoni} buoni</dd>
+                    <dt>Fido concesso</dt><dd>${fidoConcesso(c.fido_buoni)}</dd>
                     <dt>Costo di un pasto</dt><dd>${euro(c.tariffa_attiva)}${c.origine_tariffa === 'override' ? ' (tariffa agevolata)' : ''}</dd>
                 </dl>
             </article>`).join('');
