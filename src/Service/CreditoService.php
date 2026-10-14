@@ -94,23 +94,34 @@ final class CreditoService
      */
     public function registraConsumo(int $genitoreId, int $plessoId, int $bambinoId, string $data): ?int
     {
+        return Database::inTransazione(fn () =>
+            $this->registraConsumoInTransazione($genitoreId, $plessoId, $bambinoId, $data)
+        );
+    }
+
+    /**
+     * Stesso movimento usato dal job e dalle eccezioni accertate dalla scuola.
+     * Il chiamante DEVE avere gia' aperto una transazione SQL e acquisito il
+     * lock plesso/data prima di accedere a questo metodo.
+     */
+    public function registraConsumoInTransazione(int $genitoreId, int $plessoId,
+                                                 int $bambinoId, string $data): ?int
+    {
         if ($this->crediti->esisteConsumo($bambinoId, $data)) {
-            return null; // idempotenza: il job puo' essere rieseguito senza doppi addebiti
+            return null;
         }
-        return Database::inTransazione(function () use ($genitoreId, $plessoId, $bambinoId, $data) {
-            $poolId = $this->crediti->assicuraPool($genitoreId, $plessoId);
-            $id = $this->crediti->registraMovimento([
-                'pool_id'    => $poolId,
-                'tipo'       => 'consumo_pasto',
-                'delta'      => -1,
-                'data'       => $data,
-                'bambino_id' => $bambinoId,
-                'utente_id'  => null,
-                'note'       => 'Consumo automatico post-cutoff',
-            ]);
-            $this->crediti->aggiornaSaldo($poolId, -1);
-            return $id;
-        });
+        $poolId = $this->crediti->assicuraPool($genitoreId, $plessoId);
+        $id = $this->crediti->registraMovimento([
+            'pool_id' => $poolId,
+            'tipo' => 'consumo_pasto',
+            'delta' => -1,
+            'data' => $data,
+            'bambino_id' => $bambinoId,
+            'utente_id' => null,
+            'note' => 'Consumo automatico o confermato dalla scuola',
+        ]);
+        $this->crediti->aggiornaSaldo($poolId, -1);
+        return $id;
     }
 
     /** Stato visivo del pool: verde / giallo / rosso in base al fido del plesso. */
