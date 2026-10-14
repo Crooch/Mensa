@@ -30,6 +30,11 @@ jobs:
           php -l bootstrap.php
       - name: Browser script syntax and asynchronous report regression
         run: |
+          node --check public/assets/js/api.js
+          node --check public/assets/js/genitore.js
+          node --check public/assets/js/scuola.js
+          node --check public/assets/js/operatore.js
+          node --check public/assets/js/admin.js
           node --check public/assets/js/catering.js
           node tests/catering_ui.mjs
       - name: Calendar regression tests
