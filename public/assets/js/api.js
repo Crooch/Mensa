@@ -174,6 +174,9 @@ function proteggi(ruoloAtteso) {
 /** Gestione delle schede (tab) comuni a tutte le aree. */
 function abilitaSchede(alCambio) {
     document.querySelectorAll('.scheda').forEach((bottone) => {
+        bottone.setAttribute('role', 'tab');
+        bottone.setAttribute('aria-controls', 'vista-' + bottone.dataset.vista);
+        bottone.setAttribute('aria-selected', bottone.classList.contains('attiva') ? 'true' : 'false');
         bottone.addEventListener('click', () => {
             document.querySelectorAll('.scheda').forEach((b) => {
                 b.classList.remove('attiva');
@@ -183,7 +186,11 @@ function abilitaSchede(alCambio) {
             bottone.setAttribute('aria-selected', 'true');
             document.querySelectorAll('.vista').forEach((v) => { v.hidden = true; });
             const vista = document.getElementById('vista-' + bottone.dataset.vista);
-            if (vista) vista.hidden = false;
+            if (vista) {
+                vista.hidden = false;
+                vista.setAttribute('role', 'tabpanel');
+                vista.setAttribute('aria-label', bottone.textContent.trim());
+            }
             if (alCambio) alCambio(bottone.dataset.vista);
         });
     });
