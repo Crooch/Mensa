@@ -2,6 +2,7 @@
 $titoloPagina = 'Area ristorazione · ' . $titoloApp;
 $ruoloPagina = 'catering';
 $scriptPagina = 'catering';
+$scriptExtraPagina = 'catering_settimane';
 require __DIR__ . '/partials/testa.php';
 ?>
 <nav class="schede" role="tablist">
