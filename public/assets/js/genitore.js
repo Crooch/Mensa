@@ -191,7 +191,8 @@ async function dichiara(bambinoId, stato, data = oggi()) {
         const esito = await API.post('/api/genitore/presenze/dichiarazione', { bambino_id: bambinoId, data, stato });
         const messaggio = esito.fuori_cutoff
             ? 'L’orario limite è passato: la comunicazione non cambia il pasto previsto oggi.'
-            : `Comunicazione salvata per il ${dataIt(data)}: ${testoScelta(stato)}.`;
+            : `Comunicazione salvata per il ${dataIt(data)}: ${testoScelta(stato)}.` +
+              (esito.pasta_annullata ? ' Pasta in bianco annullata.' : '');
         statoApp.messaggi[bambinoId] = messaggio;
         avviso(messaggio, esito.fuori_cutoff ? 'errore' : 'ok');
         await caricaDashboard();
@@ -334,15 +335,17 @@ function mostraDettaglio(r, bambinoId) {
             try {
                 await UI.esegui(pulsante, async () => {
                     if (pulsante.dataset.calStato) {
-                        await API.post('/api/genitore/presenze/dichiarazione', {
+                        const esito = await API.post('/api/genitore/presenze/dichiarazione', {
                             bambino_id: bambinoId, data, stato: pulsante.dataset.calStato
                         });
+                        messaggioCalendario = 'Comunicazione salvata.' +
+                            (esito.pasta_annullata ? ' Pasta in bianco annullata.' : '');
                     } else {
                         await API.post('/api/genitore/pasta-bianco', {
                             bambino_id: bambinoId, data, richiesta: Number(pulsante.dataset.calPasta)
                         });
                     }
-                    messaggioCalendario = 'Comunicazione salvata per il ' + dataIt(data) + '.';
+                    if (!messaggioCalendario) messaggioCalendario = 'Comunicazione salvata.';
                 });
                 await caricaCalendario(data);
                 await caricaDashboard();
