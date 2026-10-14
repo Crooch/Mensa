@@ -146,7 +146,7 @@ final class CateringService
         $puliti = [];
         for ($g = 1; $g <= 7; $g++) {
             $valore = $giorni[(string) $g] ?? $giorni[$g] ?? '';
-            if (!is_string($valore) || mb_strlen($valore) > 3000) {
+            if (!is_string($valore) || strlen($valore) > 3000) {
                 throw HttpException::nonValido('Descrizione non valida per il giorno ' . $g);
             }
             $puliti[(string) $g] = trim($valore);
@@ -165,7 +165,7 @@ final class CateringService
     public function salvaMenuSettimanale(?int $id, string $nome, int $tipo, array $giorni, int $autore): int
     {
         $nome = trim($nome);
-        if ($nome === '' || mb_strlen($nome) > 150) {
+        if ($nome === '' || strlen($nome) > 150) {
             throw HttpException::nonValido('Indica un nome per il menu settimanale (massimo 150 caratteri)');
         }
         if ($this->tipologie->trova($tipo) === null) {
