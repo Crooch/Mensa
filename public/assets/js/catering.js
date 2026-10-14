@@ -15,10 +15,12 @@ async function caricaReport() {
     const stato = document.getElementById('report-stato');
     const pulsante = document.getElementById('btn-report');
     const contenitore = document.getElementById('report');
+    const riepilogo = document.getElementById('report-riepilogo');
 
     // Eventuali richieste precedenti possono arrivare dopo l'ultima selezione:
     // solo la piu' recente puo' modificare la pagina.
-    stato.textContent = 'Caricamento report del ' + dataIt(data) + '…';
+    stato.textContent = 'Caricamento dei pasti del ' + dataIt(data) + '…';
+    riepilogo.innerHTML = '';
     pulsante.disabled = true;
     pulsante.textContent = 'Aggiornamento…';
     try {
@@ -42,11 +44,18 @@ async function caricaReport() {
                             `<li>${esc(b.cognome)} ${esc(b.nome)} — ${esc(b.classe_nome)}</li>`
                         ).join('')}</ul>` : '<p class="nota">Nessuna richiesta per questa giornata.</p>'}
                 </article>`).join('');
+        const pasta = report.plessi.reduce((n, p) => n + Number(p.totale_pasta_in_bianco || 0), 0);
+        const definitivi = report.plessi.filter((p) => p.definitivo).length;
+        const dato = (numero, etichetta) => '<div class="riepilogo-mensa__dato"><strong>' + numero + '</strong><span>' + etichetta + '</span></div>';
+        riepilogo.innerHTML = dato(Number(report.totale_pasti || 0), 'Pasti da preparare') +
+            dato(report.plessi.length, 'Scuole con mensa') + dato(pasta, 'Pasta in bianco') +
+            dato(definitivi + '/' + report.plessi.length, 'Conteggi confermati');
         stato.textContent = 'Pasti per il ' + dataIt(data) +
-            ' · ' + Number(report.totale_pasti || 0) + ' pasti previsti';
+            ' · ' + Number(report.totale_pasti || 0) + ' pasti previsti · aggiornato alle ' + UI.oraAggiornamento();
     } catch (errore) {
         if (numeroRichiesta !== ultimaRichiestaReport) return;
         contenitore.innerHTML = '';
+        riepilogo.innerHTML = '';
         stato.textContent = 'Impossibile caricare il report del ' +
             dataIt(data) + ': ' + errore.message;
         avviso('Errore aggiornamento report: ' + errore.message, 'errore');
@@ -95,7 +104,9 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
     fd.append('descrizione', document.getElementById('menu-descrizione').value);
     const foto = document.getElementById('menu-foto').files[0];
     if (foto) fd.append('foto', foto);
+    const pulsante = e.submitter || document.querySelector('#form-menu [type=submit]');
     try {
+        await UI.esegui(pulsante, async () => {
         const risposta = await fetch(BASE + '/api/catering/menu', {
             method: 'POST',
             headers: { Authorization: 'Bearer ' + Sessione.token() },
@@ -106,8 +117,9 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
         avviso('Il menu di oggi è stato pubblicato.');
         document.getElementById('menu-descrizione').value = '';
         document.getElementById('menu-foto').value = '';
-        caricaMenu();
-    } catch (err) { avviso(err.message, 'errore'); }
+        await caricaMenu();
+        });
+    } catch (err) { avviso('Il menu non è stato pubblicato: ' + err.message, 'errore'); }
 });
 
 document.getElementById('btn-report').addEventListener('click', caricaReport);
