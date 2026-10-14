@@ -22,6 +22,12 @@ final class Mailer
 
     public function invia(array $a, array $cc, string $oggetto, string $testo): void
     {
+        // Collaudo sintetico: blocca ogni invio reale, anche se in UI si
+        // inseriscono per errore indirizzi o parametri SMTP.
+        if (getenv('MENSA_STAGING_ONLY') === '1'
+            && Config::get('db.database') === 'mensa_staging') {
+            return;
+        }
         $a = array_values(array_unique(array_filter($a)));
         $cc = array_values(array_unique(array_filter($cc)));
         if ($a === [] && $cc === []) {
