@@ -312,3 +312,46 @@ assert riga_senza_foto["foto_path"] is None
 assert riga_senza_foto["descrizione"] == descrizione_menu
 assert len(menu_senza_foto) == len(menu_con_foto)
 print("OK: menu multilinea, upload PNG e rimozione foto con ID invariato.")
+
+# Catalogo settimana tipo con API reali: creazione, duplicazione, assegnazione
+# a due plessi e menu visibile alle famiglie. Nessun dato di produzione.
+modello_settimana = call("/api/catering/menu-settimanali", {
+    "nome": "Settimana base - collaudo",
+    "tipologia_menu_id": tipologia_menu,
+    "giorni": {
+        "1": "Primo: pasta\\nSecondo: verdure",
+        "2": "Riso",
+        "3": "Pollo",
+        "4": "Pesce",
+        "5": "Minestrone",
+        "6": "", "7": ""
+    }
+}, token=catering)
+modello_id = int(modello_settimana["id"])
+lista_modelli = call("/api/catering/menu-settimanali", token=catering)
+assert any(int(m["id"]) == modello_id for m in lista_modelli)
+duplica = call("/api/catering/menu-settimanali/" + str(modello_id) + "/duplica", {
+    "nome": "Copia del modello - collaudo",
+    "tipologia_menu_id": tipologia_menu
+}, token=catering)
+assert int(duplica["id"]) != modello_id
+
+assegnato = call("/api/catering/menu-settimanali/assegnazioni", {
+    "menu_id": modello_id, "tipologia_menu_id": tipologia_menu,
+    "plesso_ids": [1, 3]
+}, token=catering)
+assert len(assegnato["plessi"]) == 2
+assert assegnato["valido_dal"] >= dt.date.today().isoformat()
+assegnazioni = call("/api/catering/menu-settimanali/assegnazioni", token=catering)
+assert len([a for a in assegnazioni if int(a["menu_id"]) == modello_id]) == 2
+
+menus_19 = call("/api/catering/menu?data=2026-10-19", token=catering)
+ricorrenti = [m for m in menus_19
+    if m.get("origine") == "settimanale" and int(m["tipologia_menu_id"]) == tipologia_menu]
+assert len(ricorrenti) == 2
+assert all(m["descrizione"] == "Primo: pasta\\nSecondo: verdure" for m in ricorrenti)
+
+menu_genitore = call("/api/genitore/menu?data=2026-10-19", token=genitore)
+assert any(m.get("origine") == "settimanale" for m in menu_genitore)
+assert call("/api/catering/menu?data=2026-10-15", token=catering) == []
+print("OK: modello duplicato e assegnato a piu' plessi, visibile al genitore senza modifiche retroattive.")
