@@ -19,10 +19,11 @@ final class MenuSettimanaleRepository extends Repository
             FROM menu_settimanali m JOIN tipologie_menu t ON t.id = m.tipologia_menu_id
             WHERE m.id = :id', ['id' => $id]);
         if ($modello === null) return null;
-        $rev = $this->uno('SELECT id, giorni_json, valido_dal FROM menu_settimanali_revisioni
+        $rev = $this->uno('SELECT id, nome, giorni_json, valido_dal FROM menu_settimanali_revisioni
             WHERE menu_id = :id AND valido_dal <= :data
             ORDER BY valido_dal DESC, id DESC LIMIT 1', ['id' => $id, 'data' => $data]);
         $modello['giorni'] = $rev ? json_decode((string) $rev['giorni_json'], true) : [];
+        if ($rev !== null && $rev['nome'] !== null) $modello['nome'] = $rev['nome'];
         $modello['revisione_id'] = $rev['id'] ?? null;
         $modello['valido_dal'] = $rev['valido_dal'] ?? null;
         return $modello;
@@ -42,7 +43,7 @@ final class MenuSettimanaleRepository extends Repository
             $id = $this->inserisci('menu_settimanali', [
                 'nome' => $nome, 'tipologia_menu_id' => $tipo
             ]);
-            $this->salvaRevisione($id, $giorni, $dal, $autore);
+            $this->salvaRevisione($id, $nome, $giorni, $dal, $autore);
             if ($transazione) $this->db->commit();
             return $id;
         } catch (\Throwable $e) {
@@ -57,7 +58,7 @@ final class MenuSettimanaleRepository extends Repository
         if ($transazione) $this->db->beginTransaction();
         try {
             $this->aggiorna('menu_settimanali', $id, ['nome' => $nome]);
-            $this->salvaRevisione($id, $giorni, $dal, $autore);
+            $this->salvaRevisione($id, $nome, $giorni, $dal, $autore);
             if ($transazione) $this->db->commit();
         } catch (\Throwable $e) {
             if ($transazione) $this->db->rollBack();
@@ -65,10 +66,11 @@ final class MenuSettimanaleRepository extends Repository
         }
     }
 
-    private function salvaRevisione(int $id, array $giorni, string $dal, int $autore): void
+    private function salvaRevisione(int $id, string $nome, array $giorni, string $dal, int $autore): void
     {
         $this->inserisci('menu_settimanali_revisioni', [
             'menu_id' => $id,
+            'nome' => $nome,
             'valido_dal' => $dal,
             'giorni_json' => json_encode($giorni, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
             'utente_id' => $autore > 0 ? $autore : null,
