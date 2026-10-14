@@ -16,7 +16,7 @@ const motivoServizioScuola = (motivo) => ({
     calendario_non_configurato: 'Calendario da definire',
     plesso_non_attivo: 'Plesso non attivo',
     data_non_valida: 'Data non valida'
-}[motivo] || 'Mensa non prevista';
+}[motivo]) || 'Mensa non prevista';
 
 abilitaSchede((vista) => { if (vista === 'assenze') caricaAssenze(); });
 
