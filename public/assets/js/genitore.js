@@ -34,7 +34,7 @@ async function caricaDashboard() {
                 <dt>Plesso</dt><dd>${esc(f.plesso_nome || 'non assegnato')}</dd>
                 <dt>Classe</dt><dd>${esc(f.classe_nome || '-')} ${esc(f.anno_scolastico || '')}</dd>
                 <dt>Dieta</dt><dd>${esc(f.tipologia_nome)}</dd>
-                <dt>Oggi</dt><dd>${s ? badgeStato(s.stato_effettivo) : '-'}</dd>
+                <dt>Oggi</dt><dd>${s ? (s.servizio_mensa && !s.servizio_mensa.attivo ? 'Mensa non prevista' : badgeStato(s.stato_effettivo)) : '-'}</dd>
                 <dt>Tua dichiarazione</dt><dd>${esc(dichiarazione)}</dd>
                 <dt>Pasta in bianco oggi</dt><dd>${s && s.pasta_in_bianco ? 'richiesta' : 'non richiesta'}</dd>
                 <dt>Cutoff</dt><dd>${s ? s.cutoff_orario + (s.oltre_cutoff ? ' (superato)' : '') : '-'}</dd>
