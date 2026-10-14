@@ -93,6 +93,7 @@ final class GenitoreController
             'stato_effettivo' => $esito['stato_effettivo'],
             'fuori_cutoff'    => (int) $esito['fuori_cutoff'] === 1,
             'effetto'         => $esito['effetto'],
+            'pasta_annullata' => (bool) ($esito['pasta_annullata'] ?? false),
         ];
     }
 
