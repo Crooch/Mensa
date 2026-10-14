@@ -552,7 +552,14 @@ final class PresenzaService
         foreach ($this->bambini->elencoPerPlesso($plessoId, $data) as $bambino) {
             $record = $this->assicuraRecord((int) $bambino['id'], $data);
             if ((int) $record['congelato'] !== 1) {
-                $stato = (int) $record['fuori_cutoff'] === 1 ? $record['stato_effettivo'] : $this->calcolaStatoEffettivo($record);
+                // Il consolidamento giornaliero applica la stessa regola
+                // dei report: la gita annulla tutti i pasti della classe.
+                // Altrimenti una vecchia presenza individuale verrebbe
+                // riattivata dal job e potrebbe generare un addebito.
+                $gita = $this->presenze->assenzaMassa((int) $bambino['classe_sezione_id'], $data) !== null;
+                $stato = $gita ? 'assente'
+                    : ((int) $record['fuori_cutoff'] === 1
+                        ? $record['stato_effettivo'] : $this->calcolaStatoEffettivo($record));
                 $this->presenze->modificaPresenza((int) $record['id'], [
                     'stato_effettivo' => $stato,
                     'congelato'       => 1,
