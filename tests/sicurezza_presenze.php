@@ -99,6 +99,34 @@ verifica($pasta['richiesta'] === true, 'richiesta pasta futura accettata');
 $servizio->pastaBiancoGenitore($bambino, $prossimoLunedi, false, $utente);
 $count = (int) $pdo->query("SELECT COUNT(*) FROM log_operazioni_presenze WHERE bambino_id={$bambino}")->fetchColumn();
 verifica($count === 4, 'richiesta e annullamento pasta registrati senza movimento economico');
+ 
+// Le richieste speciali non sono ammesse quando non c'è un pasto previsto.
+// Se la presenza cambia in assenza, l'eventuale richiesta va annullata
+// senza cancellare lo storico della comunicazione.
+$servizio->pastaBiancoGenitore($bambino, $prossimoLunedi, true, $utente);
+$servizio->dichiaraGenitore($bambino, $prossimoLunedi, 'assente', $utente);
+$pastaAnnulata = $c->presenze()->richiestaPastaBianco($bambino, $prossimoLunedi);
+verifica((int) $pastaAnnulata['richiesta'] === 0, 'assenza della famiglia annulla la pasta in bianco');
+rifiutata(fn () => $servizio->pastaBiancoGenitore($bambino, $prossimoLunedi, true, $utente),
+    'impossibile richiedere pasta in bianco mentre il bambino e assente');
+$servizio->dichiaraGenitore($bambino, $prossimoLunedi, 'presente', $utente);
+verifica((int) $c->presenze()->richiestaPastaBianco($bambino, $prossimoLunedi)['richiesta'] === 0,
+    'la nuova presenza non riattiva la richiesta vecchia');
+$servizio->pastaBiancoGenitore($bambino, $prossimoLunedi, true, $utente);
+$servizio->overrideScuola($bambino, $prossimoLunedi, 'assente', 'Assenza confermata scuola', $scuola, $plesso);
+verifica((int) $c->presenze()->richiestaPastaBianco($bambino, $prossimoLunedi)['richiesta'] === 0,
+    'assenza corretta dalla scuola annulla la pasta in bianco');
+rifiutata(fn () => $servizio->pastaBiancoGenitore($bambino, $prossimoLunedi, true, $utente),
+    'la correzione scuola impedisce la richiesta speciale');
+
+$prossimoMartedi = (new DateTimeImmutable('next tuesday'))->format('Y-m-d');
+$servizio->pastaBiancoGenitore($bambino, $prossimoMartedi, true, $utente);
+$servizio->dichiaraAssenzaMassa($classe, $prossimoMartedi, 'Gita scolastica', $scuola, $plesso);
+verifica((int) $c->presenze()->richiestaPastaBianco($bambino, $prossimoMartedi)['richiesta'] === 0,
+    'assenza di tutta la classe annulla la pasta in bianco');
+rifiutata(fn () => $servizio->pastaBiancoGenitore($bambino, $prossimoMartedi, true, $utente),
+    'giornata di gita senza pasto impedisce la richiesta speciale');
+
 
 // Regressione: una dichiarazione tardiva preesistente non deve diventare
 // valida soltanto perche' il job viene eseguito dopo il cutoff.
