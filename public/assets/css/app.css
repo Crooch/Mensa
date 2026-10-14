@@ -259,3 +259,82 @@ input:disabled, button:disabled { opacity:.65; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration:.01ms!important; animation-duration:.01ms!important; }
 }
+
+
+/* 14/10/2026 - Correzione impaginazione DESKTOP, senza nascondere i testi.
+   I campi di filtro sono raggruppati a due a due dallo script comune. */
+html, body { max-width: 100%; }
+.contenitore, .contenuto, .vista, .pannello, .card-mensa, .griglia-cards,
+.due-colonne, .due-colonne > *, .tabella-scroll, .riepilogo-mensa,
+.riepilogo-mensa__dato, .modale__pannello, .campo-filtro {
+    min-width: 0;
+}
+.griglia-cards {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+    align-items: start;
+}
+.due-colonne {
+    grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+}
+.riga-filtri {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: .85rem;
+    align-items: end;
+}
+.riga-filtri > * { min-width: 0; max-width: 100%; }
+.riga-filtri > label { width: auto; align-self: center; }
+.campo-filtro { display: flex; flex-direction: column; width: 100%; }
+.campo-filtro > label { margin-bottom: .25rem; line-height: 1.35; }
+.campo-filtro > input, .campo-filtro > select, .campo-filtro > textarea {
+    min-width: 0; max-width: 100%; width: 100%;
+}
+.card-mensa, .pannello, .riepilogo-mensa__dato, .stato-operazione,
+.banner, .avviso, .conferma-dialogo, .modale__pannello {
+    overflow-wrap: anywhere;
+}
+.card-mensa dl {
+    grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+    gap: .35rem .7rem;
+    font-size: .94rem;
+}
+.card-mensa dt, .card-mensa dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.card-mensa h3, .card-mensa p, .pannello h2, .pannello p {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.btn, .btn-azione, .scheda, .badge-stato {
+    white-space: normal;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-align: center;
+}
+.azioni-giorno > *, .riepilogo-mensa__dato { min-width: 0; }
+.tabella-scroll { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+.tabella-scroll > table.table { width: max-content; min-width: 100%; }
+.tabella-scroll > table.table th, .tabella-scroll > table.table td {
+    max-width: 260px;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+.calendario { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.calendario .giorno {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+.intestazione-comune__titolo, .intestazione-comune__azioni,
+.intestazione-comune__titolo > div { min-width: 0; }
+.intestazione-comune__titolo strong, .intestazione-comune__titolo span,
+#utente-corrente { overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+    .due-colonne { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+    .riga-filtri { grid-template-columns: minmax(0, 1fr); gap: .7rem; }
+    .griglia-cards { grid-template-columns: minmax(0, 1fr); }
+}
