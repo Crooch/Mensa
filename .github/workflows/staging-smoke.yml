@@ -1,0 +1,30 @@
+name: Staging Docker HTTP smoke
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'staging/**'
+      - 'compose.staging.yml'
+      - 'database/**'
+      - 'src/**'
+      - '.github/workflows/staging-smoke.yml'
+
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start isolated environment
+        run: docker compose -f compose.staging.yml up --build -d --wait
+      - name: Check HTTP responses
+        run: |
+          curl --fail --retry 15 --retry-delay 2 --retry-connrefused http://127.0.0.1:18080/login >/dev/null
+          python3 staging/smoke.py
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose -f compose.staging.yml logs --tail=100
+      - name: Tear down staging
+        if: always()
+        run: docker compose -f compose.staging.yml down -v
