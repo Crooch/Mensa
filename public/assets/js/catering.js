@@ -27,7 +27,7 @@ function sincronizzaMenuSelezionato() {
 
     if (!menuDisponibili || !plesso || !tipologia) {
         pulsante.disabled = true;
-        pulsante.textContent = 'Pubblica questo menu';
+        pulsante.textContent = 'Pubblica menu';
         stato.className = 'stato-operazione catering-menu-stato stato-operazione--info';
         stato.textContent = menuDisponibili
             ? 'Seleziona un plesso e una tipologia di menu.'
@@ -41,7 +41,7 @@ function sincronizzaMenuSelezionato() {
     descrizione.value = esistente?.descrizione || '';
     foto.value = '';
     pulsante.disabled = false;
-    pulsante.textContent = esistente ? 'Aggiorna questo menu' : 'Pubblica questo menu';
+    pulsante.textContent = esistente ? 'Aggiorna menu' : 'Pubblica menu';
     stato.className = 'stato-operazione catering-menu-stato stato-operazione--' +
         (esistente ? 'info' : 'non-previsto');
     stato.textContent = esistente
@@ -143,7 +143,7 @@ async function caricaMenu() {
                     <p class="catering-menu-card__tipo">${esc(m.tipologia_nome)}</p>
                     <p>${esc(m.descrizione || 'Solo foto pubblicata')}</p>
                     ${m.foto_path ? `<img src="${BASE}/storage/${esc(m.foto_path)}" alt="Foto del menu">` : ''}
-                    <button type="button" class="btn btn-outline-primary" data-menu-modifica="${m.id}" data-testid="menu-modifica-${m.id}">Modifica questo menu</button>
+                    <button type="button" class="btn btn-outline-primary" data-menu-modifica="${m.id}" data-testid="menu-modifica-${m.id}">Modifica menu</button>
                 </article>`).join('');
 
         document.querySelectorAll('[data-menu-modifica]').forEach((pulsante) => {
