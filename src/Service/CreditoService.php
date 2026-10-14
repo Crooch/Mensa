@@ -32,7 +32,7 @@ final class CreditoService
      * @return array{movimento_id:int, importo:float, tariffa:float, origine_tariffa:string, saldo:int}
      */
     public function acquistaBuoni(int $genitoreId, int $plessoId, int $numeroBuoni, int $utenteId,
-                                  ?string $note = null, ?string $richiestaId = null): array
+                                  ?string $note = null, ?string $richiestaId = null, ?float $importoAtteso = null): array
     {
         if ($numeroBuoni <= 0) {
             throw HttpException::nonValido('Il numero di buoni deve essere maggiore di zero');
@@ -40,8 +40,7 @@ final class CreditoService
         if ($richiestaId !== null && !preg_match('/^[a-zA-Z0-9-]{16,64}$/D', $richiestaId)) {
             throw HttpException::nonValido('Identificativo della richiesta non valido');
         }
-        $tariffa = $this->tariffe->tariffaAttiva($genitoreId, $plessoId);
-        $importo = round($numeroBuoni * $tariffa['tariffa'], 2);
+        $note = $note === null ? null : trim($note);
 
         // Il medesimo token deve sempre riferirsi allo stesso acquisto.
         // Il controllo preliminare migliora la risposta; il DB UNIQUE evita
@@ -49,8 +48,14 @@ final class CreditoService
         if ($richiestaId !== null) {
             $precedente = $this->crediti->acquistoPerRichiesta($richiestaId);
             if ($precedente !== null) {
-                return $this->rispostaAcquistoEsistente($precedente, $genitoreId, $plessoId, $numeroBuoni, $utenteId);
+                return $this->rispostaAcquistoEsistente($precedente, $genitoreId, $plessoId, $numeroBuoni, $utenteId, $note);
             }
+        }
+
+        $tariffa = $this->tariffe->tariffaAttiva($genitoreId, $plessoId);
+        $importo = round($numeroBuoni * $tariffa['tariffa'], 2);
+        if ($importoAtteso !== null && abs($importoAtteso - $importo) > 0.009) {
+            throw new HttpException(409, 'Il costo dei buoni è cambiato. Riapri il modulo e controlla il nuovo importo.');
         }
 
         try {
@@ -92,17 +97,18 @@ final class CreditoService
             if ($precedente === null) {
                 throw $errore;
             }
-            return $this->rispostaAcquistoEsistente($precedente, $genitoreId, $plessoId, $numeroBuoni, $utenteId);
+            return $this->rispostaAcquistoEsistente($precedente, $genitoreId, $plessoId, $numeroBuoni, $utenteId, $note);
         }
     }
 
     private function rispostaAcquistoEsistente(array $precedente, int $genitoreId, int $plessoId,
-                                               int $numeroBuoni, int $utenteId): array
+                                               int $numeroBuoni, int $utenteId, ?string $note): array
     {
         if ((int) $precedente['genitore_id'] !== $genitoreId
             || (int) $precedente['plesso_id'] !== $plessoId
             || (int) $precedente['delta'] !== $numeroBuoni
-            || (int) $precedente['utente_id'] !== $utenteId) {
+            || (int) $precedente['utente_id'] !== $utenteId
+            || trim((string) ($precedente['note'] ?? '')) !== trim((string) ($note ?? ''))) {
             throw HttpException::nonValido('Questa richiesta è già stata usata per un acquisto diverso. Riapri il modulo.');
         }
         $pool = $this->crediti->trovaPool($genitoreId, $plessoId);
@@ -170,7 +176,8 @@ final class CreditoService
             || (int) $precedente['plesso_id'] !== $plessoId
             || (int) $precedente['delta'] !== $delta
             || (string) $precedente['note'] !== $note
-            || (int) $precedente['utente_id'] !== $utenteId) {
+            || (int) $precedente['utente_id'] !== $utenteId
+            || trim((string) ($precedente['note'] ?? '')) !== trim((string) ($note ?? ''))) {
             throw HttpException::nonValido('Questa richiesta è già stata usata per una correzione diversa. Riapri il modulo.');
         }
         return (int) $precedente['id'];
