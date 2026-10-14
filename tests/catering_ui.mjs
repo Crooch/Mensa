@@ -9,7 +9,8 @@ const elemento = (id) => {
     if (!elementi.has(id)) {
         elementi.set(id, {
             value: '', innerHTML: '', textContent: '', disabled: false,
-            checked: false, hidden: false,
+            checked: false, hidden: false, src: '',
+            removeAttribute(k) { if (k === 'src') this.src = ''; },
             files: [], handlers: {}, dataset: {}, focus() {},
             addEventListener(nome, fn) { this.handlers[nome] = fn; }
         });
@@ -199,17 +200,23 @@ await elemento('form-menu').handlers.submit({ preventDefault() {} });
 assert.equal(salvataggi.at(-1).descrizione, 'Primo: pasta\nSecondo: pollo\n\nFrutta');
 assert.match(elemento('menu-lista').innerHTML, /Primo: pasta\nSecondo: pollo\n\nFrutta/);
 assert.match(elemento('menu-lista').innerHTML, /class="menu-descrizione"/);
-assert.equal(elemento('menu-rimuovi-foto-opzione').hidden, false);
-assert.equal(elemento('menu-rimuovi-foto').checked, false);
-elemento('menu-rimuovi-foto').checked = true;
-elemento('menu-rimuovi-foto').handlers.change();
-assert.equal(elemento('menu-foto').disabled, true);
-assert.match(elemento('menu-foto-stato').textContent, /foto verrà rimossa/);
+assert.equal(elemento('menu-foto-anteprima').hidden, false);
+assert.match(elemento('menu-foto-immagine').src, /menu\/1_1/);
+elemento('menu-foto-elimina').handlers.click();
+assert.equal(elemento('menu-foto-anteprima').hidden, true);
+assert.equal(elemento('menu-foto-annulla').hidden, false);
+assert.equal(menuPubblicati.find((m) => m.id === 7).foto_path,
+    'menu/1_1/2026-10-14.jpg', 'La X non deve eliminare subito la foto nel backend');
+assert.equal(salvataggi.at(-1).rimuovi_foto, '0', 'Nessuna chiamata al server dopo la X');
+elemento('menu-foto-annulla').handlers.click();
+assert.equal(elemento('menu-foto-anteprima').hidden, false);
+assert.equal(elemento('menu-foto-annulla').hidden, true);
+elemento('menu-foto-elimina').handlers.click();
 await elemento('form-menu').handlers.submit({ preventDefault() {} });
 assert.equal(salvataggi.at(-1).rimuovi_foto, '1');
 assert.equal(menuPubblicati.find((m) => m.id === 7).foto_path, null);
-assert.equal(elemento('menu-rimuovi-foto-opzione').hidden, true);
-assert.equal(elemento('menu-rimuovi-foto').checked, false);
+assert.equal(elemento('menu-foto-anteprima').hidden, true);
+assert.equal(elemento('menu-foto-annulla').hidden, true);
 assert.equal(elemento('menu-foto').disabled, false);
 assert.equal(menuPubblicati.find((m) => m.id === 8).descrizione, 'Riso');
 assert.equal(menuPubblicati.find((m) => m.id === 9).descrizione, 'Minestra');
