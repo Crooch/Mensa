@@ -6,6 +6,7 @@ namespace App\Service;
 
 use App\Core\Config;
 use App\Core\HttpException;
+use App\Repository\JobRepository;
 use App\Repository\MenuGiornalieroRepository;
 use App\Repository\PlessoRepository;
 use App\Repository\PresenzaRepository;
@@ -23,14 +24,16 @@ final class CateringService
         private PlessoRepository $plessi,
         private TipologiaMenuRepository $tipologie,
         private MenuGiornalieroRepository $menu,
-        private PresenzaService $presenzaService
+        private PresenzaService $presenzaService,
+        private CalendarioService $calendario,
+        private JobRepository $job
     ) {
     }
 
     /**
-     * Report pasti da preparare per una data, raggruppato per plesso e tipologia.
-     * Indica per ciascun plesso se il cutoff e' stato superato (dato definitivo)
-     * oppure se il conteggio e' ancora provvisorio.
+     * Totali per plesso, tipologia dietetica e classe/sezione.
+     * I dati dei bambini sono esposti esclusivamente per le richieste
+     * specifiche di pasta in bianco, indispensabili alla preparazione.
      */
     public function report(string $data, ?int $plessoId = null): array
     {
@@ -38,28 +41,67 @@ final class CateringService
         $perPlesso = [];
         foreach ($righe as $riga) {
             $pid = (int) $riga['plesso_id'];
+            $servizio = $this->calendario->previsto($pid, $data);
+            if (!$servizio['attivo']) {
+                continue;
+            }
             if (!isset($perPlesso[$pid])) {
                 $plesso = $this->plessi->trova($pid);
+                $esecuzione = $this->job->esecuzione($pid, $data);
                 $perPlesso[$pid] = [
-                    'plesso_id'     => $pid,
-                    'plesso_nome'   => $riga['plesso_nome'],
-                    'cutoff_orario' => substr((string) $plesso['cutoff_orario'], 0, 5),
-                    'definitivo'    => $this->presenzaService->oltreCutoff($plesso, $data),
-                    'totale_pasti'  => 0,
-                    'tipologie'     => [],
+                    'plesso_id'            => $pid,
+                    'plesso_nome'          => $riga['plesso_nome'],
+                    'cutoff_orario'        => substr((string) $plesso['cutoff_orario'], 0, 5),
+                    'definitivo'           => $esecuzione !== null && $esecuzione['esito'] === 'ok',
+                    'totale_pasti'         => 0,
+                    'tipologie'            => [],
+                    'sezioni'              => [],
+                    'pasta_in_bianco'      => [],
+                    'totale_pasta_in_bianco' => 0,
                 ];
             }
-            $perPlesso[$pid]['totale_pasti'] += (int) $riga['pasti'];
-            $perPlesso[$pid]['tipologie'][] = [
-                'tipologia_id'   => (int) $riga['tipologia_id'],
-                'tipologia_nome' => $riga['tipologia_nome'],
-                'pasti'          => (int) $riga['pasti'],
-            ];
+
+            $pasti = (int) $riga['pasti'];
+            $perPlesso[$pid]['totale_pasti'] += $pasti;
+            $tid = (int) $riga['tipologia_id'];
+            if (!isset($perPlesso[$pid]['tipologie'][$tid])) {
+                $perPlesso[$pid]['tipologie'][$tid] = [
+                    'tipologia_id' => $tid, 'tipologia_nome' => $riga['tipologia_nome'], 'pasti' => 0,
+                ];
+            }
+            $perPlesso[$pid]['tipologie'][$tid]['pasti'] += $pasti;
+
+            $cid = (int) $riga['classe_id'];
+            if (!isset($perPlesso[$pid]['sezioni'][$cid])) {
+                $perPlesso[$pid]['sezioni'][$cid] = [
+                    'classe_id' => $cid, 'classe_nome' => $riga['classe_nome'], 'pasti' => 0,
+                ];
+            }
+            $perPlesso[$pid]['sezioni'][$cid]['pasti'] += $pasti;
         }
 
+        foreach ($this->presenze->elencoPastaBianco($data, $plessoId) as $richiesta) {
+            $pid = (int) $richiesta['plesso_id'];
+            if (!isset($perPlesso[$pid])) {
+                continue;
+            }
+            $perPlesso[$pid]['pasta_in_bianco'][] = [
+                'bambino_id' => (int) $richiesta['bambino_id'],
+                'nome' => $richiesta['nome'],
+                'cognome' => $richiesta['cognome'],
+                'classe_nome' => $richiesta['classe_nome'],
+            ];
+            $perPlesso[$pid]['totale_pasta_in_bianco']++;
+        }
+        foreach ($perPlesso as &$plesso) {
+            $plesso['tipologie'] = array_values($plesso['tipologie']);
+            $plesso['sezioni'] = array_values($plesso['sezioni']);
+        }
+        unset($plesso);
+
         return [
-            'data'         => $data,
-            'plessi'       => array_values($perPlesso),
+            'data' => $data,
+            'plessi' => array_values($perPlesso),
             'totale_pasti' => array_sum(array_column($perPlesso, 'totale_pasti')),
         ];
     }
