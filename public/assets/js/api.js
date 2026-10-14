@@ -71,13 +71,15 @@ function avviso(messaggio, tipo = 'ok') {
     nodo.dataset.testid = 'avviso';
     nodo.setAttribute('role', tipo === 'errore' ? 'alert' : 'status');
     const testo = document.createElement('span');
+    testo.className = 'avviso__testo';
     testo.textContent = messaggio;
     nodo.appendChild(testo);
     const chiudi = document.createElement('button');
     chiudi.type = 'button';
     chiudi.className = 'avviso__chiudi';
     chiudi.setAttribute('aria-label', 'Chiudi messaggio');
-    chiudi.textContent = '×';
+    // La X è disegnata con CSS, non con il carattere tipografico ×:
+    // resta centrata indipendentemente dal font e dallo zoom del browser.
     chiudi.addEventListener('click', () => nodo.remove());
     nodo.appendChild(chiudi);
     contenitore.appendChild(nodo);
