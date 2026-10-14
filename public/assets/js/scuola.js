@@ -23,7 +23,7 @@ async function caricaGiornata() {
     const banner = document.getElementById('stato-cutoff');
     banner.className = 'banner ' + (vista.oltre_cutoff ? 'banner--rosso' : 'banner--verde');
     banner.innerHTML = `Cutoff plesso <strong>${esc(vista.cutoff_orario)}</strong> · ${vista.oltre_cutoff
-        ? 'cutoff SUPERATO: le correzioni restano tracciate ma non modificano il conteggio già inviato alla ditta.'
+        ? 'cutoff superato: puoi confermare un pasto effettivamente erogato a un alunno previsto assente. Gli altri cambiamenti sono solo tracciati, senza rimborsi automatici.'
         : 'prima del cutoff: le correzioni modificano il conteggio dei pasti.'}
         ${vista.assenza_massa ? `<br>Assenza di massa registrata: <strong>${esc(vista.assenza_massa.motivo)}</strong>` : ''}`;
 
@@ -51,9 +51,13 @@ async function caricaGiornata() {
                 stato: b.dataset.stato,
                 motivazione
             });
-            avviso(esito.fuori_cutoff
-                ? 'Override registrato dopo il cutoff: tracciato ma senza effetto sul conteggio.'
-                : `Override applicato: ${esito.stato_effettivo}.`, esito.fuori_cutoff ? 'errore' : 'ok');
+            const messaggi = {
+                pasto_contabilizzato: 'Pasto confermato e contabilizzato una sola volta.',
+                presenza_confermata: 'Presenza confermata. Nessun doppio addebito.',
+                registrato_senza_effetto: 'Segnalazione tracciata: nessuna modifica economica.',
+                applicato: 'Presenza aggiornata prima del cutoff.'
+            };
+            avviso(messaggi[esito.effetto] || 'Correzione registrata.', 'ok');
             caricaGiornata();
         } catch (e) { avviso(e.message, 'errore'); }
     }));
