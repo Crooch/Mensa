@@ -50,6 +50,8 @@ jobs:
           $DB < database/migrations/002_calendario_mensa.sql
           $DB < database/migrations/003_richieste_pasta_bianco.sql
           $DB < database/migrations/003_richieste_pasta_bianco.sql
+          $DB < database/migrations/004_audit_operazioni_presenze.sql
+          $DB < database/migrations/004_audit_operazioni_presenze.sql
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM calendari_servizio')" = "2"
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name = "richieste_pasta_bianco"')" = "1"
       - name: Check catering counts and pasta requests with synthetic pupils
@@ -57,3 +59,8 @@ jobs:
           MYSQL_PWD: ci_root_password
           MENSA_TEST_DATABASE: mensa_ci
         run: php tests/report_integrazione.php
+      - name: Prevent late declarations and duplicate credits
+        env:
+          MYSQL_PWD: ci_root_password
+          MENSA_TEST_DATABASE: mensa_ci
+        run: php tests/sicurezza_presenze.php
