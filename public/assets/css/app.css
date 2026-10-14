@@ -589,6 +589,8 @@ input[type="datetime-local"]:focus-visible {
 .scuola-tabella .table th, .scuola-tabella .table td {
     padding: .65rem .7rem;
     vertical-align: middle;
+    max-width: none;
+    overflow-wrap: anywhere;
 }
 .scuola-tabella .table th:last-child, .scuola-tabella .table td:last-child {
     min-width: 140px;
