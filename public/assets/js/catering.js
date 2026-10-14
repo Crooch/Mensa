@@ -203,21 +203,31 @@ async function caricaFeedback() {
 
 document.getElementById('menu-plesso').addEventListener('change', sincronizzaMenuSelezionato);
 document.getElementById('menu-tipologia').addEventListener('change', sincronizzaMenuSelezionato);
-document.getElementById('menu-rimuovi-foto').addEventListener('change', () => {
-    const rimozione = document.getElementById('menu-rimuovi-foto').checked;
-    const foto = document.getElementById('menu-foto');
-    if (rimozione) foto.value = '';
-    foto.disabled = rimozione;
-    document.getElementById('menu-foto-stato').textContent = rimozione
-        ? 'La foto verrà rimossa quando confermi l’aggiornamento.'
-        : 'Se non scegli una nuova foto, rimane quella pubblicata.';
+document.getElementById('menu-foto-elimina').addEventListener('click', () => {
+    if (!menuSelezionato()?.foto_path || !menuDisponibili) return;
+    fotoDaRimuovere = true;
+    document.getElementById('menu-foto-anteprima').hidden = true;
+    document.getElementById('menu-foto-annulla').hidden = false;
+    document.getElementById('menu-foto').value = '';
+    document.getElementById('menu-foto-stato').textContent =
+        'Foto da rimuovere. La cancellazione avverrà soltanto dopo “Aggiorna menu”.';
+});
+document.getElementById('menu-foto-annulla').addEventListener('click', () => {
+    if (!menuSelezionato()?.foto_path) return;
+    fotoDaRimuovere = false;
+    document.getElementById('menu-foto-anteprima').hidden = false;
+    document.getElementById('menu-foto-annulla').hidden = true;
+    document.getElementById('menu-foto-stato').textContent =
+        'Se non scegli una nuova foto, rimane quella pubblicata.';
 });
 document.getElementById('menu-foto').addEventListener('change', () => {
-    const foto = document.getElementById('menu-foto');
-    if (foto.files.length) {
-        document.getElementById('menu-rimuovi-foto').checked = false;
+    const file = document.getElementById('menu-foto');
+    if (file.files.length) {
+        fotoDaRimuovere = false;
+        document.getElementById('menu-foto-anteprima').hidden = true;
+        document.getElementById('menu-foto-annulla').hidden = true;
         document.getElementById('menu-foto-stato').textContent =
-            'La nuova foto sostituirà quella precedente al salvataggio.';
+            'La nuova foto sostituirà la precedente quando salvi.';
     }
 });
 
@@ -236,7 +246,7 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
         return;
     }
     const esistente = menuSelezionato();
-    const rimuoviFoto = document.getElementById('menu-rimuovi-foto').checked;
+    const rimuoviFoto = fotoDaRimuovere;
     if (esistente && !await UI.conferma(
         'Aggiorna solo questo menu',
         'Stai per aggiornare il menu ' + tipologia.nome + ' del plesso ' + plesso.nome +
@@ -247,7 +257,8 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
     // Ripristina il blocco in caso di selezione cambiata durante il dialogo.
     if (document.getElementById('menu-plesso').value !== plessoId ||
         document.getElementById('menu-tipologia').value !== tipologiaId ||
-        menuSelezionato()?.id !== esistente?.id) {
+        menuSelezionato()?.id !== esistente?.id ||
+        fotoDaRimuovere !== rimuoviFoto) {
         avviso('La selezione è cambiata: controlla il menu prima di salvare.', 'errore');
         return;
     }
