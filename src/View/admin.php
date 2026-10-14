@@ -15,21 +15,22 @@ require __DIR__ . '/partials/testa.php';
 </nav>
 
 <section id="vista-plessi" class="vista">
-    <h1>Plessi e parametri</h1>
+    <h1>Scuole e impostazioni della mensa</h1>
+    <p class="nota">Imposta il costo del pasto, la soglia per il sollecito e l'orario entro cui le famiglie possono modificare le presenze.</p>
     <form id="form-plesso" class="pannello" data-testid="plesso-form">
         <input type="hidden" id="plesso-id">
         <div class="riga-filtri">
             <label for="plesso-nome">Nome</label><input type="text" id="plesso-nome" data-testid="plesso-nome-input">
             <label for="plesso-tariffa">Tariffa base (€)</label><input type="number" step="0.01" min="0" id="plesso-tariffa" data-testid="plesso-tariffa-input">
-            <label for="plesso-fido">Soglia di avviso (buoni)</label><input type="number" min="0" id="plesso-fido" data-testid="plesso-fido-input">
-            <label for="plesso-cutoff">Orario limite per modificare i pasti</label><input type="time" id="plesso-cutoff" data-testid="plesso-cutoff-input">
+            <label for="plesso-fido">Buoni di debito prima del sollecito</label><input type="number" min="0" id="plesso-fido" data-testid="plesso-fido-input">
+            <label for="plesso-cutoff">Entro che ora si possono modificare i pasti?</label><input type="time" id="plesso-cutoff" data-testid="plesso-cutoff-input">
         </div>
         <div class="riga-filtri">
             <label for="plesso-dirigente">Email dirigente</label><input type="text" id="plesso-dirigente" data-testid="plesso-dirigente-input">
             <label for="plesso-protocollo">Email protocollo (opzionale)</label><input type="text" id="plesso-protocollo" data-testid="plesso-protocollo-input">
         </div>
         <button type="submit" class="btn btn-primary" data-testid="plesso-submit-button">Salva plesso</button>
-        <button type="button" class="btn btn-outline-primary" id="plesso-annulla" data-testid="plesso-annulla-button">Nuovo</button>
+        <button type="button" class="btn btn-outline-primary" id="plesso-annulla" data-testid="plesso-annulla-button">Aggiungi un'altra scuola</button>
     </form>
     <div class="tabella-scroll">
         <table class="table" data-testid="plessi-tabella">
@@ -42,17 +43,17 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-calendario" class="vista" hidden>
     <h1>Calendario del servizio mensa</h1>
-    <p class="nota">La configurazione vale per ciascun plesso. Sabato, domenica e festività nazionali sono sempre esclusi dai consumi. Il servizio non è attivo finché il calendario non viene configurato.</p>
+    <p class="nota">Scegli una scuola, poi indica quando inizia la mensa e in quali giorni si mangia. Sabato, domenica e festività nazionali non prevedono pasti. Se non salvi il calendario della scuola, il sistema non conteggia i pasti.</p>
     <div class="riga-filtri">
-        <label for="calendario-plesso">Plesso</label>
+        <label for="calendario-plesso">Scegli la scuola</label>
         <select id="calendario-plesso" data-testid="calendario-plesso-select"></select>
     </div>
     <form id="form-calendario" class="pannello" data-testid="calendario-form">
-        <h2>Periodo e giorni di servizio</h2>
+        <h2>Quando è prevista la mensa?</h2>
         <div class="riga-filtri">
-            <label for="calendario-inizio">Inizio servizio</label>
+            <label for="calendario-inizio">Primo giorno di mensa</label>
             <input type="date" id="calendario-inizio" required>
-            <label for="calendario-fine">Fine servizio (facoltativa)</label>
+            <label for="calendario-fine">Ultimo giorno di mensa (se conosciuto)</label>
             <input type="date" id="calendario-fine">
         </div>
         <div class="riga-filtri">
@@ -62,23 +63,23 @@ require __DIR__ . '/partials/testa.php';
             <label><input type="checkbox" id="calendario-giovedi"> Giovedì</label>
             <label><input type="checkbox" id="calendario-venerdi"> Venerdì</label>
         </div>
-        <button class="btn btn-primary" type="submit" data-testid="calendario-salva">Salva calendario</button>
+        <button class="btn btn-primary" type="submit" data-testid="calendario-salva">Salva giorni della mensa</button>
     </form>
 
-    <h2>Chiusure e aperture straordinarie</h2>
-    <p class="nota">Un'eccezione vale per una sola data. Le aperture aggiuntive sono ammesse soltanto nei giorni feriali non festivi.</p>
+    <h2>Un giorno diverso dal solito</h2>
+    <p class="nota">Usa questa sezione se la mensa sarà chiusa in un giorno normalmente previsto, oppure aperta in un giorno feriale normalmente escluso. La modifica vale solo per il giorno scelto.</p>
     <form id="form-eccezione-calendario" class="pannello">
         <div class="riga-filtri">
-            <label for="eccezione-data">Data</label><input type="date" id="eccezione-data" required>
-            <label for="eccezione-attivo">Servizio</label>
+            <label for="eccezione-data">Giorno da modificare</label><input type="date" id="eccezione-data" required>
+            <label for="eccezione-attivo">Cosa succede?</label>
             <select id="eccezione-attivo">
-                <option value="0">Chiusura</option>
-                <option value="1">Apertura straordinaria</option>
+                <option value="0">La mensa sarà chiusa</option>
+                <option value="1">La mensa sarà aperta</option>
             </select>
-            <label for="eccezione-motivazione">Motivazione</label>
+            <label for="eccezione-motivazione">Perché cambia il servizio?</label>
             <input type="text" maxlength="255" id="eccezione-motivazione" required placeholder="Es. sospensione attività didattiche">
         </div>
-        <button class="btn btn-primary" type="submit" data-testid="eccezione-salva">Salva eccezione</button>
+        <button class="btn btn-primary" type="submit" data-testid="eccezione-salva">Salva questa modifica</button>
     </form>
     <div class="tabella-scroll">
         <table class="table">
@@ -86,21 +87,21 @@ require __DIR__ . '/partials/testa.php';
             <tbody id="eccezioni-calendario-corpo"></tbody>
         </table>
     </div>
-    <h2>Verifica una data</h2>
+    <h2>La mensa è prevista in un giorno?</h2>
     <div class="riga-filtri">
         <label for="calendario-verifica-data">Data</label><input type="date" id="calendario-verifica-data">
-        <button type="button" class="btn btn-outline-primary" id="calendario-verifica">Verifica servizio</button>
+        <button type="button" class="btn btn-outline-primary" id="calendario-verifica">Controlla la data</button>
         <span id="calendario-verifica-esito" role="status"></span>
     </div>
 </section>
 
 <section id="vista-classi" class="vista" hidden>
-    <h1>Classi e sezioni</h1>
+    <h1>Classi e sezioni delle scuole</h1>
     <form id="form-classe" class="pannello" data-testid="classe-form">
         <div class="riga-filtri">
             <label for="classe-plesso">Plesso</label><select id="classe-plesso" data-testid="classe-plesso-select"></select>
             <label for="classe-nome">Nome</label><input type="text" id="classe-nome" placeholder="Es. 3ª B" data-testid="classe-nome-input">
-            <label for="classe-anno">Anno scolastico</label><input type="text" id="classe-anno" placeholder="2025/2026" data-testid="classe-anno-input">
+            <label for="classe-anno">Anno scolastico (es. 2026/2027)</label><input type="text" id="classe-anno" placeholder="2026/2027" data-testid="classe-anno-input">
         </div>
         <button type="submit" class="btn btn-primary" data-testid="classe-submit-button">Aggiungi classe</button>
     </form>
@@ -113,8 +114,8 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-tipologie" class="vista" hidden>
-    <h1>Tipologie di menu</h1>
-    <p class="nota">Per esigenze combinate si crea una nuova tipologia dedicata: ogni alunno ha una sola tipologia.</p>
+    <h1>Tipi di menu</h1>
+    <p class="nota">Ogni bambino ha un tipo di menu assegnato. Se servono più esigenze alimentari insieme, crea un nuovo tipo di menu che le comprenda.</p>
     <form id="form-tipologia" class="pannello" data-testid="tipologia-form">
         <div class="riga-filtri">
             <label for="tipologia-nome">Nome</label><input type="text" id="tipologia-nome" data-testid="tipologia-nome-input">
@@ -130,18 +131,19 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-email" class="vista" hidden>
-    <h1>Modelli di sollecito e destinatari</h1>
+    <h1>Testi e destinatari dei solleciti</h1>
     <form id="form-modello" class="pannello" data-testid="modello-form">
         <div class="riga-filtri">
             <label for="modello-plesso">Plesso</label><select id="modello-plesso" data-testid="modello-plesso-select"></select>
             <label for="modello-oggetto">Oggetto</label><input type="text" id="modello-oggetto" data-testid="modello-oggetto-input">
         </div>
-        <label for="modello-testo">Testo (placeholder: {genitore} {alunno} {plesso} {saldo} {fido} {data})</label>
+        <label for="modello-testo">Testo della comunicazione (puoi usare: {genitore} {alunno} {plesso} {saldo} {fido} {data})</label>
+        <p class="nota">Le parole tra parentesi graffe vengono sostituite automaticamente con i dati della famiglia. Non modificarne la scrittura.</p>
         <textarea id="modello-testo" rows="6" data-testid="modello-testo-input"></textarea>
         <button type="submit" class="btn btn-primary" data-testid="modello-submit-button">Salva modello</button>
     </form>
 
-    <h2>Destinatari fissi in copia conoscenza (lista unica)</h2>
+    <h2>Altri indirizzi che ricevono una copia</h2>
     <form id="form-destinatario" class="pannello" data-testid="destinatario-form">
         <div class="riga-filtri">
             <label for="dest-etichetta">Etichetta</label><input type="text" id="dest-etichetta" data-testid="destinatario-etichetta-input">
@@ -156,7 +158,8 @@ require __DIR__ . '/partials/testa.php';
         </table>
     </div>
 
-    <h2>Configurazione invio email (SMTP)</h2>
+    <h2>Impostazioni per l'invio delle email (SMTP)</h2>
+    <p class="nota">Queste impostazioni sono riservate a chi gestisce la posta elettronica del Comune.</p>
     <form id="form-smtp" class="pannello" data-testid="smtp-form">
         <div class="riga-filtri">
             <label for="smtp-host">Server</label><input type="text" id="smtp-host" data-testid="smtp-host-input">
@@ -178,7 +181,8 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-utenti" class="vista" hidden>
-    <h1>Utenze</h1>
+    <h1>Persone che possono accedere</h1>
+    <p class="nota">Crea gli accessi per gli operatori, la scuola e il catering. Per gli utenti della scuola scegli anche la scuola di appartenenza.</p>
     <form id="form-utente" class="pannello" data-testid="utente-form">
         <div class="riga-filtri">
             <label for="ut-ruolo">Ruolo</label>
@@ -188,8 +192,8 @@ require __DIR__ . '/partials/testa.php';
                 <option value="catering">Catering</option>
                 <option value="admin">Admin</option>
             </select>
-            <label for="ut-username">Username</label><input type="text" id="ut-username" data-testid="utente-username-input">
-            <label for="ut-password">Password</label><input type="text" id="ut-password" data-testid="utente-password-input">
+            <label for="ut-username">Nome utente per accedere</label><input type="text" id="ut-username" data-testid="utente-username-input">
+            <label for="ut-password">Password iniziale (minimo 8 caratteri)</label><input type="password" id="ut-password" data-testid="utente-password-input">
             <label for="ut-plesso">Plesso (scuola)</label><select id="ut-plesso" data-testid="utente-plesso-select"></select>
         </div>
         <button type="submit" class="btn btn-primary" data-testid="utente-submit-button">Crea utenza</button>
@@ -203,12 +207,12 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-job" class="vista" hidden>
-    <h1>Conteggio automatico dei pasti del giorno</h1>
-    <p class="nota">Il sistema controlla ogni scuola dopo il suo orario limite. Il controllo automatico deve essere programmato ogni 5 minuti.</p>
+    <h1>Conferma dei pasti e addebito dei buoni</h1>
+    <p class="banner banner--rosso"><strong>Attenzione:</strong> questa funzione non è una semplice verifica. Se è il giorno di mensa ed è passato l'orario limite, l'esecuzione può confermare i pasti e scalare i buoni alle famiglie. Usala solo se sai che il conteggio è pronto. L'esecuzione automatica può essere programmata ogni 5 minuti.</p>
     <div class="riga-filtri">
-        <button class="btn btn-primary btn-sm" id="btn-scheduler" data-testid="job-scheduler-button">Controlla ora tutte le scuole</button>
+        <button class="btn btn-primary btn-sm" id="btn-scheduler" data-testid="job-scheduler-button">Conferma pasti di tutte le scuole</button>
         <select id="job-plesso" data-testid="job-plesso-select"></select>
-        <button class="btn btn-outline-primary btn-sm" id="btn-job-plesso" data-testid="job-plesso-button">Controlla la scuola selezionata</button>
+        <button class="btn btn-outline-primary btn-sm" id="btn-job-plesso" data-testid="job-plesso-button">Conferma pasti della scuola scelta</button>
     </div>
     <pre id="job-esito" class="esito" data-testid="job-esito"></pre>
     <h2>Ultime esecuzioni</h2>
