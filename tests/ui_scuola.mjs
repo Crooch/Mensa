@@ -58,3 +58,18 @@ await tick();
 assert.match(el('scuola-stato').textContent, /19\/10\/2026/);
 assert.match(el('scuola-riepilogo').innerHTML, /2/);
 console.log('OK: classe/data aggiornate, risposta obsoleta non sovrascrive la giornata corrente.');
+
+const view = readFileSync('src/View/scuola.php', 'utf8');
+const script = readFileSync('public/assets/js/scuola.js', 'utf8');
+assert.ok(!view.includes('Previsto inizialmente'), 'La colonna tecnica non deve comparire');
+assert.match(view, /<th>Comunicazione famiglia<\/th>/);
+assert.match(view, /<th>Correzione scuola<\/th>/);
+assert.match(view, /<th>Stato del pasto<\/th>/);
+assert.match(script, /colspan="6"/);
+assert.ok(!script.includes('a.default_calcolato'), 'La colonna iniziale non è più renderizzata');
+assert.match(script, /UI\.chiediMotivazione\(/);
+assert.ok(!script.includes('prompt('), 'La modifica presenza non deve aprire prompt browser');
+assert.match(script, /UI\.conferma\(/);
+assert.match(view, /class="scuola-filtri"/);
+assert.match(view, /class="scuola-filtri scuola-filtri--assenza"/);
+console.log('OK: tabella scuola di sei colonne, filtri compatti e motivazione in dialog.');
