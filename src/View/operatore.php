@@ -11,11 +11,12 @@ require __DIR__ . '/partials/testa.php';
 </nav>
 
 <section id="vista-famiglie" class="vista">
-    <h1>Anagrafica famiglie</h1>
+    <h1>Cerca una famiglia</h1>
+    <p class="nota">Cerca per cognome, telefono o email. Seleziona «Apri» per vedere i figli, i buoni mensa e le operazioni registrate.</p>
     <div class="riga-filtri">
-        <input type="search" id="ricerca-famiglie" placeholder="Cognome, telefono o email" data-testid="famiglie-ricerca-input">
+        <input type="search" id="ricerca-famiglie" placeholder="Scrivi un cognome, un telefono o un'email" data-testid="famiglie-ricerca-input">
         <button class="btn btn-primary btn-sm" id="btn-cerca" data-testid="famiglie-cerca-button">Cerca</button>
-        <button class="btn btn-outline-primary btn-sm" id="btn-nuovo-genitore" data-testid="nuovo-genitore-button">Nuovo genitore</button>
+        <button class="btn btn-outline-primary btn-sm" id="btn-nuovo-genitore" data-testid="nuovo-genitore-button">Aggiungi famiglia</button>
     </div>
     <div class="due-colonne">
         <div class="tabella-scroll">
@@ -25,24 +26,25 @@ require __DIR__ . '/partials/testa.php';
             </table>
         </div>
         <div id="scheda-famiglia" class="pannello" data-testid="scheda-famiglia">
-            <p class="vuoto">Seleziona una famiglia per vedere figli, tariffe e crediti.</p>
+            <p class="vuoto">Premi «Apri» accanto a una famiglia per vedere i figli e i buoni mensa.</p>
         </div>
     </div>
 </section>
 
 <section id="vista-crediti" class="vista" hidden>
     <h1>Buoni mensa di tutte le famiglie</h1>
-    <p class="nota">Il rosso indica che il saldo è sceso oltre la soglia di avviso. È possibile inviare un sollecito, ma il pasto non viene bloccato automaticamente.</p>
+    <p class="nota">Se il saldo è rosso, la famiglia ha raggiunto la soglia per il sollecito. Il sistema non impedisce automaticamente al bambino di mangiare. Un saldo negativo significa che sono stati utilizzati più buoni di quelli disponibili.</p>
     <div class="tabella-scroll">
         <table class="table" data-testid="situazione-crediti-tabella">
-            <thead><tr><th>Famiglia</th><th>Telefono</th><th>Plesso</th><th>Buoni rimasti</th><th>Soglia di avviso</th><th>Stato</th></tr></thead>
+            <thead><tr><th>Famiglia</th><th>Telefono</th><th>Plesso</th><th>Saldo buoni</th><th>Soglia per il sollecito</th><th>Situazione</th></tr></thead>
             <tbody id="crediti-corpo"></tbody>
         </table>
     </div>
 </section>
 
 <section id="vista-solleciti" class="vista" hidden>
-    <h1>Storico dei solleciti inviati</h1>
+    <h1>Comunicazioni di sollecito</h1>
+    <p class="nota">Qui trovi le comunicazioni registrate dal sistema e il risultato di ogni tentativo di invio.</p>
     <div class="tabella-scroll">
         <table class="table" data-testid="solleciti-tabella">
             <thead><tr><th>Data</th><th>Famiglia</th><th>Plesso</th><th>Saldo</th><th>Esito</th><th>Destinatari</th></tr></thead>
