@@ -28,6 +28,7 @@ const context = {
     dataIt: (val) => val.split('-').reverse().join('/'),
     esc: (val) => String(val ?? ''),
     avviso: (msg) => { errori.push(msg); },
+    UI: { oraAggiornamento: () => '09:00' },
     API: {
         get: (url) => {
             if (url === '/api/riferimenti') {
