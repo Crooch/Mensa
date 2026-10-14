@@ -145,8 +145,6 @@ try {
     }
     echo "OK: gita annulla pasti e pasta in bianco anche con una presenza precedente salvata.\n";
 
-    $pdo->rollBack();
-} catch (Throwable $e) {
 
     // Un menu pubblicato si aggiorna esclusivamente per data+plesso+tipologia.
     // La foto precedente non viene rimossa quando non si seleziona un nuovo file.
@@ -187,6 +185,10 @@ try {
         throw new RuntimeException('Duplicazione menu nella stessa giornata');
     }
     echo "OK: aggiornamento limitato a data, plesso, tipologia; foto e altri menu invariati.\n";
+
+
+    $pdo->rollBack();
+} catch (Throwable $e) {
 
     $pdo->rollBack();
     throw $e;
