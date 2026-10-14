@@ -78,9 +78,26 @@ final class JobGiornalieroService
         if (!$calendario['attivo']) {
             return ['plesso_id' => $plessoId, 'plesso' => $plesso['nome'] ?? '', 'stato' => 'fuori_calendario', 'motivo' => $calendario['motivo']];
         }
-        $esecuzioneId = $this->job->apri($plessoId, $data);
+
+        // La funzione manuale non deve permettere addebiti prima del cutoff.
+        if (!$this->presenzaService->oltreCutoff($plesso, $data)) {
+            return ['plesso_id' => $plessoId, 'plesso' => $plesso['nome'], 'stato' => 'cutoff_non_raggiunto'];
+        }
+
+        // Lock di connessione: impedisce sovrapposizioni tra cron e click Admin.
+        if (!$this->job->acquisisciLock($plessoId, $data)) {
+            return ['plesso_id' => $plessoId, 'plesso' => $plesso['nome'], 'stato' => 'in_corso'];
+        }
 
         try {
+            $esistente = $this->job->esecuzione($plessoId, $data);
+            if ($esistente !== null && in_array($esistente['esito'], ['ok', 'in_corso'], true)) {
+                return ['plesso_id' => $plessoId, 'plesso' => $plesso['nome'],
+                    'stato' => $esistente['esito'] === 'ok' ? 'gia_eseguito' : 'in_corso'];
+            }
+            $esecuzioneId = $this->job->apri($plessoId, $data);
+
+            try {
             $conteggi = $this->presenzaService->congelaPlesso($plessoId, $data);
 
             $consumi = 0;
@@ -117,6 +134,9 @@ final class JobGiornalieroService
         } catch (\Throwable $e) {
             $this->job->chiudi($esecuzioneId, 'errore', ['messaggio' => $e->getMessage()]);
             return ['plesso_id' => $plessoId, 'plesso' => $plesso['nome'] ?? '', 'stato' => 'errore', 'messaggio' => $e->getMessage()];
+            }
+        } finally {
+            $this->job->rilasciaLock($plessoId, $data);
         }
     }
 
