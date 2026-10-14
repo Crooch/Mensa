@@ -18,13 +18,13 @@ require __DIR__ . '/partials/testa.php';
     <p class="nota">Nei giorni di mensa tuo figlio risulta normalmente presente. Se non mangerà a scuola, scegli il giorno e premi «Non mangerà a mensa». Puoi cambiare la scelta fino all'orario indicato.</p>
     <p class="nota">Per chiedere pasta in bianco, scegli il giorno e premi «Chiedi pasta in bianco». Non serve un certificato e puoi annullare la richiesta entro l'orario limite.</p>
     <div id="figli-lista" class="griglia-cards" data-testid="figli-lista"></div>
-    <h2>Menu pubblicato oggi</h2>
+    <h2>Il menu di oggi</h2>
     <div id="menu-oggi" class="griglia-cards" data-testid="menu-oggi"></div>
 </section>
 
 <section id="vista-calendario" class="vista" hidden>
     <h1>Calendario della mensa</h1>
-    <p class="nota">Scegli un figlio e il mese. Tocca un giorno per vedere ciò che hai comunicato e le eventuali modifiche della scuola. I giorni senza indicazioni non significano necessariamente che la mensa sia chiusa.</p>
+    <p class="nota">Scegli tuo figlio e il mese, poi premi «Mostra calendario». Tocca un giorno per controllare le tue comunicazioni e le eventuali correzioni della scuola.</p>
     <div class="riga-filtri">
         <label for="cal-figlio">Scegli il figlio</label>
         <select id="cal-figlio" data-testid="calendario-figlio-select"></select>
@@ -32,16 +32,16 @@ require __DIR__ . '/partials/testa.php';
         <input type="month" id="cal-mese" data-testid="calendario-mese-input">
         <button class="btn btn-primary btn-sm" id="btn-carica-calendario" data-testid="calendario-carica-button">Mostra calendario</button>
     </div>
-    <p class="nota">Nel calendario: <strong>Presente a mensa</strong> = è previsto il pasto; <strong>Assente dalla mensa</strong> = non è previsto il pasto. Le comunicazioni della famiglia sono indicate con «Hai comunicato».</p>
+    <p class="nota"><strong>Verde:</strong> pasto previsto. <strong>Rosso:</strong> pasto non previsto. «Hai comunicato» indica un giorno per cui hai fatto una scelta. I giorni senza indicazioni non sono necessariamente giorni di chiusura.</p>
     <div id="calendario" class="calendario" data-testid="calendario-griglia"></div>
-    <div id="calendario-dettaglio" class="pannello" data-testid="calendario-dettaglio"></div>
+    <div id="calendario-dettaglio" class="pannello" data-testid="calendario-dettaglio" aria-live="polite"><p class="nota">Tocca un giorno del calendario per vedere i dettagli.</p></div>
 </section>
 
 <section id="vista-pagamenti" class="vista" hidden>
-    <h1>Buoni acquistati e utilizzati</h1>
+    <h1>Quando hai comprato e usato i buoni</h1>
     <div class="tabella-scroll">
         <table class="table" data-testid="movimenti-tabella">
-            <thead><tr><th>Data</th><th>Plesso</th><th>Tipo</th><th>Buoni</th><th>Importo</th><th>Alunno</th><th>Note</th></tr></thead>
+            <thead><tr><th>Giorno</th><th>Scuola</th><th>Operazione</th><th>Buoni aggiunti o usati</th><th>Importo</th><th>Bambino</th><th>Note</th></tr></thead>
             <tbody id="movimenti-corpo"></tbody>
         </table>
     </div>
@@ -56,7 +56,8 @@ require __DIR__ . '/partials/testa.php';
             <label for="fb-data">Giorno del pasto</label>
             <input type="date" id="fb-data" data-testid="feedback-data-input">
         </div>
-        <div class="stelle" id="fb-stelle" data-testid="feedback-stelle"></div>
+        <p class="nota">Scegli da 1 a 5 stelle: 1 significa poco soddisfatto, 5 molto soddisfatto.</p>
+        <div class="stelle" id="fb-stelle" data-testid="feedback-stelle" aria-label="Valuta il pasto da una a cinque stelle"></div>
         <label for="fb-commento">Commento (facoltativo)</label>
         <textarea id="fb-commento" rows="2" maxlength="500" data-testid="feedback-commento-input"></textarea>
         <button type="submit" class="btn btn-primary" data-testid="feedback-submit-button">Invia valutazione</button>
