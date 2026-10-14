@@ -37,7 +37,8 @@ final class PresenzaService
         private PlessoRepository $plessi,
         private AssegnazioneClasseRepository $assegnazioni,
         private CalendarioService $calendario,
-        private JobRepository $job
+        private JobRepository $job,
+        private CreditoService $crediti
     ) {
     }
 
