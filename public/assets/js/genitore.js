@@ -40,6 +40,7 @@ async function caricaDashboard() {
                 <dt>Cutoff</dt><dd>${s ? s.cutoff_orario + (s.oltre_cutoff ? ' (superato)' : '') : '-'}</dd>
             </dl>
             ${s ? `<div class="riga-filtri" style="margin-top:.75rem">
+                ${s.oltre_cutoff ? '<p class="nota">Oggi le dichiarazioni sono chiuse. Puoi selezionare una data futura.</p>' : ''}
                 <label for="figlio-data-${f.id}">Data (oggi o futura)</label>
                 <input type="date" id="figlio-data-${f.id}" value="${oggi()}" min="${oggi()}" data-testid="figlio-data-${f.id}">
                 <button class="btn-azione" data-azione="presente" data-figlio="${f.id}" data-testid="dichiara-presente-${f.id}">Sarà presente</button>
@@ -54,6 +55,11 @@ async function caricaDashboard() {
         const bambinoId = Number(b.dataset.figlio);
         const data = document.getElementById('figlio-data-' + bambinoId).value;
         if (!data || data < oggi()) { avviso('Seleziona oggi o una data futura.', 'errore'); return; }
+        const figlio = statoApp.figli.find((f) => Number(f.id) === bambinoId);
+        if (data === oggi() && figlio?.stato_oggi?.oltre_cutoff) {
+            avviso('La giornata di oggi e chiusa. Scegli una data futura.', 'errore');
+            return;
+        }
         dichiara(bambinoId, b.dataset.azione, data);
     }));
 
@@ -61,6 +67,11 @@ async function caricaDashboard() {
         const bambinoId = Number(b.dataset.figlio);
         const data = document.getElementById('figlio-data-' + bambinoId).value;
         if (!data || data < oggi()) { avviso('Seleziona oggi o una data futura.', 'errore'); return; }
+        const figlio = statoApp.figli.find((f) => Number(f.id) === bambinoId);
+        if (data === oggi() && figlio?.stato_oggi?.oltre_cutoff) {
+            avviso('La giornata di oggi e chiusa. Scegli una data futura.', 'errore');
+            return;
+        }
         try {
             await API.post('/api/genitore/pasta-bianco', {
                 bambino_id: bambinoId, data, richiesta: Number(b.dataset.pasta)
