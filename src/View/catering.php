@@ -12,10 +12,12 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-report" class="vista">
     <h1>Pasti da preparare</h1>
-    <div class="riga-filtri">
-        <label for="report-data">Data</label>
-        <input type="date" id="report-data" data-testid="report-data-input">
-        <button class="btn btn-primary btn-sm" type="button" id="btn-report" data-testid="report-carica-button">Aggiorna i pasti</button>
+    <div class="catering-filtri catering-filtri--report">
+        <div class="catering-campo">
+            <label for="report-data">Data</label>
+            <input type="date" id="report-data" data-testid="report-data-input">
+        </div>
+        <button class="btn btn-primary catering-filtri__azione" type="button" id="btn-report" data-testid="report-carica-button">Aggiorna i pasti</button>
     </div>
     <p class="nota" id="report-stato" role="status" aria-live="polite" data-testid="report-stato">Seleziona una data per consultare i pasti.</p>
     <div id="report-riepilogo" class="riepilogo-mensa" aria-live="polite"></div>
@@ -24,19 +26,30 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-menu" class="vista" hidden>
-    <h1>Comunica il menu di oggi</h1>
-    <form id="form-menu" class="pannello" enctype="multipart/form-data" data-testid="menu-form">
-        <div class="riga-filtri">
-            <label for="menu-plesso">Plesso</label>
-            <select id="menu-plesso" data-testid="menu-plesso-select"></select>
-            <label for="menu-tipologia">Tipologia</label>
-            <select id="menu-tipologia" data-testid="menu-tipologia-select"></select>
+    <h1>Menu del giorno</h1>
+    <p class="nota catering-introduzione">Seleziona il plesso e la tipologia. Puoi pubblicare un menu nuovo oppure aggiornare quello già presente.</p>
+    <form id="form-menu" class="pannello catering-form-menu" enctype="multipart/form-data" data-testid="menu-form">
+        <div class="catering-filtri catering-filtri--menu">
+            <div class="catering-campo">
+                <label for="menu-plesso">Plesso</label>
+                <select id="menu-plesso" data-testid="menu-plesso-select"></select>
+            </div>
+            <div class="catering-campo">
+                <label for="menu-tipologia">Tipologia</label>
+                <select id="menu-tipologia" data-testid="menu-tipologia-select"></select>
+            </div>
         </div>
-        <label for="menu-descrizione">Cosa si mangia oggi?</label>
-        <textarea id="menu-descrizione" rows="2" data-testid="menu-descrizione-input"></textarea>
-        <label for="menu-foto">Foto del menu (facoltativa)</label>
-        <input type="file" id="menu-foto" accept="image/*" data-testid="menu-foto-input">
-        <button type="submit" class="btn btn-primary" data-testid="menu-submit-button">Pubblica per oggi</button>
+        <p id="menu-selezione-stato" class="stato-operazione catering-menu-stato" role="status" aria-live="polite" data-testid="menu-selezione-stato">Caricamento dei menu pubblicati…</p>
+        <div class="catering-campo">
+            <label for="menu-descrizione">Descrizione del menu</label>
+            <textarea id="menu-descrizione" rows="3" placeholder="Es. Pasta al pomodoro, pollo e verdure" data-testid="menu-descrizione-input"></textarea>
+        </div>
+        <div class="catering-campo">
+            <label for="menu-foto">Foto del menu (facoltativa)</label>
+            <input type="file" id="menu-foto" accept="image/*" data-testid="menu-foto-input">
+            <p id="menu-foto-stato" class="nota catering-foto-nota" data-testid="menu-foto-stato">Puoi aggiungere una foto al menu.</p>
+        </div>
+        <button type="submit" id="menu-submit" class="btn btn-primary catering-menu-submit" disabled data-testid="menu-submit-button">Pubblica questo menu</button>
     </form>
     <h2>Menu già pubblicati oggi</h2>
     <p id="menu-stato" class="stato-operazione" role="status" hidden></p>
@@ -46,12 +59,24 @@ require __DIR__ . '/partials/testa.php';
 <section id="vista-feedback" class="vista" hidden>
     <h1>Valutazioni delle famiglie</h1>
     <p class="nota">Valutazioni ricevute, senza nomi completi.</p>
-    <div class="riga-filtri">
-        <label for="fb-da">Dal</label><input type="date" id="fb-da" data-testid="feedback-da-input">
-        <label for="fb-a">Al</label><input type="date" id="fb-a" data-testid="feedback-a-input">
-        <label for="fb-plesso">Plesso</label><select id="fb-plesso" data-testid="feedback-plesso-select"></select>
-        <label for="fb-tipologia">Tipologia</label><select id="fb-tipologia" data-testid="feedback-tipologia-select"></select>
-        <button class="btn btn-primary btn-sm" id="btn-feedback" data-testid="feedback-filtra-button">Filtra</button>
+    <div class="catering-filtri catering-filtri--feedback">
+        <div class="catering-campo">
+            <label for="fb-da">Dal</label>
+            <input type="date" id="fb-da" data-testid="feedback-da-input">
+        </div>
+        <div class="catering-campo">
+            <label for="fb-a">Al</label>
+            <input type="date" id="fb-a" data-testid="feedback-a-input">
+        </div>
+        <div class="catering-campo">
+            <label for="fb-plesso">Plesso</label>
+            <select id="fb-plesso" data-testid="feedback-plesso-select"></select>
+        </div>
+        <div class="catering-campo">
+            <label for="fb-tipologia">Tipologia</label>
+            <select id="fb-tipologia" data-testid="feedback-tipologia-select"></select>
+        </div>
+        <button type="button" class="btn btn-primary catering-filtri__azione" id="btn-feedback" data-testid="feedback-filtra-button">Filtra</button>
     </div>
     <p id="feedback-stato" class="stato-operazione" role="status" hidden></p>
     <div class="tabella-scroll">
