@@ -42,3 +42,43 @@ Data: 14 ottobre 2026. Stato: implementazione controllata e test in staging. **N
 1. Eseguire prima le migrazioni additive sulla copia staging, poi eseguire i test, verificare con il Comune e predisporre backup/rollback.
 2. In produzione nessuna azione in questo ciclo; rilascio futuro con procedura separata approvata.
 3. **Pacchetto E escluso**: stampa cucina, tour avanzati, funzioni aggiuntive e nuove integrazioni.
+
+## Registro implementazione (branch dev)
+
+| Pacchetto | Modifiche realizzate | Componenti principali |
+|---|---|---|
+| A | ID unico per acquisti e rettifiche, chiave UNIQUE nullable; verifica importo atteso; blocco del salvataggio su dati scuola non aggiornati; eliminazione delle risposte asincrone obsolete | `005_idempotenza_acquisti.sql`, `CreditoService`, `CreditoRepository`, `OperatoreController`, `scuola.js`, `operatore.js` |
+| B | Nuovi componenti per loading/successo/errore; dialoghi di conferma; disabilitazione dei controlli durante le richieste; miglioramento mobile/focus/tabs; schede e notifiche | `api.js`, `app.css`, tutti i template e gli script di ruolo |
+| C | Calendario completo del mese, distinzione dei giorni senza mensa, stato non disponibile per date passate non registrate, azioni sul giorno, anteprima della data nel riepilogo, messaggi persistenti | `PresenzaService`, `genitore.js`, `genitore.php` |
+| D | Riepilogo pasti Scuola, totali Catering e ora aggiornamento; ricerca e scheda famiglia con caricamento; acquisti/crediti con conferme; sintesi degli esiti del job e panoramica Admin | `scuola.js`, `catering.js`, `operatore.js`, `admin.js` e rispettivi template |
+
+### Checklist di accettazione — dati e comportamento
+- [x] Lato server, due acquisti con stessa chiave e stessi dati producono un solo movimento.
+- [x] Lato server, due rettifiche con stessa chiave producono un solo movimento.
+- [x] Il server rifiuta la conferma se l'importo atteso differisce dal prezzo applicato.
+- [x] Le viste Scuola/Catering scartano le vecchie risposte di caricamento.
+- [x] Il calendario familiare restituisce ogni giorno del mese senza creare presenze.
+- [x] Etichette, notifiche, conferme e dimensioni dei controlli uniformate.
+- [ ] Collaudo visivo umano su Mac, iPhone/Android (375 px e 768 px) e tastiera.
+- [ ] Collaudo funzionale completo con i cinque ruoli e approvazione del Comune.
+- [ ] Backup e dry-run della procedura di rilascio in una copia **non produttiva**.
+- [ ] Autorizzazione al rilascio e test post-rilascio read-only in produzione.
+
+### Criteri go/no-go
+Bloccare la pubblicazione se anche uno solo dei seguenti casi non è soddisfatto:
+- Un acquisto/una rettifica ripetuti producono variazioni economiche duplicate.
+- Un'operazione di una scuola riguarda una data o un alunno diverso da quello mostrato.
+- Una giornata chiusa o senza servizio permette modifiche dalla famiglia.
+- La cucina non vede correttamente sezioni a zero pasti o non distingue le richieste di pasta in bianco.
+- La nuova interfaccia non si usa da smartphone nelle operazioni Genitore/Scuola.
+- Compare qualsiasi nuova comunicazione automatica verso i genitori o lo scheduler viene riattivato involontariamente.
+
+### Sequenza di rilascio futuro (richiede approvazione separata)
+1. Concordare finestra di intervento e verifica dello stato reale del cron.
+2. Backup del codice e dump MariaDB, verificandone integrità e ripristinabilità.
+3. Applicare la migration `005_idempotenza_acquisti.sql` in modo additivo, con log esecuzione.
+4. Distribuire versione codice testata e verificare accesso, calendari e soli endpoint di lettura.
+5. Verificare manualmente ruolo per ruolo e mantenere lo scheduler spento salvo decisione separata.
+6. In caso di regressioni: riportare il codice precedente; mantenere la colonna/indice additivi senza cancellare movimenti o saldi. Nessun rollback distruttivo sul database.
+
+L'esito dei test automatici **non sostituisce** la verifica visiva e la conferma del Comune.
