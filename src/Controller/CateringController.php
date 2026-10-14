@@ -56,6 +56,59 @@ final class CateringController
         return ['id' => $id];
     }
 
+    /** Catalogo di settimane tipo riutilizzabili, una tipologia per modello. */
+    public function menuSettimanali(Request $r, array $utente): array
+    {
+        return $this->c->catering()->elencoMenuSettimanali();
+    }
+
+    public function salvaMenuSettimanale(Request $r, array $utente): array
+    {
+        $id = $this->c->catering()->salvaMenuSettimanale(
+            null, (string) $r->obbligatorio('nome'),
+            (int) $r->obbligatorio('tipologia_menu_id'),
+            (array) $r->obbligatorio('giorni'),
+            (int) $utente['id']
+        );
+        return ['id' => $id];
+    }
+
+    public function modificaMenuSettimanale(Request $r, array $utente): array
+    {
+        $id = (int) $r->parametro('id');
+        return ['id' => $this->c->catering()->salvaMenuSettimanale(
+            $id, (string) $r->obbligatorio('nome'),
+            (int) $r->obbligatorio('tipologia_menu_id'),
+            (array) $r->obbligatorio('giorni'),
+            (int) $utente['id']
+        )];
+    }
+
+    public function duplicaMenuSettimanale(Request $r, array $utente): array
+    {
+        return ['id' => $this->c->catering()->duplicaMenuSettimanale(
+            (int) $r->parametro('id'), (string) $r->obbligatorio('nome'),
+            (int) $r->obbligatorio('tipologia_menu_id'),
+            (int) $utente['id']
+        )];
+    }
+
+    public function assegnazioniMenuSettimanali(Request $r, array $utente): array
+    {
+        return $this->c->catering()->assegnazioniMenuSettimanali();
+    }
+
+    public function assegnaMenuSettimanale(Request $r, array $utente): array
+    {
+        $id = $r->input('menu_id');
+        return $this->c->catering()->assegnaMenuSettimanale(
+            $id === null ? null : (int) $id,
+            (int) $r->obbligatorio('tipologia_menu_id'),
+            (array) $r->obbligatorio('plesso_ids'),
+            (int) $utente['id']
+        );
+    }
+
     public function feedback(Request $r, array $utente): array
     {
         return $this->c->feedback()->elencoCatering([
