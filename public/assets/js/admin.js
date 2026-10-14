@@ -3,6 +3,7 @@ const utente = proteggi('admin');
 let plessi = [];
 
 abilitaSchede((vista) => {
+    if (vista === 'calendario') caricaCalendario().catch((err) => avviso(err.message, 'errore'));
     if (vista === 'classi') caricaClassi();
     if (vista === 'tipologie') caricaTipologie();
     if (vista === 'email') caricaEmail();
@@ -39,7 +40,7 @@ async function caricaPlessi() {
     }));
 
     const opzioni = plessi.map((p) => `<option value="${p.id}">${esc(p.nome)}</option>`).join('');
-    ['classe-plesso', 'modello-plesso', 'job-plesso'].forEach((id) => { document.getElementById(id).innerHTML = opzioni; });
+    ['classe-plesso', 'modello-plesso', 'job-plesso', 'calendario-plesso'].forEach((id) => { document.getElementById(id).innerHTML = opzioni; });
     document.getElementById('ut-plesso').innerHTML = '<option value="">—</option>' + opzioni;
 }
 
@@ -66,6 +67,93 @@ document.getElementById('form-plesso').addEventListener('submit', async (e) => {
 document.getElementById('plesso-annulla').addEventListener('click', () => {
     document.getElementById('form-plesso').reset();
     document.getElementById('plesso-id').value = '';
+});
+
+/* ---------------- calendario mensa ---------------- */
+const giorniCalendario = ['lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi'];
+
+async function caricaCalendario() {
+    const id = document.getElementById('calendario-plesso').value;
+    if (!id) return;
+    const dati = await API.get('/api/admin/calendari/' + id);
+    const cfg = dati.configurazione || {};
+    document.getElementById('calendario-inizio').value = cfg.data_inizio || '';
+    document.getElementById('calendario-fine').value = cfg.data_fine || '';
+    giorniCalendario.forEach((g) => {
+        document.getElementById('calendario-' + g).checked = Number(cfg[g]) === 1;
+    });
+    const corpo = document.getElementById('eccezioni-calendario-corpo');
+    corpo.innerHTML = (dati.eccezioni || []).map((e) => `
+        <tr><td>${dataIt(e.giorno)}</td>
+            <td>${Number(e.servizio_attivo) === 1 ? 'Apertura' : 'Chiusura'}</td>
+            <td>${esc(e.motivazione)}</td>
+            <td><button class="btn-azione" data-cancella-eccezione="${esc(e.giorno)}">Elimina</button></td>
+        </tr>`).join('') || '<tr><td colspan="4" class="vuoto">Nessuna eccezione.</td></tr>';
+    corpo.querySelectorAll('[data-cancella-eccezione]').forEach((btn) => btn.addEventListener('click', async () => {
+        if (!confirm('Eliminare questa eccezione al calendario?')) return;
+        try {
+            await API.del('/api/admin/calendari/' + id + '/eccezioni/' + btn.dataset.cancellaEccezione);
+            avviso('Eccezione eliminata.');
+            await caricaCalendario();
+        } catch (err) { avviso(err.message, 'errore'); }
+    }));
+}
+
+document.getElementById('calendario-plesso').addEventListener('change', () => {
+    caricaCalendario().catch((err) => avviso(err.message, 'errore'));
+});
+
+document.getElementById('form-calendario').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const id = document.getElementById('calendario-plesso').value;
+    const dati = {
+        data_inizio: document.getElementById('calendario-inizio').value,
+        data_fine: document.getElementById('calendario-fine').value || null
+    };
+    giorniCalendario.forEach((g) => { dati[g] = document.getElementById('calendario-' + g).checked ? 1 : 0; });
+    try {
+        await API.put('/api/admin/calendari/' + id, dati);
+        avviso('Calendario salvato.');
+        await caricaCalendario();
+    } catch (err) { avviso(err.message, 'errore'); }
+});
+
+document.getElementById('form-eccezione-calendario').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const id = document.getElementById('calendario-plesso').value;
+    const data = document.getElementById('eccezione-data').value;
+    try {
+        await API.put('/api/admin/calendari/' + id + '/eccezioni/' + data, {
+            servizio_attivo: Number(document.getElementById('eccezione-attivo').value),
+            motivazione: document.getElementById('eccezione-motivazione').value.trim()
+        });
+        avviso('Eccezione salvata.');
+        document.getElementById('form-eccezione-calendario').reset();
+        await caricaCalendario();
+    } catch (err) { avviso(err.message, 'errore'); }
+});
+
+document.getElementById('calendario-verifica').addEventListener('click', async () => {
+    const id = document.getElementById('calendario-plesso').value;
+    const data = document.getElementById('calendario-verifica-data').value;
+    if (!data) { avviso('Seleziona una data da verificare.', 'errore'); return; }
+    try {
+        const esito = await API.get('/api/admin/calendari/' + id + '/verifica?data=' + encodeURIComponent(data));
+        const motivi = {
+            servizio_non_avviato: 'servizio non ancora avviato',
+            servizio_terminato: 'servizio terminato',
+            fine_settimana: 'fine settimana',
+            festivita_nazionale: 'festività nazionale',
+            chiusura_programmata: 'chiusura programmata',
+            giorno_senza_servizio: 'giorno senza mensa',
+            giorno_di_servizio: 'giorno di mensa',
+            apertura_straordinaria: 'apertura straordinaria',
+            calendario_non_configurato: 'calendario da configurare'
+        };
+        document.getElementById('calendario-verifica-esito').textContent =
+            (esito.attivo ? 'Servizio attivo' : 'Servizio NON attivo') +
+            ' — ' + (motivi[esito.motivo] || esito.motivo);
+    } catch (err) { avviso(err.message, 'errore'); }
 });
 
 /* ---------------- classi ---------------- */
