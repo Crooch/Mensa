@@ -972,3 +972,45 @@ input[type="datetime-local"]:focus-visible {
 .catering-foto-anteprima__elimina:focus-visible { outline: 3px solid var(--blu-italia); outline-offset: 2px; }
 .catering-foto-annulla { align-self: flex-start; min-height: 40px; margin: 0; }
 @media (max-width: 600px) { .catering-foto-anteprima { max-width: 100%; } }
+
+/* Catalogo di settimane tipo: due colonne su desktop, sequenziale su mobile. */
+.catering-settimane-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr);
+    align-items: start;
+    gap: 1rem;
+}
+.catering-settimane-layout > * { min-width: 0; }
+.catering-settimane-layout h2, .catering-assegna h2 { margin: 0 0 .7rem; }
+.catering-giorni { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.catering-giorni textarea { width: 100%; min-height: 105px; }
+.catering-settimane-azioni { display: flex; flex-wrap: wrap; gap: .6rem; }
+.catering-settimane-azioni .btn { min-height: 44px; }
+.catering-elenco-settimane { display: grid; grid-template-columns: minmax(0, 1fr); gap: .8rem; }
+.catering-settimana-card { min-width: 0; }
+.catering-settimana-card h3 { margin: 0; }
+.catering-settimana-card dl {
+    display: grid;
+    grid-template-columns: minmax(74px, 110px) minmax(0, 1fr);
+    gap: .3rem .65rem;
+    font-size: .9rem;
+}
+.catering-settimana-card dl dt { color: #53677a; }
+.catering-settimana-card dl dd { min-width: 0; margin: 0; }
+.catering-assegna { margin-top: 1rem; }
+.catering-assegna .catering-campo { max-width: 620px; margin-bottom: .8rem; }
+.catering-plessi-scelta { border: 1px solid var(--grigio-bordo); border-radius: 8px; padding: .85rem; margin: 0 0 .85rem; }
+.catering-plessi-scelta legend { font-weight: 600; font-size: .95rem; padding: 0 .3rem; }
+#assegna-plessi { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: .55rem; }
+.catering-plesso-opzione { display: flex; align-items: center; gap: .5rem; min-height: 40px; margin: 0; font-weight: 500; }
+.catering-plesso-opzione input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 20px; margin: 0; accent-color: var(--blu-italia); }
+.catering-elenco-assegnazioni { display: grid; gap: .45rem; }
+.catering-assegnazione { display: flex; justify-content: space-between; gap: .75rem; padding: .55rem .7rem; border: 1px solid #d5e2ee; border-radius: 7px; flex-wrap: wrap; }
+@media (max-width: 940px) {
+    .catering-settimane-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+    .catering-giorni { grid-template-columns: minmax(0, 1fr); }
+    .catering-settimane-azioni .btn { flex: 1 1 130px; }
+    #assegna-salva { width: 100%; min-height: 44px; }
+}
