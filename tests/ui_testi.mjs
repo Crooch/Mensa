@@ -271,3 +271,24 @@ assert.ok(!cateringHtml.includes('id="menu-rimuovi-foto"'));
 assert.ok(cateringJs.includes('fotoDaRimuovere = true'));
 assert.ok(cateringJs.includes("fd.append('rimuovi_foto', rimuoviFoto ? '1' : '0')"));
 console.log('OK: multilinea, anteprima con X in modifica e conferma al salvataggio.');
+
+/* Settimane tipo: catalogo, duplicazione, assegnazione e modifica responsive. */
+const settimanePagina = cateringHtml;
+const settimaneJS = readFileSync('public/assets/js/catering_settimane.js', 'utf8');
+for (const id of ['vista-settimane', 'form-settimana', 'settimana-nome', 'settimana-tipo',
+                 'settimane-elenco', 'assegna-modello', 'assegna-plessi', 'assegna-salva',
+                 'assegnazioni-elenco']) {
+    assert.ok(settimanePagina.includes('id="' + id + '"'), 'Controllo catalogo mancante: ' + id);
+}
+for (let i = 1; i <= 7; i++) {
+    assert.ok(settimanePagina.includes('id="settimana-giorno-' + i + '"'));
+}
+assert.ok(settimaneJS.includes("data-settimana-modifica"));
+assert.ok(settimaneJS.includes("data-settimana-duplica"));
+assert.ok(settimaneJS.includes("/api/catering/menu-settimanali/assegnazioni"));
+assert.ok(settimaneJS.includes('Le modifiche al modello saranno applicate a partire da domani'));
+const cssSettimane = css.slice(css.indexOf('/* Catalogo di settimane tipo'));
+assert.ok(cssSettimane.startsWith('/* Catalogo di settimane tipo'));
+assert.ok(cssSettimane.includes('max-width: 940px'));
+assert.ok(cssSettimane.includes('max-width: 600px'));
+console.log('OK: catalogo settimanale con sette giorni e assegnazioni, desktop/mobile.');
