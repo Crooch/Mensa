@@ -1,6 +1,7 @@
 /* Area admin: configurazioni, utenze, email, job giornaliero. */
 const utente = proteggi('admin');
 let plessi = [];
+let numeroRichiestaCalendario = 0;
 
 abilitaSchede((vista) => {
     if (vista === 'calendario') caricaCalendario().catch((err) => avviso(err.message, 'errore'));
@@ -85,8 +86,11 @@ const giorniCalendario = ['lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi'
 
 async function caricaCalendario() {
     const id = document.getElementById('calendario-plesso').value;
+    const richiesta = ++numeroRichiestaCalendario;
     if (!id) return;
     const dati = await API.get('/api/admin/calendari/' + id);
+    if (richiesta !== numeroRichiestaCalendario
+        || document.getElementById('calendario-plesso').value !== id) return;
     const cfg = dati.configurazione || {};
     document.getElementById('calendario-inizio').value = cfg.data_inizio || '';
     document.getElementById('calendario-fine').value = cfg.data_fine || '';
