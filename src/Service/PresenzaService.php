@@ -146,7 +146,7 @@ final class PresenzaService
                     $bambinoId, $data, 'dichiarazione_genitore',
                     $record['dichiarazione_genitore'], $stato, $utenteId
                 );
-                return $this->ricalcola($bambinoId, $data, false, 'dichiarazione');
+                return $this->ricalcola($bambinoId, $data, false, 'dichiarazione', $utenteId);
             });
         } finally {
             $this->job->rilasciaLock($plessoId, $data);
@@ -175,6 +175,9 @@ final class PresenzaService
                 $record = $this->assicuraRecord($bambinoId, $data);
                 if ((int) $record['congelato'] === 1) {
                     throw HttpException::nonValido('Giornata chiusa');
+                }
+                if ($richiesta && $record['stato_effettivo'] !== 'presente') {
+                    throw HttpException::nonValido('La pasta in bianco si può richiedere solo se il pasto è previsto');
                 }
                 $precedente = $this->presenze->richiestaPastaBianco($bambinoId, $data);
                 if ($precedente !== null && (int) $precedente['richiesta'] === (int) $richiesta) {
@@ -251,6 +254,9 @@ final class PresenzaService
                 } elseif (!$fuoriCutoff && (int) $record['congelato'] !== 1) {
                     $record['override_scuola'] = $stato;
                     $aggiornamenti['stato_effettivo'] = $this->calcolaStatoEffettivo($record);
+                    if ($aggiornamenti['stato_effettivo'] === 'assente') {
+                        $this->annullaPastaSeAssente($bambinoId, $data, $utenteId);
+                    }
                 }
 
                 $this->presenze->modificaPresenza((int) $record['id'], $aggiornamenti);
@@ -278,7 +284,7 @@ final class PresenzaService
      * Se il contributo e' fuori cutoff (o il record e' congelato) lo stato non
      * viene toccato: resta quello congelato al momento del cutoff.
      */
-    private function ricalcola(int $bambinoId, string $data, bool $fuoriCutoff, string $fonte): array
+    private function ricalcola(int $bambinoId, string $data, bool $fuoriCutoff, string $fonte, int $utenteId): array
     {
         $record = $this->presenze->trovaPresenza($bambinoId, $data);
         if ($fuoriCutoff || (int) $record['congelato'] === 1) {
@@ -290,7 +296,27 @@ final class PresenzaService
             $this->presenze->modificaPresenza((int) $record['id'], ['stato_effettivo' => $nuovo]);
             $record['stato_effettivo'] = $nuovo;
         }
+        if ($nuovo === 'assente') {
+            $this->annullaPastaSeAssente($bambinoId, $data, $utenteId);
+        }
         return $record + ['effetto' => 'applicato', 'fonte' => $fonte];
+    }
+
+    /**
+     * La pasta in bianco è valida soltanto se è previsto il pasto.
+     * Un'assenza annulla la richiesta precedente e conserva l'audit.
+     */
+    private function annullaPastaSeAssente(int $bambinoId, string $data, int $utenteId): void
+    {
+        $pasta = $this->presenze->richiestaPastaBianco($bambinoId, $data);
+        if ($pasta === null || (int) $pasta['richiesta'] !== 1) {
+            return;
+        }
+        $this->presenze->salvaPastaBianco($bambinoId, $data, false, $utenteId);
+        $this->presenze->registraAudit(
+            $bambinoId, $data, 'pasta_in_bianco', '1', '0',
+            $utenteId, 'Pasto non previsto'
+        );
     }
 
     /** Assenza di massa per una classe (gita/uscita didattica). */
@@ -331,10 +357,14 @@ final class PresenzaService
                         continue;
                     }
                     $record['default_calcolato'] = 'assente';
+                    $nuovoStato = $this->calcolaStatoEffettivo($record);
                     $this->presenze->modificaPresenza((int) $record['id'], [
                         'default_calcolato' => 'assente',
-                        'stato_effettivo' => $this->calcolaStatoEffettivo($record),
+                        'stato_effettivo' => $nuovoStato,
                     ]);
+                    if ($nuovoStato === 'assente') {
+                        $this->annullaPastaSeAssente((int) $bambino['id'], $data, $utenteId);
+                    }
                 }
                 return $id;
             });
@@ -427,7 +457,7 @@ final class PresenzaService
                 'dichiarazione_genitore' => $registrato['dichiarazione_genitore'] ?? null,
                 'override_scuola' => $registrato['override_scuola'] ?? null,
                 'override_motivazione' => $registrato['override_motivazione'] ?? null,
-                'pasta_in_bianco' => (int) ($registrato['pasta_in_bianco'] ?? 0),
+                'pasta_in_bianco' => $stato === 'presente' ? (int) ($registrato['pasta_in_bianco'] ?? 0) : 0,
                 'fuori_cutoff' => (int) ($registrato['fuori_cutoff'] ?? 0),
                 'registrato' => $registrato !== null,
             ];
@@ -451,7 +481,8 @@ final class PresenzaService
             'override_scuola'        => $record['override_scuola'] ?? null,
             'override_motivazione'   => $record['override_motivazione'] ?? null,
             'stato_effettivo'        => $record['stato_effettivo'] ?? $default,
-            'pasta_in_bianco'        => (int) ($this->presenze->richiestaPastaBianco($bambinoId, $data)['richiesta'] ?? 0) === 1,
+            'pasta_in_bianco'        => ($record['stato_effettivo'] ?? $default) === 'presente'
+                && (int) ($this->presenze->richiestaPastaBianco($bambinoId, $data)['richiesta'] ?? 0) === 1,
             'fuori_cutoff'           => (int) ($record['fuori_cutoff'] ?? 0),
             'congelato'              => (int) ($record['congelato'] ?? 0),
             'cutoff_orario'          => substr((string) $plesso['cutoff_orario'], 0, 5),
