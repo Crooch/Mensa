@@ -88,7 +88,10 @@ try {
     }
 
     // Una classe vuota di anno scolastico precedente non deve apparire.
-    $stmt->execute([(int) $infanzia, 'Sezione storica', '2025/2026']);
+    $stmtClasseStorica = $pdo->prepare(
+        'INSERT INTO classi_sezioni (plesso_id, nome, anno_scolastico) VALUES (?, ?, ?)'
+    );
+    $stmtClasseStorica->execute([(int) $infanzia, 'Sezione storica', '2025/2026']);
     $righeConStorico = $repo->reportPasti('2026-10-19', (int) $infanzia);
     if (count($righeConStorico) !== count($righe)) {
         throw new RuntimeException('Classe storica vuota inclusa erroneamente nel report');
