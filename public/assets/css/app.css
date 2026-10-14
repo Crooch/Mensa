@@ -808,3 +808,149 @@ input[type="datetime-local"]:focus-visible {
     .scuola-tabella .scuola-azioni { min-width: 0; }
     .scuola-tabella .scuola-azioni .btn { min-width: 0; max-width: 100%; }
 }
+
+/* Catering: griglie uniformi e leggibili per filtri, report e pubblicazioni.
+   Le etichette sono parte dello stesso controllo, non elementi del grid esterno. */
+#vista-report > h1, #vista-menu > h1, #vista-feedback > h1 { margin-bottom: .7rem; }
+.catering-filtri {
+    display: grid;
+    align-items: end;
+    gap: .8rem;
+    margin: 0 0 .9rem;
+    min-width: 0;
+}
+.catering-filtri--report {
+    grid-template-columns: minmax(0, 220px) auto;
+    justify-content: start;
+}
+.catering-filtri--menu {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.catering-filtri--feedback {
+    grid-template-columns: minmax(0, 180px) minmax(0, 180px)
+                           minmax(160px, 1fr) minmax(160px, 1fr) auto;
+}
+.catering-campo {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+    gap: .35rem;
+}
+.catering-campo label {
+    display: block;
+    margin: 0;
+    line-height: 1.3;
+    text-align: left;
+}
+.catering-campo select,
+.catering-campo input[type="date"] { width: 100% !important; min-width: 0; }
+.catering-filtri__azione {
+    align-self: end;
+    min-height: 46px;
+    width: auto;
+    margin: 0;
+    white-space: nowrap;
+}
+#vista-report #report-stato {
+    margin: 0 0 .7rem;
+    line-height: 1.4;
+}
+#vista-report #report-riepilogo { margin: 0 0 .85rem; gap: .65rem; }
+#vista-report #report-riepilogo .riepilogo-mensa__dato { padding: .65rem .8rem; }
+#vista-report > .nota { margin: 0 0 .85rem; }
+#vista-report #report { width: 100%; gap: .9rem; }
+#vista-report #report .card-mensa {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    min-width: 0;
+    padding: 1rem 1.15rem;
+}
+#vista-report #report .card-mensa h3,
+#vista-report #report .card-mensa h4,
+#vista-report #report .card-mensa p { margin-top: 0; }
+#vista-report #report .card-mensa h4 { margin: .9rem 0 .2rem; }
+#vista-report #report .card-mensa dl {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: .35rem .8rem;
+}
+#vista-report #report .card-mensa dl dd { text-align: right; }
+#vista-report #report .card-mensa > .badge-stato { align-self: flex-start; }
+#vista-menu .catering-introduzione { margin: 0 0 .9rem; }
+.catering-form-menu {
+    display: flex;
+    flex-direction: column;
+    gap: .95rem;
+    margin-bottom: 1.25rem;
+}
+.catering-form-menu > .catering-filtri { margin: 0; }
+.catering-form-menu > .catering-campo { width: 100%; }
+.catering-form-menu textarea {
+    width: 100%;
+    min-width: 0;
+    min-height: 100px;
+    border-radius: 8px;
+}
+.catering-form-menu input[type="file"] {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    border: 1px solid #91a9bd;
+    border-radius: 8px;
+    padding: .6rem .75rem;
+    background: #fff;
+}
+.catering-form-menu .catering-menu-stato {
+    margin: 0;
+    padding: .75rem .9rem;
+    line-height: 1.5;
+}
+.catering-form-menu .catering-foto-nota {
+    margin: 0;
+    font-size: .86rem;
+    line-height: 1.35;
+}
+.catering-form-menu .catering-menu-submit {
+    align-self: flex-start;
+    min-height: 46px;
+    margin: 0;
+}
+#vista-menu > h2 { margin: 1.25rem 0 .65rem; }
+#vista-menu #menu-stato { margin: 0 0 .8rem; }
+#vista-menu #menu-lista { width: 100%; gap: .85rem; }
+.catering-menu-card {
+    display: flex;
+    flex-direction: column;
+    gap: .65rem;
+    min-width: 0;
+}
+.catering-menu-card h3,
+.catering-menu-card p { margin: 0; }
+.catering-menu-card .catering-menu-card__tipo {
+    font-weight: 600;
+    color: #53677a;
+}
+.catering-menu-card .btn {
+    align-self: stretch;
+    min-height: 44px;
+    margin-top: auto;
+}
+#vista-feedback #feedback-stato { margin: 0 0 .85rem; }
+@media (max-width: 980px) {
+    .catering-filtri--feedback {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .catering-filtri--feedback > .catering-filtri__azione { justify-self: start; }
+}
+@media (max-width: 600px) {
+    .catering-filtri--report,
+    .catering-filtri--menu,
+    .catering-filtri--feedback {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .catering-filtri__azione,
+    .catering-form-menu .catering-menu-submit { width: 100%; }
+    .catering-campo input[type="date"] { max-width: 100%; }
+    .catering-menu-card .btn { width: 100%; }
+}
