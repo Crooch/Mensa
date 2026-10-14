@@ -81,6 +81,11 @@ $router->post('/api/catering/menu', [$catering, 'pubblicaMenu'], ['catering', 'a
 $router->get('/api/catering/feedback', [$catering, 'feedback'], ['catering', 'admin', 'operatore']);
 
 // ---------------- area admin ----------------
+$router->get('/api/admin/calendari/{id}', [$admin, 'dettaglioCalendario'], ['admin']);
+$router->put('/api/admin/calendari/{id}', [$admin, 'salvaCalendario'], ['admin']);
+$router->get('/api/admin/calendari/{id}/verifica', [$admin, 'verificaCalendario'], ['admin']);
+$router->put('/api/admin/calendari/{id}/eccezioni/{data}', [$admin, 'salvaEccezioneCalendario'], ['admin']);
+$router->delete('/api/admin/calendari/{id}/eccezioni/{data}', [$admin, 'cancellaEccezioneCalendario'], ['admin']);
 $router->get('/api/admin/plessi', [$admin, 'plessi'], ['admin']);
 $router->post('/api/admin/plessi', [$admin, 'creaPlesso'], ['admin']);
 $router->put('/api/admin/plessi/{id}', [$admin, 'modificaPlesso'], ['admin']);
