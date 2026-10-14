@@ -259,11 +259,15 @@ console.log('OK: Catering allineato desktop/mobile; pubblicazione e modifica dis
    deve essere esplicita e disponibile solo per un menu con foto esistente. */
 const menuCss = css.slice(css.indexOf('/* Formattazione testuale del menu condivisa'));
 assert.ok(menuCss.startsWith('/* Formattazione testuale del menu condivisa'));
-assert.match(menuCss, /\.menu-descrizione\s*\{[^}]*white-space:\s*pre-wrap/s);
-assert.match(menuCss, /\.catering-rimuovi-foto\[hidden\]\s*\{[^}]*display:\s*none\s*!important/s);
-assert.match(cateringJs, /class="menu-descrizione"/);
-assert.match(genitore, /class="menu-descrizione"/);
-assert.match(cateringHtml, /id="menu-rimuovi-foto"/);
-assert.match(cateringHtml, /id="menu-rimuovi-foto-opzione"[^>]*hidden/);
-assert.match(cateringJs, /fd\.append\('rimuovi_foto', rimuoviFoto \? '1' : '0'\)/);
-console.log('OK: menu multilinea e rimozione foto in Catering e Genitore, anche da mobile.');
+assert.ok(menuCss.includes('white-space: pre-wrap'));
+assert.ok(menuCss.includes('.catering-foto-anteprima'));
+assert.ok(menuCss.includes('.catering-foto-anteprima__elimina'));
+assert.ok(cateringJs.includes('class="menu-descrizione"'));
+assert.ok(genitore.includes('class="menu-descrizione"'));
+assert.ok(cateringHtml.includes('id="menu-foto-anteprima"'));
+assert.ok(cateringHtml.includes('id="menu-foto-elimina"'));
+assert.ok(cateringHtml.includes('id="menu-foto-annulla"'));
+assert.ok(!cateringHtml.includes('id="menu-rimuovi-foto"'));
+assert.ok(cateringJs.includes('fotoDaRimuovere = true'));
+assert.ok(cateringJs.includes("fd.append('rimuovi_foto', rimuoviFoto ? '1' : '0')"));
+console.log('OK: multilinea, anteprima con X in modifica e conferma al salvataggio.');
