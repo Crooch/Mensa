@@ -23,17 +23,17 @@
     <div class="accesso__modulo">
         <h2>Accedi al servizio</h2>
         <p class="accesso__nota">Inserisci il nome utente e la password che ti ha dato il Comune. Se non li hai, rivolgiti agli uffici comunali.</p>
-        <form id="form-accesso" novalidate>
+        <form id="form-accesso">
             <label for="username">Nome utente</label>
             <input type="text" id="username" name="username" autocomplete="username" required data-testid="login-username-input">
             <label for="password">Password</label>
             <input type="password" id="password" name="password" autocomplete="current-password" required data-testid="login-password-input">
             <button type="submit" class="btn btn-primary w-100" data-testid="login-submit-button">Accedi</button>
-            <p class="errore-accesso" id="errore-accesso" data-testid="login-error" hidden></p>
+            <p class="errore-accesso" id="errore-accesso" role="alert" tabindex="-1" data-testid="login-error" hidden></p>
         </form>
     </div>
 </div>
-<script src="<?= $basePath ?>/assets/js/api.js"></script>
-<script src="<?= $basePath ?>/assets/js/login.js"></script>
+<script src="<?= $basePath ?>/assets/js/api.js?v=<?= is_file(APP_ROOT . '/public/assets/js/api.js') ? (int) filemtime(APP_ROOT . '/public/assets/js/api.js') : 0 ?>"></script>
+<script src="<?= $basePath ?>/assets/js/login.js?v=<?= is_file(APP_ROOT . '/public/assets/js/login.js') ? (int) filemtime(APP_ROOT . '/public/assets/js/login.js') : 0 ?>"></script>
 </body>
 </html>
