@@ -62,16 +62,92 @@ const API = {
     del: (p) => chiamata(p, { metodo: 'DELETE' })
 };
 
+/** Notifiche visibili, con chiusura manuale e senza perdere gli errori. */
 function avviso(messaggio, tipo = 'ok') {
     const contenitore = document.getElementById('avvisi');
     if (!contenitore) { alert(messaggio); return; }
     const nodo = document.createElement('div');
-    nodo.className = `avviso avviso--${tipo}`;
+    nodo.className = 'avviso avviso--' + tipo;
     nodo.dataset.testid = 'avviso';
-    nodo.textContent = messaggio;
+    nodo.setAttribute('role', tipo === 'errore' ? 'alert' : 'status');
+    const testo = document.createElement('span');
+    testo.textContent = messaggio;
+    nodo.appendChild(testo);
+    const chiudi = document.createElement('button');
+    chiudi.type = 'button';
+    chiudi.className = 'avviso__chiudi';
+    chiudi.setAttribute('aria-label', 'Chiudi messaggio');
+    chiudi.textContent = '×';
+    chiudi.addEventListener('click', () => nodo.remove());
+    nodo.appendChild(chiudi);
     contenitore.appendChild(nodo);
-    setTimeout(() => nodo.remove(), 5000);
+    if (tipo !== 'errore') setTimeout(() => nodo.remove(), 8500);
 }
+
+/** Componenti condivisi fra tutti i ruoli, senza librerie aggiuntive. */
+const UI = {
+    // Un errore resta a fianco del modulo finche' non si tenta nuovamente.
+    stato(id, messaggio, tipo = 'info') {
+        const nodo = typeof id === 'string' ? document.getElementById(id) : id;
+        if (!nodo) return;
+        nodo.textContent = messaggio;
+        nodo.className = 'stato-operazione stato-operazione--' + tipo;
+        nodo.setAttribute('role', tipo === 'errore' ? 'alert' : 'status');
+        nodo.hidden = !messaggio;
+    },
+    async esegui(pulsante, azione, testo = 'Salvataggio…') {
+        if (pulsante?.disabled) return;
+        const originale = pulsante?.textContent;
+        if (pulsante) {
+            pulsante.disabled = true;
+            pulsante.setAttribute('aria-busy', 'true');
+            pulsante.textContent = testo;
+        }
+        try {
+            return await azione();
+        } finally {
+            if (pulsante) {
+                pulsante.disabled = false;
+                pulsante.removeAttribute('aria-busy');
+                pulsante.textContent = originale;
+            }
+        }
+    },
+    /**
+     * Conferma contestuale accessibile. Restituisce true o false.
+     * Usare solo in risposta a una interazione esplicita.
+     */
+    conferma(titolo, messaggio, etichetta = 'Conferma') {
+        return new Promise((resolve) => {
+            const finestra = document.createElement('dialog');
+            finestra.className = 'conferma-dialogo';
+            finestra.setAttribute('aria-label', titolo);
+            finestra.innerHTML = '<h2></h2><p></p><div class="conferma-dialogo__azioni">' +
+                '<button type="button" class="btn btn-outline-primary" data-esito="no">Annulla</button>' +
+                '<button type="button" class="btn btn-primary" data-esito="si"></button></div>';
+            finestra.querySelector('h2').textContent = titolo;
+            finestra.querySelector('p').textContent = messaggio;
+            finestra.querySelector('[data-esito="si"]').textContent = etichetta;
+            document.body.appendChild(finestra);
+            let finito = false;
+            const termina = (valore) => {
+                if (finito) return;
+                finito = true;
+                finestra.close();
+                finestra.remove();
+                resolve(valore);
+            };
+            finestra.querySelector('[data-esito="no"]').addEventListener('click', () => termina(false));
+            finestra.querySelector('[data-esito="si"]').addEventListener('click', () => termina(true));
+            finestra.addEventListener('cancel', (e) => { e.preventDefault(); termina(false); });
+            finestra.showModal();
+            finestra.querySelector('[data-esito="no"]').focus();
+        });
+    },
+    oraAggiornamento() {
+        return new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+    }
+};
 
 /** Protegge la pagina: verifica token e ruolo, popola la navbar. */
 function proteggi(ruoloAtteso) {
@@ -99,8 +175,12 @@ function proteggi(ruoloAtteso) {
 function abilitaSchede(alCambio) {
     document.querySelectorAll('.scheda').forEach((bottone) => {
         bottone.addEventListener('click', () => {
-            document.querySelectorAll('.scheda').forEach((b) => b.classList.remove('attiva'));
+            document.querySelectorAll('.scheda').forEach((b) => {
+                b.classList.remove('attiva');
+                b.setAttribute('aria-selected', 'false');
+            });
             bottone.classList.add('attiva');
+            bottone.setAttribute('aria-selected', 'true');
             document.querySelectorAll('.vista').forEach((v) => { v.hidden = true; });
             const vista = document.getElementById('vista-' + bottone.dataset.vista);
             if (vista) vista.hidden = false;
