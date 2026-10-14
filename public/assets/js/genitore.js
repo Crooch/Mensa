@@ -50,7 +50,7 @@ async function caricaDashboard() {
                 <dt>Mensa di oggi</dt><dd>${s ? (s.servizio_mensa && !s.servizio_mensa.attivo ? 'Mensa non prevista oggi' : badgePasto(s.stato_effettivo)) : '-'}</dd>
                 <dt>Hai comunicato</dt><dd>${esc(dichiarazione)}</dd>
                 <dt>Pasta in bianco oggi</dt><dd>${s && s.pasta_in_bianco ? 'richiesta' : 'non richiesta'}</dd>
-                <dt>Orario limite per le modifiche</dt><dd>${s ? 'Ore ' + esc(s.cutoff_orario) + (s.oltre_cutoff ? ' (oggi non puoi più modificare)' : '') : '-'}</dd>
+                <dt>Modifiche fino alle</dt><dd>${s ? 'Ore ' + esc(s.cutoff_orario) + (s.oltre_cutoff ? ' (oggi non puoi più modificare)' : '') : '-'}</dd>
             </dl>
             ${statoApp.messaggi[f.id] ? '<p class="stato-operazione stato-operazione--ok" role="status">' + esc(statoApp.messaggi[f.id]) + '</p>' : ''}
             ${s ? `<div class="riga-filtri" style="margin-top:.75rem">
@@ -58,9 +58,9 @@ async function caricaDashboard() {
                 <label for="figlio-data-${f.id}">Per quale giorno?</label>
                 <input type="date" id="figlio-data-${f.id}" value="${giorniSelezionati[f.id] || oggi()}" min="${oggi()}" data-testid="figlio-data-${f.id}">
                 <p id="anteprima-figlio-${f.id}" class="stato-operazione" role="status">Caricamento della situazione del giorno…</p>
-                <button class="btn-azione" data-azione="presente" data-figlio="${f.id}" data-testid="dichiara-presente-${f.id}">Mangerà a mensa</button>
-                <button class="btn-azione" data-azione="assente" data-figlio="${f.id}" data-testid="dichiara-assente-${f.id}">Non mangerà a mensa</button>
-                <details><summary>Opzioni per la pasta in bianco</summary><div class="azioni-giorno">
+                <button class="btn-azione" data-azione="presente" data-figlio="${f.id}" data-testid="dichiara-presente-${f.id}">Ripristina pasto</button>
+                <button class="btn-azione" data-azione="assente" data-figlio="${f.id}" data-testid="dichiara-assente-${f.id}">Segnala assenza</button>
+                <details><summary>Pasta in bianco</summary><div class="azioni-giorno">
                     <button class="btn-azione" data-pasta="1" data-figlio="${f.id}" data-testid="pasta-richiesta-${f.id}">Chiedi pasta in bianco</button>
                     <button class="btn-azione" data-pasta="0" data-figlio="${f.id}" data-testid="pasta-annulla-${f.id}">Annulla richiesta pasta in bianco</button>
                 </div></details>
@@ -254,7 +254,7 @@ function disegnaCalendario(dati, anno, mese, giorno, bambinoId) {
         const r = perData[data];
         const attivo = r && r.servizio_mensa && r.servizio_mensa.attivo;
         const testo = !attivo ? motivoChiusura(r?.servizio_mensa?.motivo) : r.stato_effettivo === 'presente' ? 'Pasto previsto'
-            : r.stato_effettivo === 'assente' ? 'Pasto non previsto' : 'Dati non disponibili';
+            : r.stato_effettivo === 'assente' ? 'Pasto non previsto' : 'Da verificare';
         const classe = !attivo ? 'senza-mensa' : r.stato_effettivo === 'presente' ? 'presente'
             : r.stato_effettivo === 'assente' ? 'assente' : 'non-disponibile';
         html += '<button type="button" class="giorno ' + classe + (giorno === data ? ' selezionato' : '') +
@@ -289,7 +289,7 @@ function mostraDettaglio(r, bambinoId) {
         : r.stato_effettivo === null ? 'Pasto da verificare'
         : testoPasto(r.stato_effettivo);
     const azioni = attivo && r.modificabile
-        ? '<h3>Cosa vuoi comunicare per questo giorno?</h3><div class="azioni-giorno">' +
+        ? '<div class="azioni-giorno">' +
           '<button type="button" class="btn btn-primary" data-cal-stato="' +
           (r.stato_effettivo === 'assente' ? 'presente' : 'assente') +
           '" data-testid="cal-modifica-pasto">' + (r.stato_effettivo === 'assente' ? 'Ripristina il pasto' : 'Segnala assenza') +
