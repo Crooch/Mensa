@@ -36,6 +36,7 @@ async function caricaDashboard() {
                 <dt>Dieta</dt><dd>${esc(f.tipologia_nome)}</dd>
                 <dt>Oggi</dt><dd>${s ? badgeStato(s.stato_effettivo) : '-'}</dd>
                 <dt>Tua dichiarazione</dt><dd>${esc(dichiarazione)}</dd>
+                <dt>Pasta in bianco oggi</dt><dd>${s && s.pasta_in_bianco ? 'richiesta' : 'non richiesta'}</dd>
                 <dt>Cutoff</dt><dd>${s ? s.cutoff_orario + (s.oltre_cutoff ? ' (superato)' : '') : '-'}</dd>
             </dl>
             ${s ? `<div class="riga-filtri" style="margin-top:.75rem">
@@ -43,6 +44,8 @@ async function caricaDashboard() {
                 <input type="date" id="figlio-data-${f.id}" value="${oggi()}" min="${oggi()}" data-testid="figlio-data-${f.id}">
                 <button class="btn-azione" data-azione="presente" data-figlio="${f.id}" data-testid="dichiara-presente-${f.id}">Sarà presente</button>
                 <button class="btn-azione" data-azione="assente" data-figlio="${f.id}" data-testid="dichiara-assente-${f.id}">Sarà assente</button>
+                <button class="btn-azione" data-pasta="1" data-figlio="${f.id}" data-testid="pasta-richiesta-${f.id}">Richiedi pasta in bianco</button>
+                <button class="btn-azione" data-pasta="0" data-figlio="${f.id}" data-testid="pasta-annulla-${f.id}">Annulla pasta in bianco</button>
             </div>` : '<p class="nota">Nessuna classe attiva: contattare l\'ufficio comunale.</p>'}
         </article>`;
     }).join('') || '<p class="vuoto">Nessun figlio associato.</p>';
@@ -52,6 +55,20 @@ async function caricaDashboard() {
         const data = document.getElementById('figlio-data-' + bambinoId).value;
         if (!data || data < oggi()) { avviso('Seleziona oggi o una data futura.', 'errore'); return; }
         dichiara(bambinoId, b.dataset.azione, data);
+    }));
+
+    document.querySelectorAll('[data-pasta]').forEach((b) => b.addEventListener('click', async () => {
+        const bambinoId = Number(b.dataset.figlio);
+        const data = document.getElementById('figlio-data-' + bambinoId).value;
+        if (!data || data < oggi()) { avviso('Seleziona oggi o una data futura.', 'errore'); return; }
+        try {
+            await API.post('/api/genitore/pasta-bianco', {
+                bambino_id: bambinoId, data, richiesta: Number(b.dataset.pasta)
+            });
+            avviso((Number(b.dataset.pasta) === 1 ? 'Pasta in bianco richiesta' : 'Richiesta pasta in bianco annullata')
+                + ' per il ' + dataIt(data) + '.');
+            await caricaDashboard();
+        } catch (err) { avviso(err.message, 'errore'); }
     }));
 
     document.getElementById('movimenti-corpo').innerHTML = dati.movimenti.map((m) => `
@@ -141,6 +158,7 @@ function disegnaCalendario(dati, anno, mese) {
                  <dt>Dichiarazione famiglia</dt><dd>${esc(r.dichiarazione_genitore || '—')}</dd>
                  <dt>Override scuola</dt><dd>${esc(r.override_scuola || '—')} ${r.override_motivazione ? '· ' + esc(r.override_motivazione) : ''}</dd>
                  <dt>Stato effettivo</dt><dd>${badgeStato(r.stato_effettivo)}</dd>
+                 <dt>Pasta in bianco</dt><dd>${Number(r.pasta_in_bianco) === 1 ? 'richiesta' : 'non richiesta'}</dd>
                  <dt>Fuori cutoff</dt><dd>${Number(r.fuori_cutoff) === 1 ? 'sì (senza effetto sul conteggio)' : 'no'}</dd>
                </dl>`;
     }));
