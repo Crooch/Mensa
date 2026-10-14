@@ -12,6 +12,14 @@ abilitaSchede((vista) => {
 });
 
 async function caricaDashboard() {
+    // Conserva il giorno scelto dal genitore anche dopo aver registrato
+    // un'assenza o una richiesta di pasta in bianco. Tornare in silenzio a
+    // "oggi" potrebbe far inviare per errore la richiesta per la data sbagliata.
+    const giorniSelezionati = {};
+    for (const figlio of statoApp.figli) {
+        const campo = document.getElementById('figlio-data-' + figlio.id);
+        if (campo && campo.value >= oggi()) giorniSelezionati[figlio.id] = campo.value;
+    }
     const dati = await API.get('/api/genitore/dashboard');
     statoApp.figli = dati.figli;
 
@@ -47,7 +55,7 @@ async function caricaDashboard() {
             ${s ? `<div class="riga-filtri" style="margin-top:.75rem">
                 ${s.oltre_cutoff ? '<p class="nota">Per oggi è passato l’orario limite. Puoi ancora indicare un giorno futuro.</p>' : ''}
                 <label for="figlio-data-${f.id}">Per quale giorno?</label>
-                <input type="date" id="figlio-data-${f.id}" value="${oggi()}" min="${oggi()}" data-testid="figlio-data-${f.id}">
+                <input type="date" id="figlio-data-${f.id}" value="${giorniSelezionati[f.id] || oggi()}" min="${oggi()}" data-testid="figlio-data-${f.id}">
                 <button class="btn-azione" data-azione="presente" data-figlio="${f.id}" data-testid="dichiara-presente-${f.id}">Mangerà a mensa</button>
                 <button class="btn-azione" data-azione="assente" data-figlio="${f.id}" data-testid="dichiara-assente-${f.id}">Non mangerà a mensa</button>
                 <button class="btn-azione" data-pasta="1" data-figlio="${f.id}" data-testid="pasta-richiesta-${f.id}">Chiedi pasta in bianco</button>
