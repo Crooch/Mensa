@@ -121,20 +121,46 @@ final class CateringService
      *
      * @param array|null $file elemento di $_FILES
      */
-    public function pubblicaMenu(int $plessoId, int $tipologiaId, string $data, ?string $descrizione, ?array $file, int $utenteId): int
+    public function pubblicaMenu(int $plessoId, int $tipologiaId, string $data, ?string $descrizione, ?array $file, int $utenteId, bool $rimuoviFoto = false): int
     {
         if ($this->plessi->trova($plessoId) === null || $this->tipologie->trova($tipologiaId) === null) {
             throw HttpException::nonTrovato('Plesso o tipologia non validi');
         }
-        if (($descrizione === null || trim($descrizione) === '') && ($file === null || ($file['error'] ?? 1) !== UPLOAD_ERR_OK)) {
+        $fotoNuova = $file !== null && ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK;
+        $esistente = $this->menu->trovaPerChiave($plessoId, $tipologiaId, $data);
+        if ($rimuoviFoto && $fotoNuova) {
+            throw HttpException::nonValido('Non puoi rimuovere e sostituire la foto insieme');
+        }
+        if ($rimuoviFoto && $esistente === null) {
+            throw HttpException::nonValido('Non esiste una foto pubblicata da rimuovere');
+        }
+        $fotoDisponibile = !$rimuoviFoto && !empty($esistente['foto_path']);
+        if (($descrizione === null || trim($descrizione) === '') && !$fotoNuova && !$fotoDisponibile) {
             throw HttpException::nonValido('Indicare almeno una descrizione o una foto');
         }
 
         $fotoPath = null;
-        if ($file !== null && ($file['error'] ?? 1) === UPLOAD_ERR_OK) {
+        if ($fotoNuova) {
             $fotoPath = $this->salvaFoto($plessoId, $tipologiaId, $data, $file);
         }
-        return $this->menu->salva($plessoId, $tipologiaId, $data, $descrizione, $fotoPath, $utenteId);
+        $id = $this->menu->salva($plessoId, $tipologiaId, $data, $descrizione, $fotoPath, $utenteId, $rimuoviFoto);
+        // Il percorso viene disassociato anche se il file era già assente.
+        // Elimina la copia precedente dal disco solo per il percorso atteso
+        // per questo preciso plesso, tipologia e data (mai input arbitrari).
+        if ($rimuoviFoto && !empty($esistente['foto_path'])) {
+            $fotoPrecedente = (string) $esistente['foto_path'];
+            $prefisso = 'menu/' . $plessoId . '_' . $tipologiaId . '/' . $data . '.';
+            $estensione = substr($fotoPrecedente, strlen($prefisso));
+            if (str_starts_with($fotoPrecedente, $prefisso) &&
+                in_array($estensione, ['jpg', 'png', 'webp'], true)) {
+                $percorso = dirname((string) Config::get('storage.menu_dir')) .
+                    DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $fotoPrecedente);
+                if (is_file($percorso)) {
+                    @unlink($percorso);
+                }
+            }
+        }
+        return $id;
     }
 
     /** Salvataggio su filesystem con path prevedibile e portabile (no storage cloud). */
