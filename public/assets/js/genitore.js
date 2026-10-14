@@ -138,59 +138,132 @@ async function caricaMenu() {
             </article>`).join('');
 }
 
-/* ---------------- calendario ---------------- */
-async function caricaCalendario() {
+
+/* ---------------- Calendario completo e azioni contestuali ---------------- */
+let versioneCalendario = 0;
+let giornoSelezionato = null;
+let messaggioCalendario = '';
+
+async function caricaCalendario(giornoDaAprire = null) {
     const select = document.getElementById('cal-figlio');
     if (!select.value) return;
+    const figlio = Number(select.value);
     const mese = document.getElementById('cal-mese').value || oggi().slice(0, 7);
     document.getElementById('cal-mese').value = mese;
-    const [anno, m] = mese.split('-');
-    const dati = await API.get(`/api/genitore/figli/${select.value}/calendario?anno=${anno}&mese=${Number(m)}`);
-    disegnaCalendario(dati, Number(anno), Number(m));
+    const numeri = mese.split('-').map(Number);
+    const versione = ++versioneCalendario;
+    UI.stato('calendario-stato', 'Caricamento del calendario…', 'caricamento');
+    try {
+        const dati = await API.get('/api/genitore/figli/' + figlio + '/calendario?anno=' + numeri[0] + '&mese=' + numeri[1]);
+        if (versione !== versioneCalendario) return;
+        disegnaCalendario(dati, numeri[0], numeri[1], giornoDaAprire || giornoSelezionato, figlio);
+        UI.stato('calendario-stato', 'Aggiornato alle ' + UI.oraAggiornamento(), 'ok');
+    } catch (errore) {
+        if (versione !== versioneCalendario) return;
+        document.getElementById('calendario').innerHTML = '';
+        UI.stato('calendario-stato', 'Non riesco a mostrare il calendario. ' + errore.message, 'errore');
+    }
 }
 
-function disegnaCalendario(dati, anno, mese) {
+function disegnaCalendario(dati, anno, mese, giorno, bambinoId) {
     const perData = {};
-    dati.giorni.forEach((g) => { perData[g.data] = g; });
-    const giorniSettimana = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
-    let html = giorniSettimana.map((g) => `<div class="intestazione-giorno">${g}</div>`).join('');
-    const primo = new Date(anno, mese - 1, 1);
-    const offset = (primo.getDay() + 6) % 7;
-    for (let i = 0; i < offset; i++) html += '<div class="giorno vuoto"></div>';
+    dati.giorni.forEach((r) => { perData[r.data] = r; });
+    const intestazioni = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+    let html = intestazioni.map((x) => '<div class="intestazione-giorno">' + x + '</div>').join('');
+    const offset = (new Date(anno, mese - 1, 1).getDay() + 6) % 7;
+    for (let k = 0; k < offset; k++) html += '<div class="giorno vuoto"></div>';
     const ultimo = new Date(anno, mese, 0).getDate();
-    for (let giorno = 1; giorno <= ultimo; giorno++) {
-        const data = `${anno}-${String(mese).padStart(2, '0')}-${String(giorno).padStart(2, '0')}`;
+    for (let n = 1; n <= ultimo; n++) {
+        const data = anno + '-' + String(mese).padStart(2, '0') + '-' + String(n).padStart(2, '0');
         const r = perData[data];
-        let classi = 'giorno';
-        if (r) {
-            classi += ' ' + (r.stato_effettivo === 'presente' ? 'presente' : 'assente');
-            if (r.default_calcolato === 'assente' && !r.dichiarazione_genitore) classi += ' gita';
-            if (r.override_scuola) classi += ' override';
-        }
-        html += `<button class="${classi}" data-data="${data}" data-testid="giorno-${data}">
-            <strong>${giorno}</strong>${r ? (r.stato_effettivo === 'presente' ? 'Pasto previsto' : 'Pasto non previsto') + (r.dichiarazione_genitore ? '<small> · Hai comunicato</small>' : '') : ''}</button>`;
+        const attivo = r && r.servizio_mensa && r.servizio_mensa.attivo;
+        const testo = !attivo ? 'Niente mensa' : r.stato_effettivo === 'presente' ? 'Pasto previsto'
+            : r.stato_effettivo === 'assente' ? 'Pasto non previsto' : 'Dati non disponibili';
+        const classe = !attivo ? 'senza-mensa' : r.stato_effettivo === 'presente' ? 'presente'
+            : r.stato_effettivo === 'assente' ? 'assente' : 'non-disponibile';
+        html += '<button type="button" class="giorno ' + classe + (giorno === data ? ' selezionato' : '') +
+            '" data-data="' + data + '" data-testid="giorno-' + data + '" aria-label="' +
+            esc(dataIt(data) + ': ' + testo) + '"><strong>' + n + '</strong><small>' + testo +
+            '</small>' + (r && r.dichiarazione_genitore ? '<small>Hai comunicato</small>' : '') +
+            (r && Number(r.pasta_in_bianco) === 1 ? '<small>Pasta in bianco</small>' : '') + '</button>';
     }
     const griglia = document.getElementById('calendario');
     griglia.innerHTML = html;
-    griglia.querySelectorAll('.giorno[data-data]').forEach((b) => b.addEventListener('click', () => {
-        const r = perData[b.dataset.data];
-        document.getElementById('calendario-dettaglio').innerHTML = !r
-            ? `<p class="vuoto">Per il ${dataIt(b.dataset.data)} non risultano comunicazioni registrate. Questo non significa che la mensa sia chiusa. Per comunicare un'assenza, vai su «Riepilogo».</p>`
-            : `<h2>La mensa del ${dataIt(r.data)}</h2>
-               <p class="nota">Nei giorni di mensa il pasto è normalmente previsto. Se la classe è in gita, la scuola può indicare che non serve il pasto. Le comunicazioni della famiglia e le correzioni della scuola possono cambiare questa previsione.</p>
-               <dl class="card-mensa">
-                 <dt>Prima delle comunicazioni</dt><dd>${testoPasto(r.default_calcolato)}</dd>
-                 <dt>Hai comunicato</dt><dd>${testoScelta(r.dichiarazione_genitore)}</dd>
-                 <dt>La scuola ha cambiato qualcosa?</dt><dd>${r.override_scuola ? testoScelta(r.override_scuola) : 'No'} ${r.override_motivazione ? '· Motivo: ' + esc(r.override_motivazione) : ''}</dd>
-                 <dt>Il pasto risulta</dt><dd>${badgePasto(r.stato_effettivo)}</dd>
-                 <dt>Pasta in bianco</dt><dd>${Number(r.pasta_in_bianco) === 1 ? 'richiesta' : 'non richiesta'}</dd>
-                 <dt>Modifica arrivata in ritardo</dt><dd>${Number(r.fuori_cutoff) === 1 ? 'Sì, non cambia il pasto già conteggiato' : 'No'}</dd>
-               </dl>`;
+    griglia.querySelectorAll('button[data-data]').forEach((b) => b.addEventListener('click', () => {
+        giornoSelezionato = b.dataset.data;
+        griglia.querySelectorAll('button[data-data]').forEach((x) =>
+            x.classList.toggle('selezionato', x === b));
+        mostraDettaglio(perData[b.dataset.data], bambinoId);
     }));
+    if (giorno && perData[giorno]) {
+        giornoSelezionato = giorno;
+        mostraDettaglio(perData[giorno], bambinoId);
+    } else {
+        giornoSelezionato = null;
+        document.getElementById('calendario-dettaglio').innerHTML =
+            '<p class="nota">Seleziona un giorno per vedere i dettagli.</p>';
+    }
 }
 
-document.getElementById('btn-carica-calendario').addEventListener('click', caricaCalendario);
-document.getElementById('cal-figlio').addEventListener('change', caricaCalendario);
+function mostraDettaglio(r, bambinoId) {
+    const nodo = document.getElementById('calendario-dettaglio');
+    if (!r) { nodo.textContent = 'Nessun dettaglio disponibile.'; return; }
+    const attivo = r.servizio_mensa && r.servizio_mensa.attivo;
+    const stato = !attivo ? 'In questo giorno non è prevista la mensa'
+        : r.stato_effettivo === null ? 'Non ci sono dati sul pasto'
+        : testoPasto(r.stato_effettivo);
+    const azioni = attivo && r.modificabile
+        ? '<h3>Cosa vuoi comunicare per questo giorno?</h3><div class="azioni-giorno">' +
+          '<button type="button" class="btn btn-primary" data-cal-stato="' +
+          (r.stato_effettivo === 'assente' ? 'presente' : 'assente') +
+          '" data-testid="cal-modifica-pasto">' + (r.stato_effettivo === 'assente' ? 'Ripristina il pasto' : 'Segnala assenza') +
+          '</button><button type="button" class="btn btn-outline-primary" data-cal-pasta="' +
+          (Number(r.pasta_in_bianco) === 1 ? '0' : '1') + '" data-testid="cal-modifica-pasta">' +
+          (Number(r.pasta_in_bianco) === 1 ? 'Annulla pasta in bianco' : 'Chiedi pasta in bianco') + '</button></div>'
+        : '<p class="nota">' + (!attivo ? 'In questo giorno non è prevista la mensa.'
+            : 'Per questo giorno non è più possibile inviare modifiche.') + '</p>';
+    nodo.innerHTML = '<h2>' + dataIt(r.data) + '</h2>' +
+        '<p class="stato-operazione stato-operazione--info">' + esc(stato) + '</p>' +
+        (attivo ? '<dl class="card-mensa"><dt>Hai comunicato</dt><dd>' + testoScelta(r.dichiarazione_genitore) +
+          '</dd><dt>Modifica della scuola</dt><dd>' + (r.override_scuola ? testoScelta(r.override_scuola) : 'Nessuna') +
+          (r.override_motivazione ? ' — Motivo: ' + esc(r.override_motivazione) : '') +
+          '</dd><dt>Pasta in bianco</dt><dd>' + (Number(r.pasta_in_bianco) === 1 ? 'Richiesta' : 'Non richiesta') +
+          '</dd></dl>' : '') + azioni + '<p id="calendario-messaggio" role="status" aria-live="polite"></p>';
+    if (messaggioCalendario) {
+        UI.stato('calendario-messaggio', messaggioCalendario, 'ok');
+        messaggioCalendario = '';
+    }
+    nodo.querySelectorAll('[data-cal-stato], [data-cal-pasta]').forEach((pulsante) =>
+        pulsante.addEventListener('click', async () => {
+            const data = r.data;
+            try {
+                await UI.esegui(pulsante, async () => {
+                    if (pulsante.dataset.calStato) {
+                        await API.post('/api/genitore/presenze/dichiarazione', {
+                            bambino_id: bambinoId, data, stato: pulsante.dataset.calStato
+                        });
+                    } else {
+                        await API.post('/api/genitore/pasta-bianco', {
+                            bambino_id: bambinoId, data, richiesta: Number(pulsante.dataset.calPasta)
+                        });
+                    }
+                    messaggioCalendario = 'Comunicazione salvata per il ' + dataIt(data) + '.';
+                });
+                await caricaCalendario(data);
+                await caricaDashboard();
+            } catch (errore) {
+                UI.stato('calendario-messaggio', 'Non è stato possibile salvare: ' + errore.message, 'errore');
+            }
+        }));
+}
+
+document.getElementById('btn-carica-calendario').addEventListener('click', () => caricaCalendario());
+document.getElementById('cal-figlio').addEventListener('change', () => {
+    giornoSelezionato = null; caricaCalendario();
+});
+document.getElementById('cal-mese').addEventListener('change', () => {
+    giornoSelezionato = null; caricaCalendario();
+});
 
 /* ---------------- feedback ---------------- */
 const contenitoreStelle = document.getElementById('fb-stelle');
