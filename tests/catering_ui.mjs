@@ -66,23 +66,23 @@ const dati19 = {
     }]
 };
 richieste[2].resolve(dati19);
-await Promise.resolve();
-await Promise.resolve();
+await new Promise((resolve) => setImmediate(resolve));
+await new Promise((resolve) => setImmediate(resolve));
 assert.match(elemento('report-stato').textContent, /^Report visualizzato: 19\/10\/2026/, 'Stato report: ' + elemento('report-stato').textContent + '; errori=' + errori.join(';'));
 assert.match(elemento('report').innerHTML, /Sezione D/, 'Report mancante: ' + elemento('report-stato').textContent + '; errori=' + errori.join(';'));
 assert.equal(elemento('btn-report').disabled, false);
 
 // Vecchio 20/10 completato DOPO 19/10: non deve aggiornare la UI.
 richieste[1].resolve({ data: '2026-10-20', totale_pasti: 0, plessi: [] });
-await Promise.resolve();
+await new Promise((resolve) => setImmediate(resolve));
 assert.match(elemento('report-stato').textContent, /19\/10\/2026/);
 assert.match(elemento('report').innerHTML, /Sezione D/);
 
 // Caricamento iniziale ancora piu' vecchio: non deve azzerare la data.
 richieste[0].resolve({ data: '2026-10-14', totale_pasti: 0, plessi: [] });
-await Promise.resolve();
-await Promise.resolve();
-await Promise.resolve();
+await new Promise((resolve) => setImmediate(resolve));
+await new Promise((resolve) => setImmediate(resolve));
+await new Promise((resolve) => setImmediate(resolve));
 assert.equal(campo.value, '2026-10-19');
 assert.match(elemento('report-stato').textContent, /19\/10\/2026/);
 
@@ -90,6 +90,6 @@ assert.match(elemento('report-stato').textContent, /19\/10\/2026/);
 elemento('btn-report').handlers.click();
 assert.equal(richieste.length, 4);
 richieste[3].resolve(dati19);
-await Promise.resolve();
+await new Promise((resolve) => setImmediate(resolve));
 assert.equal(elemento('btn-report').disabled, false);
 console.log('OK: report catering coerente con ultima data, anche con risposte fuori ordine.');
