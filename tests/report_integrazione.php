@@ -11,8 +11,10 @@ if (getenv('MENSA_TEST_DATABASE') !== 'mensa_ci' || getenv('CI') !== 'true') {
 
 require dirname(__DIR__) . '/src/Core/Repository.php';
 require dirname(__DIR__) . '/src/Repository/PresenzaRepository.php';
+require dirname(__DIR__) . '/src/Repository/MenuGiornalieroRepository.php';
 
 use App\Repository\PresenzaRepository;
+use App\Repository\MenuGiornalieroRepository;
 
 $pdo = new PDO(
     'mysql:host=127.0.0.1;port=3306;dbname=mensa_ci;charset=utf8mb4',
@@ -145,6 +147,47 @@ try {
 
     $pdo->rollBack();
 } catch (Throwable $e) {
+
+    // Un menu pubblicato si aggiorna esclusivamente per data+plesso+tipologia.
+    // La foto precedente non viene rimossa quando non si seleziona un nuovo file.
+    $pdo->exec("INSERT INTO tipologie_menu (nome) VALUES ('Menu senza glutine')");
+    $menuSenzaGlutine = (int) $pdo->lastInsertId();
+    $menuRepo = new MenuGiornalieroRepository($pdo);
+    $dataMenu = '2026-10-19';
+    $idStandard = $menuRepo->salva((int) $infanzia, $menu, $dataMenu,
+        'Pasta e verdure', 'menu/infanzia/standard.jpg', null);
+    $idSenzaGlutine = $menuRepo->salva((int) $infanzia, $menuSenzaGlutine, $dataMenu,
+        'Riso e verdure', null, null);
+    $idAltroPlesso = $menuRepo->salva((int) $secondaria, $menu, $dataMenu,
+        'Minestra', null, null);
+    $idAltraData = $menuRepo->salva((int) $infanzia, $menu, '2026-10-20',
+        'Insalata di riso', null, null);
+    $idAggiornato = $menuRepo->salva((int) $infanzia, $menu, $dataMenu,
+        'Pasta e legumi', null, null);
+    if ($idAggiornato !== $idStandard) {
+        throw new RuntimeException('L’aggiornamento ha creato un secondo menu');
+    }
+    $stmtMenu = $pdo->prepare(
+        'SELECT id, descrizione, foto_path FROM menu_giornalieri WHERE id = ?'
+    );
+    foreach ([
+        [$idStandard, 'Pasta e legumi', 'menu/infanzia/standard.jpg'],
+        [$idSenzaGlutine, 'Riso e verdure', null],
+        [$idAltroPlesso, 'Minestra', null],
+        [$idAltraData, 'Insalata di riso', null],
+    ] as [$id, $descrizioneAttesa, $fotoAttesa]) {
+        $stmtMenu->execute([$id]);
+        $riga = $stmtMenu->fetch(PDO::FETCH_ASSOC);
+        if (!$riga || $riga['descrizione'] !== $descrizioneAttesa ||
+            $riga['foto_path'] !== $fotoAttesa) {
+            throw new RuntimeException('Il salvataggio ha alterato un altro menu o la foto');
+        }
+    }
+    if (count($menuRepo->elenco($dataMenu)) !== 3) {
+        throw new RuntimeException('Duplicazione menu nella stessa giornata');
+    }
+    echo "OK: aggiornamento limitato a data, plesso, tipologia; foto e altri menu invariati.\n";
+
     $pdo->rollBack();
     throw $e;
 }
