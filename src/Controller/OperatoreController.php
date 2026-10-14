@@ -95,7 +95,8 @@ final class OperatoreController
             (int) $r->obbligatorio('numero_buoni'),
             (int) $utente['id'],
             $r->input('note'),
-            $r->input('richiesta_id') !== null ? (string) $r->input('richiesta_id') : null
+            $r->input('richiesta_id') !== null ? (string) $r->input('richiesta_id') : null,
+            $r->input('importo_atteso') !== null ? (float) $r->input('importo_atteso') : null
         );
     }
 
