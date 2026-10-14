@@ -2,6 +2,8 @@
 const utente = proteggi('operatore');
 let riferimenti = { plessi: [], tipologie: [], classi: [] };
 let famigliaCorrente = null;
+let ultimaRicerca = 0;
+let ultimaAperturaFamiglia = 0;
 
 abilitaSchede((vista) => {
     if (vista === 'crediti') caricaSituazione();
@@ -43,8 +45,18 @@ const opzioniTipologie = () => riferimenti.tipologie.map((t) => `<option value="
 const opzioniClassi = () => riferimenti.classi.map((c) => `<option value="${c.id}">${esc(c.plesso_nome)} · ${esc(c.nome)} (${esc(c.anno_scolastico)})</option>`).join('');
 
 async function cerca() {
+    const versione = ++ultimaRicerca;
     const q = document.getElementById('ricerca-famiglie').value.trim();
-    const elenco = await API.get('/api/famiglie?q=' + encodeURIComponent(q));
+    UI.stato('ricerca-stato', 'Sto cercando le famiglie…', 'caricamento');
+    let elenco;
+    try {
+        elenco = await API.get('/api/famiglie?q=' + encodeURIComponent(q));
+    } catch (errore) {
+        if (versione === ultimaRicerca) UI.stato('ricerca-stato', 'Ricerca non riuscita: ' + errore.message, 'errore');
+        return;
+    }
+    if (versione !== ultimaRicerca) return;
+    UI.stato('ricerca-stato', elenco.length + ' famiglie trovate · aggiornato alle ' + UI.oraAggiornamento(), 'ok');
     document.getElementById('famiglie-corpo').innerHTML = elenco.map((g) => `
         <tr data-genitore="${g.id}">
             <td>${esc(g.cognome)} ${esc(g.nome)}</td><td>${esc(g.telefono)}</td><td>${esc(g.email || '-')}</td>
@@ -54,7 +66,18 @@ async function cerca() {
 }
 
 async function apriFamiglia(id) {
-    const s = await API.get('/api/famiglie/' + id);
+    const versione = ++ultimaAperturaFamiglia;
+    const scheda = document.getElementById('scheda-famiglia');
+    scheda.innerHTML = '<p class="nota">Sto caricando i dati della famiglia…</p>';
+    let s;
+    try {
+        s = await API.get('/api/famiglie/' + id);
+    } catch (errore) {
+        if (versione === ultimaAperturaFamiglia) scheda.innerHTML =
+            '<p class="stato-operazione stato-operazione--errore">' + esc('Non riesco a mostrare la famiglia: ' + errore.message) + '</p>';
+        return;
+    }
+    if (versione !== ultimaAperturaFamiglia) return;
     famigliaCorrente = s;
     const g = s.genitore;
     document.getElementById('scheda-famiglia').innerHTML = `
