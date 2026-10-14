@@ -503,13 +503,14 @@ html, body { max-width: 100%; }
 }
 
 
-/* Componente comune date/mese: Scuola, Genitore, Catering, Operatore e Admin.
+/* Componente comune data/mese/ora: Scuola, Genitore, Catering, Operatore e Admin.
    Bootstrap Italia applicava una sottolineatura a tutta larghezza mentre
    l'icona del calendario restava vicina alla data. Il bordo appartiene ora
    esclusivamente al controllo, che non si allunga oltre una larghezza utile.
    Restano nativi selezione, tastiera e picker di browser/telefono. */
 input[type="date"],
 input[type="month"],
+input[type="time"],
 input[type="datetime-local"] {
     display: block;
     box-sizing: border-box;
@@ -533,6 +534,7 @@ input[type="datetime-local"] {
 }
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     margin-left: auto;
     cursor: pointer;
@@ -540,6 +542,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 input[type="date"]:focus-visible,
 input[type="month"]:focus-visible,
+input[type="time"]:focus-visible,
 input[type="datetime-local"]:focus-visible {
     outline: 3px solid var(--blu-italia);
     outline-offset: 2px;
@@ -548,6 +551,7 @@ input[type="datetime-local"]:focus-visible {
    in modo artificiale dentro le griglie dei filtri. */
 .campo-filtro > input[type="date"],
 .campo-filtro > input[type="month"],
+.campo-filtro > input[type="time"],
 .campo-filtro > input[type="datetime-local"] {
     justify-self: start;
     align-self: start;
