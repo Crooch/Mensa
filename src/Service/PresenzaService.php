@@ -33,7 +33,8 @@ final class PresenzaService
         private BambinoRepository $bambini,
         private ClasseSezioneRepository $classi,
         private PlessoRepository $plessi,
-        private AssegnazioneClasseRepository $assegnazioni
+        private AssegnazioneClasseRepository $assegnazioni,
+        private CalendarioService $calendario
     ) {
     }
 
@@ -116,6 +117,10 @@ final class PresenzaService
             throw HttpException::nonValido('Non è possibile dichiarare eccezioni per giornate passate: contattare la scuola');
         }
         $plesso = $this->plessi->trova((int) $bambino['plesso_id']);
+        $servizio = $this->calendario->previsto((int) $bambino['plesso_id'], $data);
+        if (!$servizio['attivo']) {
+            throw HttpException::nonValido('Giorno senza servizio mensa: ' . $servizio['motivo']);
+        }
         $fuoriCutoff = $this->oltreCutoff($plesso, $data);
 
         $record = $this->assicuraRecord($bambinoId, $data);
@@ -127,6 +132,30 @@ final class PresenzaService
         ]);
 
         return $this->ricalcola($bambinoId, $data, $fuoriCutoff, 'dichiarazione');
+    }
+
+    /**
+     * Richiesta indipendente di pasta in bianco, per bambino e giornata.
+     * Consentita oggi entro cutoff o in un giorno futuro di effettivo servizio.
+     */
+    public function pastaBiancoGenitore(int $bambinoId, string $data, bool $richiesta, int $utenteId): array
+    {
+        if ($data < date('Y-m-d')) {
+            throw HttpException::nonValido('Non e\' possibile modificare richieste per giornate passate');
+        }
+        $bambino = $this->bambinoConPlesso($bambinoId, $data);
+        $plessoId = (int) $bambino['plesso_id'];
+        $servizio = $this->calendario->previsto($plessoId, $data);
+        if (!$servizio['attivo']) {
+            throw HttpException::nonValido('Non e\' previsto il servizio mensa nella data indicata');
+        }
+        $plesso = $this->plessi->trova($plessoId);
+        if ($this->oltreCutoff($plesso, $data)) {
+            throw HttpException::nonValido('Il cutoff della giornata e\' gia\' stato superato');
+        }
+        $this->assicuraRecord($bambinoId, $data);
+        $this->presenze->salvaPastaBianco($bambinoId, $data, $richiesta, $utenteId);
+        return ['bambino_id' => $bambinoId, 'data' => $data, 'richiesta' => $richiesta];
     }
 
     /** Override della scuola, sempre motivato. Consentito anche su date passate (correzione tracciata). */
@@ -278,6 +307,7 @@ final class PresenzaService
             'override_scuola'        => $record['override_scuola'] ?? null,
             'override_motivazione'   => $record['override_motivazione'] ?? null,
             'stato_effettivo'        => $record['stato_effettivo'] ?? $default,
+            'pasta_in_bianco'        => (int) ($this->presenze->richiestaPastaBianco($bambinoId, $data)['richiesta'] ?? 0) === 1,
             'fuori_cutoff'           => (int) ($record['fuori_cutoff'] ?? 0),
             'congelato'              => (int) ($record['congelato'] ?? 0),
             'cutoff_orario'          => substr((string) $plesso['cutoff_orario'], 0, 5),
