@@ -158,22 +158,38 @@ final class PresenzaService
      */
     public function pastaBiancoGenitore(int $bambinoId, string $data, bool $richiesta, int $utenteId): array
     {
-        if ($data < date('Y-m-d')) {
-            throw HttpException::nonValido('Non e\' possibile modificare richieste per giornate passate');
-        }
+        $this->validaDataDichiarazione($data);
         $bambino = $this->bambinoConPlesso($bambinoId, $data);
         $plessoId = (int) $bambino['plesso_id'];
-        $servizio = $this->calendario->previsto($plessoId, $data);
-        if (!$servizio['attivo']) {
-            throw HttpException::nonValido('Non e\' previsto il servizio mensa nella data indicata');
+        if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
+            throw HttpException::nonValido('Non e previsto servizio mensa in questa data');
         }
         $plesso = $this->plessi->trova($plessoId);
-        if ($this->oltreCutoff($plesso, $data)) {
-            throw HttpException::nonValido('Il cutoff della giornata e\' gia\' stato superato');
+        if (!$this->job->acquisisciLock($plessoId, $data)) {
+            throw new HttpException(409, 'Elaborazione della giornata in corso. Riprovare.');
         }
-        $this->assicuraRecord($bambinoId, $data);
-        $this->presenze->salvaPastaBianco($bambinoId, $data, $richiesta, $utenteId);
-        return ['bambino_id' => $bambinoId, 'data' => $data, 'richiesta' => $richiesta];
+        try {
+            $this->verificaModificabile($plesso, $plessoId, $data);
+            return Database::inTransazione(function () use ($bambinoId, $data, $richiesta, $utenteId) {
+                $record = $this->assicuraRecord($bambinoId, $data);
+                if ((int) $record['congelato'] === 1) {
+                    throw HttpException::nonValido('Giornata chiusa');
+                }
+                $precedente = $this->presenze->richiestaPastaBianco($bambinoId, $data);
+                if ($precedente !== null && (int) $precedente['richiesta'] === (int) $richiesta) {
+                    return ['bambino_id' => $bambinoId, 'data' => $data, 'richiesta' => $richiesta];
+                }
+                $this->presenze->salvaPastaBianco($bambinoId, $data, $richiesta, $utenteId);
+                $this->presenze->registraAudit(
+                    $bambinoId, $data, 'pasta_in_bianco',
+                    $precedente === null ? null : (string) $precedente['richiesta'],
+                    $richiesta ? '1' : '0', $utenteId
+                );
+                return ['bambino_id' => $bambinoId, 'data' => $data, 'richiesta' => $richiesta];
+            });
+        } finally {
+            $this->job->rilasciaLock($plessoId, $data);
+        }
     }
 
     /** Override della scuola, sempre motivato. Consentito anche su date passate (correzione tracciata). */
