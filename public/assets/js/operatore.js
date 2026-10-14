@@ -16,13 +16,26 @@ function apriModale(titolo, html, alSalva) {
     document.getElementById('modale-corpo').innerHTML = html;
     modale.hidden = false;
     const form = modale.querySelector('form');
-    if (form) form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        try {
-            await alSalva(new FormData(form));
-            modale.hidden = true;
-        } catch (err) { avviso(err.message, 'errore'); }
-    });
+    if (form) {
+        form.insertAdjacentHTML('beforeend', '<p id="modale-stato" class="stato-operazione" role="status" hidden></p>');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const pulsante = form.querySelector('[type="submit"]');
+            try {
+                await UI.esegui(pulsante, async () => {
+                    UI.stato('modale-stato', 'Controllo dei dati…', 'caricamento');
+                    const esito = await alSalva(new FormData(form));
+                    if (esito === false) {
+                        UI.stato('modale-stato', '', 'info');
+                        return;
+                    }
+                    modale.hidden = true;
+                });
+            } catch (err) {
+                UI.stato('modale-stato', 'Non è stato possibile salvare: ' + err.message, 'errore');
+            }
+        });
+    }
 }
 
 const opzioniPlessi = () => riferimenti.plessi.map((p) => `<option value="${p.id}">${esc(p.nome)}</option>`).join('');
@@ -120,6 +133,10 @@ function collegaAzioniFamiglia(genitoreId) {
 
 /* ---------------- form ---------------- */
 function formAcquisto(genitoreId) {
+    // Conservata per tutti i retry di questo modulo, anche se la risposta
+    // dell'acquisto precedente non e' arrivata al browser.
+    const richiestaId = crypto.randomUUID ? crypto.randomUUID()
+        : Array.from(crypto.getRandomValues(new Uint8Array(16)), (n) => n.toString(16).padStart(2, '0')).join('');
     apriModale('Registra un acquisto di buoni mensa', `
         <form data-testid="acquisto-form">
             <label>Plesso</label><select name="plesso_id" id="acq-plesso" data-testid="acquisto-plesso-select">${opzioniPlessi()}</select>
@@ -129,13 +146,22 @@ function formAcquisto(genitoreId) {
             <p class="banner" id="acq-importo" data-testid="acquisto-importo">L'importo viene calcolato automaticamente.</p>
             <button class="btn btn-primary" type="submit" data-testid="acquisto-submit-button">Conferma l'acquisto</button>
         </form>`, async (fd) => {
+        const plessoId = Number(fd.get('plesso_id'));
+        const numeroBuoni = Number(fd.get('numero_buoni'));
+        const tariffa = await API.get('/api/tariffe/attiva?genitore_id=' + genitoreId + '&plesso_id=' + plessoId);
+        const confermato = await UI.conferma('Conferma acquisto buoni',
+            'Stai per registrare ' + numeroBuoni + ' buoni per un importo totale di ' +
+            euro(numeroBuoni * Number(tariffa.tariffa)) + '. Hai verificato il pagamento?', 'Registra acquisto');
+        if (!confermato) return false;
+        UI.stato('modale-stato', 'Registrazione in corso. Non chiudere la pagina…', 'caricamento');
         const esito = await API.post('/api/crediti/acquisti', {
             genitore_id: genitoreId,
-            plesso_id: Number(fd.get('plesso_id')),
-            numero_buoni: Number(fd.get('numero_buoni')),
+            plesso_id: plessoId,
+            numero_buoni: numeroBuoni,
+            richiesta_id: richiestaId,
             note: fd.get('note')
         });
-        avviso(`Acquisto registrato: ${euro(esito.importo)}. Nuovo saldo: ${esito.saldo} buoni.`);
+        avviso((esito.gia_registrato ? 'Acquisto già registrato, nessun doppio addebito. ' : 'Acquisto registrato. ') + 'Totale: ' + euro(esito.importo) + '. Saldo attuale: ' + esito.saldo + ' buoni.');
         apriFamiglia(genitoreId);
     });
 
@@ -180,10 +206,15 @@ function formRettifica(genitoreId) {
             <label>Motivazione</label><input type="text" name="note" data-testid="rettifica-note-input" required>
             <button class="btn btn-primary" type="submit" data-testid="rettifica-submit-button">Salva la correzione</button>
         </form>`, async (fd) => {
+        const delta = Number(fd.get('delta'));
+        if (!delta) throw new Error('Scrivi un numero di buoni diverso da zero.');
+        if (!await UI.conferma('Conferma correzione buoni',
+            'La correzione ' + (delta > 0 ? 'aggiungerà ' : 'toglierà ') + Math.abs(delta) +
+            ' buoni alla famiglia. Il movimento sarà conservato nello storico.', 'Conferma correzione')) return false;
         await API.post('/api/crediti/rettifiche', {
             genitore_id: genitoreId,
             plesso_id: Number(fd.get('plesso_id')),
-            delta: Number(fd.get('delta')),
+            delta,
             note: fd.get('note')
         });
         avviso('Saldo buoni corretto. La modifica è registrata nello storico.');
