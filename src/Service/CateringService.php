@@ -63,13 +63,17 @@ final class CateringService
 
             $pasti = (int) $riga['pasti'];
             $perPlesso[$pid]['totale_pasti'] += $pasti;
-            $tid = (int) $riga['tipologia_id'];
-            if (!isset($perPlesso[$pid]['tipologie'][$tid])) {
-                $perPlesso[$pid]['tipologie'][$tid] = [
-                    'tipologia_id' => $tid, 'tipologia_nome' => $riga['tipologia_nome'], 'pasti' => 0,
-                ];
+            // Sezione completamente vuota: la riga del DB non ha una tipologia.
+            // Va mostrata come sezione a 0 pasti, senza inventare un menu "0".
+            if ($riga['tipologia_id'] !== null) {
+                $tid = (int) $riga['tipologia_id'];
+                if (!isset($perPlesso[$pid]['tipologie'][$tid])) {
+                    $perPlesso[$pid]['tipologie'][$tid] = [
+                        'tipologia_id' => $tid, 'tipologia_nome' => $riga['tipologia_nome'], 'pasti' => 0,
+                    ];
+                }
+                $perPlesso[$pid]['tipologie'][$tid]['pasti'] += $pasti;
             }
-            $perPlesso[$pid]['tipologie'][$tid]['pasti'] += $pasti;
 
             $cid = (int) $riga['classe_id'];
             if (!isset($perPlesso[$pid]['sezioni'][$cid])) {
