@@ -100,6 +100,7 @@ async function caricaDashboard() {
             return;
         }
         try {
+            await UI.esegui(b, async () => {
             await API.post('/api/genitore/pasta-bianco', {
                 bambino_id: bambinoId, data, richiesta: Number(b.dataset.pasta)
             });
@@ -107,6 +108,7 @@ async function caricaDashboard() {
             statoApp.messaggi[bambinoId] = messaggio;
             avviso(messaggio);
             await caricaDashboard();
+            }, 'Salvataggio…');
         } catch (err) { avviso(err.message, 'errore'); }
     }));
 
@@ -336,7 +338,10 @@ contenitoreStelle.querySelectorAll('button').forEach((b) => b.addEventListener('
 document.getElementById('fb-data').value = oggi();
 document.getElementById('form-feedback').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const pulsante = e.submitter || document.querySelector('#form-feedback [type=submit]');
+    if (statoApp.votoSelezionato === null) { avviso('Seleziona almeno una stella per valutare il pasto.', 'errore'); return; }
     try {
+        await UI.esegui(pulsante, async () => {
         await API.post('/api/genitore/feedback', {
             bambino_id: Number(document.getElementById('fb-figlio').value),
             data: document.getElementById('fb-data').value,
@@ -348,6 +353,7 @@ document.getElementById('form-feedback').addEventListener('submit', async (e) =>
         statoApp.votoSelezionato = null;
         contenitoreStelle.querySelectorAll('button').forEach((x) => x.classList.remove('attiva'));
         mostraFeedback(await API.get('/api/genitore/feedback'));
+        }, 'Invio in corso…');
     } catch (err) { avviso(err.message, 'errore'); }
 });
 
