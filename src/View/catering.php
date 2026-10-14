@@ -48,10 +48,14 @@ require __DIR__ . '/partials/testa.php';
             <label for="menu-foto">Foto del menu (facoltativa)</label>
             <input type="file" id="menu-foto" accept="image/*" data-testid="menu-foto-input">
             <p id="menu-foto-stato" class="nota catering-foto-nota" data-testid="menu-foto-stato">Puoi aggiungere una foto al menu.</p>
-            <label id="menu-rimuovi-foto-opzione" class="catering-rimuovi-foto" hidden>
-                <input type="checkbox" id="menu-rimuovi-foto" data-testid="menu-rimuovi-foto">
-                Rimuovi foto pubblicata
-            </label>
+            <div id="menu-foto-anteprima" class="catering-foto-anteprima" hidden data-testid="menu-foto-anteprima">
+                <img id="menu-foto-immagine" alt="Foto attuale del menu selezionato">
+                <button id="menu-foto-elimina" class="catering-foto-anteprima__elimina" type="button"
+                        aria-label="Rimuovi la foto da questo menu al salvataggio" title="Rimuovi foto"
+                        data-testid="menu-foto-elimina">&times;</button>
+            </div>
+            <button id="menu-foto-annulla" class="btn btn-link catering-foto-annulla" type="button" hidden
+                    data-testid="menu-foto-annulla">Annulla rimozione</button>
         </div>
         <button type="submit" id="menu-submit" class="btn btn-primary catering-menu-submit" disabled data-testid="menu-submit-button">Pubblica menu</button>
     </form>
