@@ -48,6 +48,43 @@ final class AdminController
         return ['cancellato_logicamente' => true];
     }
 
+    // ---------------- calendario servizio mensa ----------------
+
+    public function dettaglioCalendario(Request $r, array $utente): array
+    {
+        return $this->c->calendario()->dettaglio((int) $r->parametro('id'));
+    }
+
+    public function salvaCalendario(Request $r, array $utente): array
+    {
+        $this->c->calendario()->salvaConfigurazione((int) $r->parametro('id'), $r->corpo());
+        return ['salvato' => true];
+    }
+
+    public function verificaCalendario(Request $r, array $utente): array
+    {
+        return $this->c->calendario()->previsto(
+            (int) $r->parametro('id'),
+            (string) $r->query('data', date('Y-m-d'))
+        );
+    }
+
+    public function salvaEccezioneCalendario(Request $r, array $utente): array
+    {
+        $this->c->calendario()->salvaEccezione(
+            (int) $r->parametro('id'), (string) $r->parametro('data'), $r->corpo()
+        );
+        return ['salvata' => true];
+    }
+
+    public function cancellaEccezioneCalendario(Request $r, array $utente): array
+    {
+        $this->c->calendario()->cancellaEccezione(
+            (int) $r->parametro('id'), (string) $r->parametro('data')
+        );
+        return ['cancellata' => true];
+    }
+
     // ---------------- classi ----------------
 
     public function classi(Request $r, array $utente): array
