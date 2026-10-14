@@ -33,6 +33,7 @@ require __DIR__ . '/partials/testa.php';
         <button class="btn btn-primary btn-sm" id="btn-carica-calendario" data-testid="calendario-carica-button">Mostra calendario</button>
     </div>
     <p class="nota"><strong>Verde:</strong> pasto previsto. <strong>Rosso:</strong> pasto non previsto. «Hai comunicato» indica un giorno per cui hai fatto una scelta. I giorni senza indicazioni non sono necessariamente giorni di chiusura.</p>
+    <p id="calendario-stato" class="stato-operazione" role="status" aria-live="polite" hidden></p>
     <div id="calendario" class="calendario" data-testid="calendario-griglia"></div>
     <div id="calendario-dettaglio" class="pannello" data-testid="calendario-dettaglio" aria-live="polite"><p class="nota">Tocca un giorno del calendario per vedere i dettagli.</p></div>
 </section>
