@@ -45,6 +45,7 @@ $router->get('/api/genitore/dashboard', [$genitore, 'dashboard'], ['genitore']);
 $router->get('/api/genitore/figli/{id}/calendario', [$genitore, 'calendario'], ['genitore']);
 $router->get('/api/genitore/figli/{id}/giornata', [$genitore, 'statoGiornata'], ['genitore']);
 $router->post('/api/genitore/presenze/dichiarazione', [$genitore, 'dichiara'], ['genitore']);
+$router->post('/api/genitore/pasta-bianco', [$genitore, 'pastaBianco'], ['genitore']);
 $router->get('/api/genitore/feedback', [$genitore, 'feedback'], ['genitore']);
 $router->post('/api/genitore/feedback', [$genitore, 'inserisciFeedback'], ['genitore']);
 $router->get('/api/genitore/menu', [$genitore, 'menu'], ['genitore']);
