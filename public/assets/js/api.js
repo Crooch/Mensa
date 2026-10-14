@@ -146,6 +146,63 @@ const UI = {
             finestra.querySelector('[data-esito="no"]').focus();
         });
     },
+    /**
+     * Motivazione obbligatoria in un modale accessibile e riutilizzabile.
+     * Non altera i dati: restituisce il testo validato o null se annullata.
+     */
+    chiediMotivazione(titolo, messaggio = 'Indica il motivo della modifica.') {
+        return new Promise((resolve) => {
+            const finestra = document.createElement('dialog');
+            finestra.className = 'motivo-dialogo';
+            finestra.setAttribute('aria-label', titolo);
+            finestra.innerHTML =
+                '<form novalidate>' +
+                '<div class="motivo-dialogo__testa"><h2></h2>' +
+                '<button type="button" class="motivo-dialogo__chiudi" aria-label="Chiudi finestra">×</button></div>' +
+                '<p class="nota motivo-dialogo__testo"></p>' +
+                '<label class="motivo-dialogo__etichetta" for="motivo-testo">Motivazione <span aria-hidden="true">*</span></label>' +
+                '<textarea id="motivo-testo" rows="3" maxlength="255" required ' +
+                'placeholder="Es. Non si è presentato" data-testid="motivo-testo"></textarea>' +
+                '<p class="motivo-dialogo__errore" role="alert" hidden>Inserisci una motivazione (massimo 255 caratteri).</p>' +
+                '<div class="motivo-dialogo__azioni">' +
+                '<button type="button" class="btn btn-outline-primary" data-annulla>Annulla</button>' +
+                '<button type="submit" class="btn btn-primary" data-conferma>Conferma modifica</button>' +
+                '</div></form>';
+            finestra.querySelector('h2').textContent = titolo;
+            finestra.querySelector('.motivo-dialogo__testo').textContent = messaggio;
+            const campo = finestra.querySelector('textarea');
+            const errore = finestra.querySelector('.motivo-dialogo__errore');
+            document.body.appendChild(finestra);
+            let chiusa = false;
+            const termina = (valore) => {
+                if (chiusa) return;
+                chiusa = true;
+                finestra.close();
+                finestra.remove();
+                resolve(valore);
+            };
+            finestra.querySelector('[data-annulla]').addEventListener('click', () => termina(null));
+            finestra.querySelector('.motivo-dialogo__chiudi').addEventListener('click', () => termina(null));
+            finestra.addEventListener('cancel', (e) => { e.preventDefault(); termina(null); });
+            finestra.querySelector('form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const motivazione = campo.value.trim();
+                if (!motivazione || motivazione.length > 255) {
+                    errore.hidden = false;
+                    campo.setAttribute('aria-invalid', 'true');
+                    campo.focus();
+                    return;
+                }
+                termina(motivazione);
+            });
+            campo.addEventListener('input', () => {
+                errore.hidden = true;
+                campo.removeAttribute('aria-invalid');
+            });
+            finestra.showModal();
+            campo.focus();
+        });
+    },
     oraAggiornamento() {
         return new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
     }
