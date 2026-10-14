@@ -55,9 +55,10 @@ report = call("/api/catering/report?data=" + giorno, token=catering)
 infanzia = next(x for x in report["plessi"] if x["plesso_id"] == 1)
 assert any(int(r["bambino_id"]) == figlio for r in infanzia["pasta_in_bianco"])
 
-call("/api/genitore/presenze/dichiarazione", {
+esito_assenza = call("/api/genitore/presenze/dichiarazione", {
     "bambino_id": figlio, "data": giorno, "stato": "assente"
 }, token=genitore)
+assert esito_assenza['pasta_annullata'] is True
 stato = call("/api/genitore/figli/" + str(figlio) +
              "/giornata?data=" + giorno, token=genitore)
 assert stato["stato_effettivo"] == "assente"
