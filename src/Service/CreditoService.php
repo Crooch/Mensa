@@ -117,27 +117,63 @@ final class CreditoService
     }
 
     /** Rettifica manuale del saldo (con nota obbligatoria per tracciabilita'). */
-    public function rettifica(int $genitoreId, int $plessoId, int $delta, string $note, int $utenteId): int
+    public function rettifica(int $genitoreId, int $plessoId, int $delta, string $note,
+                             int $utenteId, ?string $richiestaId = null): int
     {
         if ($delta === 0) {
-            throw HttpException::nonValido('La rettifica deve essere diversa da zero');
+            throw HttpException::nonValido('La correzione deve aggiungere o togliere almeno un buono');
         }
-        if (trim($note) === '') {
-            throw HttpException::nonValido('La motivazione della rettifica è obbligatoria');
+        $note = trim($note);
+        if ($note === '') {
+            throw HttpException::nonValido('Indica il motivo della correzione');
         }
-        return Database::inTransazione(function () use ($genitoreId, $plessoId, $delta, $note, $utenteId) {
-            $poolId = $this->crediti->assicuraPool($genitoreId, $plessoId);
-            $id = $this->crediti->registraMovimento([
-                'pool_id'   => $poolId,
-                'tipo'      => 'rettifica_manuale',
-                'delta'     => $delta,
-                'data'      => date('Y-m-d'),
-                'utente_id' => $utenteId,
-                'note'      => trim($note),
-            ]);
-            $this->crediti->aggiornaSaldo($poolId, $delta);
-            return $id;
-        });
+        if ($richiestaId !== null && !preg_match('/^[a-zA-Z0-9-]{16,64}$/D', $richiestaId)) {
+            throw HttpException::nonValido('Identificativo della richiesta non valido');
+        }
+        if ($richiestaId !== null) {
+            $precedente = $this->crediti->rettificaPerRichiesta($richiestaId);
+            if ($precedente !== null) {
+                return $this->verificaRettificaEsistente($precedente, $genitoreId, $plessoId, $delta, $note, $utenteId);
+            }
+        }
+        try {
+            return Database::inTransazione(function () use ($genitoreId, $plessoId, $delta, $note, $utenteId, $richiestaId) {
+                $poolId = $this->crediti->assicuraPool($genitoreId, $plessoId);
+                $id = $this->crediti->registraMovimento([
+                    'pool_id' => $poolId,
+                    'tipo' => 'rettifica_manuale',
+                    'delta' => $delta,
+                    'data' => date('Y-m-d'),
+                    'utente_id' => $utenteId,
+                    'note' => $note,
+                    'richiesta_id' => $richiestaId,
+                ]);
+                $this->crediti->aggiornaSaldo($poolId, $delta);
+                return $id;
+            });
+        } catch (\PDOException $errore) {
+            if ($richiestaId === null || (string) $errore->getCode() !== '23000') {
+                throw $errore;
+            }
+            $precedente = $this->crediti->rettificaPerRichiesta($richiestaId);
+            if ($precedente === null) {
+                throw $errore;
+            }
+            return $this->verificaRettificaEsistente($precedente, $genitoreId, $plessoId, $delta, $note, $utenteId);
+        }
+    }
+
+    private function verificaRettificaEsistente(array $precedente, int $genitoreId, int $plessoId,
+                                               int $delta, string $note, int $utenteId): int
+    {
+        if ((int) $precedente['genitore_id'] !== $genitoreId
+            || (int) $precedente['plesso_id'] !== $plessoId
+            || (int) $precedente['delta'] !== $delta
+            || (string) $precedente['note'] !== $note
+            || (int) $precedente['utente_id'] !== $utenteId) {
+            throw HttpException::nonValido('Questa richiesta è già stata usata per una correzione diversa. Riapri il modulo.');
+        }
+        return (int) $precedente['id'];
     }
 
     /**
