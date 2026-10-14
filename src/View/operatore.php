@@ -12,7 +12,7 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-famiglie" class="vista">
     <h1>Cerca una famiglia</h1>
-    <p class="nota">Cerca per cognome, telefono o email. Seleziona «Apri» per vedere i figli, i buoni mensa e le operazioni registrate.</p>
+    <p class="nota">Cerca per cognome, telefono o email.</p>
     <div class="riga-filtri">
         <input type="search" id="ricerca-famiglie" placeholder="Scrivi un cognome, un telefono o un'email" data-testid="famiglie-ricerca-input">
         <button class="btn btn-primary btn-sm" id="btn-cerca" data-testid="famiglie-cerca-button">Cerca</button>
@@ -34,7 +34,7 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-crediti" class="vista" hidden>
     <h1>Buoni mensa di tutte le famiglie</h1>
-    <p class="nota">Se il saldo è rosso, la famiglia ha raggiunto la soglia per il sollecito. Il sistema non impedisce automaticamente al bambino di mangiare. Un saldo negativo significa che sono stati utilizzati più buoni di quelli disponibili.</p>
+    <p class="nota">Un saldo negativo non blocca il pasto.</p>
     <div class="tabella-scroll">
         <table class="table" data-testid="situazione-crediti-tabella">
             <thead><tr><th>Famiglia</th><th>Telefono</th><th>Plesso</th><th>Saldo buoni</th><th>Soglia per il sollecito</th><th>Situazione</th></tr></thead>
@@ -45,7 +45,7 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-solleciti" class="vista" hidden>
     <h1>Comunicazioni di sollecito</h1>
-    <p class="nota">Qui trovi le comunicazioni registrate dal sistema e il risultato di ogni tentativo di invio.</p>
+    <p class="nota">Storico dei solleciti.</p>
     <div class="tabella-scroll">
         <table class="table" data-testid="solleciti-tabella">
             <thead><tr><th>Data</th><th>Famiglia</th><th>Plesso</th><th>Saldo</th><th>Esito</th><th>Destinatari</th></tr></thead>
