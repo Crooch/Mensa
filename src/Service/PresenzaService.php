@@ -294,38 +294,53 @@ final class PresenzaService
     }
 
     /** Assenza di massa per una classe (gita/uscita didattica). */
-    public function dichiaraAssenzaMassa(int $classeSezioneId, string $data, string $motivo, int $utenteId, ?int $plessoUtente = null): int
+    public function dichiaraAssenzaMassa(int $classeSezioneId, string $data,
+                                         string $motivo, int $utenteId, ?int $plessoUtente = null): int
     {
+        $this->validaDataDichiarazione($data);
         $classe = $this->classi->trova($classeSezioneId);
         if ($classe === null) {
             throw HttpException::nonTrovato('Classe non trovata');
         }
-        if ($plessoUtente !== null && (int) $classe['plesso_id'] !== $plessoUtente) {
-            throw HttpException::nonAutorizzato('La classe non appartiene al plesso dell\'utenza');
+        $plessoId = (int) $classe['plesso_id'];
+        if ($plessoUtente !== null && $plessoId !== $plessoUtente) {
+            throw HttpException::nonAutorizzato('Classe non appartenente al plesso assegnato');
         }
-        if ($this->presenze->assenzaMassa($classeSezioneId, $data) !== null) {
-            throw HttpException::nonValido('Assenza di massa già registrata per questa classe e data');
+        if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
+            throw HttpException::nonValido('Non e previsto servizio mensa in questa data');
         }
-        $id = $this->presenze->creaAssenzaMassa([
-            'classe_sezione_id' => $classeSezioneId,
-            'data'              => $data,
-            'motivo'            => trim($motivo),
-            'utente_id'         => $utenteId,
-        ]);
-
-        // Allinea i record già creati per quella data (il default cambia in "assente").
-        foreach ($this->bambini->elencoPerClasse($classeSezioneId, $data) as $bambino) {
-            $record = $this->presenze->trovaPresenza((int) $bambino['id'], $data);
-            if ($record === null || (int) $record['congelato'] === 1) {
-                continue;
-            }
-            $record['default_calcolato'] = 'assente';
-            $this->presenze->modificaPresenza((int) $record['id'], [
-                'default_calcolato' => 'assente',
-                'stato_effettivo'   => $this->calcolaStatoEffettivo($record),
-            ]);
+        $plesso = $this->plessi->trova($plessoId);
+        if (!$this->job->acquisisciLock($plessoId, $data)) {
+            throw new HttpException(409, 'Elaborazione della giornata in corso. Riprovare.');
         }
-        return $id;
+        try {
+            $this->verificaModificabile($plesso, $plessoId, $data);
+            return Database::inTransazione(function () use ($classeSezioneId, $data, $motivo, $utenteId) {
+                if ($this->presenze->assenzaMassa($classeSezioneId, $data) !== null) {
+                    throw HttpException::nonValido('Assenza di massa gia registrata');
+                }
+                $id = $this->presenze->creaAssenzaMassa([
+                    'classe_sezione_id' => $classeSezioneId,
+                    'data' => $data,
+                    'motivo' => trim($motivo),
+                    'utente_id' => $utenteId,
+                ]);
+                foreach ($this->bambini->elencoPerClasse($classeSezioneId, $data) as $bambino) {
+                    $record = $this->presenze->trovaPresenza((int) $bambino['id'], $data);
+                    if ($record === null || (int) $record['congelato'] === 1) {
+                        continue;
+                    }
+                    $record['default_calcolato'] = 'assente';
+                    $this->presenze->modificaPresenza((int) $record['id'], [
+                        'default_calcolato' => 'assente',
+                        'stato_effettivo' => $this->calcolaStatoEffettivo($record),
+                    ]);
+                }
+                return $id;
+            });
+        } finally {
+            $this->job->rilasciaLock($plessoId, $data);
+        }
     }
 
     public function elencoAssenzeMassa(?int $plessoId, string $da, string $a): array
