@@ -6,7 +6,7 @@ require __DIR__ . '/partials/testa.php';
 ?>
 <nav class="schede" role="tablist">
     <button class="scheda attiva" data-vista="famiglie" data-testid="tab-famiglie">Famiglie</button>
-    <button class="scheda" data-vista="crediti" data-testid="tab-crediti">Situazione crediti</button>
+    <button class="scheda" data-vista="crediti" data-testid="tab-crediti">Situazione buoni mensa</button>
     <button class="scheda" data-vista="solleciti" data-testid="tab-solleciti">Solleciti inviati</button>
 </nav>
 
@@ -31,18 +31,18 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-crediti" class="vista" hidden>
-    <h1>Situazione crediti di tutte le famiglie</h1>
-    <p class="nota">I saldi in rosso hanno superato il fido: attivano solo l'escalation informativa, mai il blocco del pasto.</p>
+    <h1>Buoni mensa di tutte le famiglie</h1>
+    <p class="nota">Il rosso indica che il saldo è sceso oltre la soglia di avviso. È possibile inviare un sollecito, ma il pasto non viene bloccato automaticamente.</p>
     <div class="tabella-scroll">
         <table class="table" data-testid="situazione-crediti-tabella">
-            <thead><tr><th>Famiglia</th><th>Telefono</th><th>Plesso</th><th>Saldo</th><th>Fido</th><th>Stato</th></tr></thead>
+            <thead><tr><th>Famiglia</th><th>Telefono</th><th>Plesso</th><th>Buoni rimasti</th><th>Soglia di avviso</th><th>Stato</th></tr></thead>
             <tbody id="crediti-corpo"></tbody>
         </table>
     </div>
 </section>
 
 <section id="vista-solleciti" class="vista" hidden>
-    <h1>Log solleciti debito</h1>
+    <h1>Storico dei solleciti inviati</h1>
     <div class="tabella-scroll">
         <table class="table" data-testid="solleciti-tabella">
             <thead><tr><th>Data</th><th>Famiglia</th><th>Plesso</th><th>Saldo</th><th>Esito</th><th>Destinatari</th></tr></thead>
