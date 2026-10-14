@@ -65,6 +65,17 @@ final class CreditoRepository extends Repository
         );
     }
 
+    public function rettificaPerRichiesta(string $richiestaId): ?array
+    {
+        return $this->uno(
+            "SELECT m.*, pc.genitore_id, pc.plesso_id
+             FROM movimenti_crediti m
+             JOIN pool_crediti pc ON pc.id = m.pool_id
+             WHERE m.richiesta_id = :id AND m.tipo = 'rettifica_manuale'",
+            ['id' => $richiestaId]
+        );
+    }
+
     public function movimenti(int $genitoreId, ?string $tipo = null, int $limite = 200): array
     {
         $sql = 'SELECT m.*, p.nome AS plesso_nome, b.nome AS bambino_nome, b.cognome AS bambino_cognome,
