@@ -56,3 +56,18 @@ assert.match(genitore, /b\.dataset\.pasta === '0' && presente && !!g\.pasta_in_b
 assert.match(genitore, /if \(presente\) \{[\s\S]*?data-cal-pasta="1"/);
 assert.match(genitore, /else if \(assente && !assenzaDellaScuola\)/);
 console.log('OK: azioni genitore contestuali, pasta solo con pasto e senza menu a scomparsa.');
+
+assert.match(genitore, /class="card-mensa card-figlio"/);
+assert.match(genitore, /class="figlio-comandi"/);
+assert.match(genitore, /class="figlio-selezione-data"/);
+assert.match(genitore, /class="stato-operazione figlio-stato"/);
+assert.match(genitore, /class="figlio-azioni" hidden/);
+assert.match(genitore, /class="btn btn-outline-primary btn-sm figlio-calendario"/);
+assert.match(genitore, /gruppoAzioni\.hidden = disponibili === 0/);
+assert.match(genitore, /classList\.toggle\('figlio-azioni--singola', disponibili === 1\)/);
+assert.match(css, /#figli-lista\s*\{\s*align-items:\s*stretch/);
+assert.match(css, /#figli-lista\s+\.figlio-comandi\s*\{[^}]*margin-top:\s*auto/s);
+assert.match(css, /#figli-lista\s+\.figlio-azioni\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
+assert.match(css, /#figli-lista\s+\.figlio-calendario\s*\{\s*margin:\s*0/);
+assert.match(css, /@media\s*\(max-width:\s*600px\)[\s\S]*#figli-lista\s+\.figlio-azioni\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+console.log('OK: layout famiglia con stato separato, azioni allineate e calendario a tutta larghezza.');
