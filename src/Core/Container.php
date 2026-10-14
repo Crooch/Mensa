@@ -131,7 +131,8 @@ final class Container
             $this->classi(),
             $this->plessi(),
             $this->assegnazioni(),
-            $this->calendario()
+            $this->calendario(),
+            $this->jobRepo()
         ));
     }
 
