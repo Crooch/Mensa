@@ -111,9 +111,15 @@ async function caricaDashboard() {
 }
 
 function riempiSelectFigli() {
+    const campoCalendario = document.getElementById('cal-figlio');
+    const campoFeedback = document.getElementById('fb-figlio');
+    const selezioneCalendario = campoCalendario.value;
+    const selezioneFeedback = campoFeedback.value;
     const opzioni = statoApp.figli.map((f) => `<option value="${f.id}">${esc(f.cognome)} ${esc(f.nome)}</option>`).join('');
-    document.getElementById('cal-figlio').innerHTML = opzioni;
-    document.getElementById('fb-figlio').innerHTML = opzioni;
+    campoCalendario.innerHTML = opzioni;
+    campoFeedback.innerHTML = opzioni;
+    if (statoApp.figli.some((f) => String(f.id) === selezioneCalendario)) campoCalendario.value = selezioneCalendario;
+    if (statoApp.figli.some((f) => String(f.id) === selezioneFeedback)) campoFeedback.value = selezioneFeedback;
 }
 
 async function dichiara(bambinoId, stato, data = oggi()) {
