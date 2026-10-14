@@ -1,0 +1,18 @@
+# Non trasferire file locali, credenziali o dati reali al container.
+.git
+.gitignore
+config/config.local.php
+*.sql.gz
+*.sql.zip
+*.bak
+*.dump
+*.pem
+*.key
+*.p12
+*.pfx
+storage/menu/*
+!storage/menu/LEGGIMI.txt
+.env
+.env.*
+/mnt/
+/tmp/
