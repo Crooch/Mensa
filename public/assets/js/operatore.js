@@ -159,6 +159,7 @@ function formAcquisto(genitoreId) {
             plesso_id: plessoId,
             numero_buoni: numeroBuoni,
             richiesta_id: richiestaId,
+            importo_atteso: Math.round(numeroBuoni * Number(tariffa.tariffa) * 100) / 100,
             note: fd.get('note')
         });
         avviso((esito.gia_registrato ? 'Acquisto già registrato, nessun doppio addebito. ' : 'Acquisto registrato. ') + 'Totale: ' + euro(esito.importo) + '. Saldo attuale: ' + esito.saldo + ' buoni.');
