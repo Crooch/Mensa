@@ -131,3 +131,26 @@ assert.match(css, /#avvisi \.avviso__testo\s*\{[^}]*flex:\s*1 1 auto/s);
 assert.match(css, /#avvisi \.avviso__chiudi\s*\{[^}]*display:\s*inline-flex/s);
 assert.match(css, /#avvisi \.avviso__chiudi::before,[\s\S]*#avvisi \.avviso__chiudi::after\s*\{[^}]*top:\s*50%;[^}]*left:\s*50%/s);
 console.log('OK: notifiche allineate, X geometrica centrata, chiusura funzionante e messaggi di errore persistenti.');
+
+/* Controllo globale: il selettore data non deve essere curato solo per il genitore.
+   La stessa regola deve valere per tutte le schermate e per i modali dinamici. */
+const inizioDate = css.indexOf('/* Componente comune data/mese/ora:');
+assert.ok(inizioDate >= 0, 'Manca lo stile globale dei selettori data');
+const dateCss = css.slice(inizioDate);
+for (const tipo of ['date', 'month', 'time', 'datetime-local']) {
+    assert.ok(dateCss.includes('input[type="' + tipo + '"]'),
+        'Stile condiviso assente per il campo ' + tipo);
+}
+assert.match(dateCss, /width:\s*min\(100%, 220px\)\s*!important/);
+assert.match(dateCss, /border:\s*1px solid #91a9bd\s*!important/);
+assert.match(dateCss, /border-bottom:\s*1px solid #91a9bd\s*!important/);
+assert.match(dateCss, /border-radius:\s*8px\s*!important/);
+assert.match(dateCss, /::-webkit-calendar-picker-indicator\s*\{[^}]*margin-left:\s*auto/s);
+assert.match(css, /#figli-lista\s+\.figlio-selezione-data input\[type="date"\]\s*\{\s*max-width:\s*210px/);
+for (const vista of ['genitore', 'scuola', 'catering', 'admin']) {
+    const html = readFileSync('src/View/' + vista + '.php', 'utf8');
+    assert.ok(html.includes('type="date"') || html.includes('type="month"'),
+        'Nessun campo data nella schermata ' + vista);
+}
+assert.match(readFileSync('public/assets/js/operatore.js', 'utf8'), /type="date"/);
+console.log('OK: selettori data/mese/ora condivisi tra tutti i profili e modali, responsive.');
