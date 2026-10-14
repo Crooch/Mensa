@@ -233,6 +233,14 @@ final class CateringService
         if ($this->plessi->trova($plessoId) === null || $this->tipologie->trova($tipologiaId) === null) {
             throw HttpException::nonTrovato('Plesso o tipologia non validi');
         }
+        // L'eccezione giornaliera non può cambiare i menu già somministrati.
+        if ($data < date('Y-m-d')) {
+            throw HttpException::nonValido('Non puoi modificare il menu di una giornata già trascorsa');
+        }
+        $esecuzione = $this->job->esecuzione($plessoId, $data);
+        if ($esecuzione !== null && $esecuzione['esito'] === 'ok') {
+            throw HttpException::nonValido('La giornata è consolidata: il menu è nello storico');
+        }
         $fotoNuova = $file !== null && ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK;
         $esistente = $this->menu->trovaPerChiave($plessoId, $tipologiaId, $data);
         if ($rimuoviFoto && $fotoNuova) {
