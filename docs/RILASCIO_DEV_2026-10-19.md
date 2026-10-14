@@ -80,3 +80,7 @@ Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non 
 ## Principio gestionale da confermare con il Comune
 
 Il ticket viene contabilizzato in base al pasto previsto al cutoff; una presenza effettiva accertata dalla scuola, quando non prevista, genera un solo ticket. Le assenze comunicate a cutoff superato non determinano rimborso automatico. Confermare che queste regole coincidano con la disciplina comunale di prenotazione e pagamento prima del rilascio.
+
+## Regola confermata: pasta in bianco
+
+La famiglia puo richiedere liberamente la pasta in bianco per il singolo figlio in un giorno di effettivo servizio mensa, senza motivazione, prescrizione o approvazione da parte della scuola o del Comune. La richiesta puo essere annullata autonomamente. Restano validi soltanto i limiti operativi generali: data odierna prima del cutoff oppure una data futura di mensa. La scelta non cambia la tipologia dietetica abituale e non determina alcuna variazione del numero o del valore dei ticket. Il catering visualizza per il giorno interessato la richiesta e il nome/classe del bambino, se presente.
