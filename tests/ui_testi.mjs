@@ -239,7 +239,7 @@ for (const variante of ['report', 'menu', 'feedback']) {
 for (const id of ['menu-selezione-stato', 'menu-foto-stato', 'menu-submit']) {
     assert.ok(cateringHtml.includes('id="' + id + '"'), 'Campo Catering mancante: ' + id);
 }
-assert.match(cateringJs, /'Aggiorna questo menu'\s*:\s*'Pubblica questo menu'/);
+assert.match(cateringJs, /'Aggiorna menu'\s*:\s*'Pubblica menu'/);
 assert.match(cateringJs, /Aggiornerai solo questo menu: gli altri non cambiano/);
 assert.match(cateringJs, /Se non ne scegli una nuova, rimane quella attuale/);
 assert.match(cateringJs, /data-menu-modifica="/);
