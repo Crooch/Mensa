@@ -205,3 +205,57 @@ button:disabled { cursor: progress; opacity: .7; }
     .calendario { gap: .15rem; padding: .35rem; }
     .calendario .giorno { padding: .25rem .15rem; }
 }
+
+/* UX/UI A–D: stati coerenti, leggibilità e moduli responsive. */
+[hidden] { display: none !important; }
+body { line-height: 1.5; }
+.btn, .btn-azione { min-height: 42px; }
+.btn:active, .btn-azione:active { transform: translateY(1px); }
+.scheda { min-height: 46px; }
+.scheda[aria-selected="true"] { background: #e6f0fa; border-radius: 6px 6px 0 0; }
+.griglia-cards { align-items: start; }
+.card-mensa { border-radius: 10px; box-shadow: 0 2px 12px rgba(18, 49, 77, .06); }
+.pannello { border-radius: 10px; }
+.stato-operazione {
+    padding: .75rem 1rem; border-radius: 8px; border: 1px solid #bacbdc;
+    background: #eaf2fc; color: #123c60; font-weight: 600; line-height: 1.5; margin: .65rem 0;
+}
+.stato-operazione--ok { background: #e8f5e9; color: #165528; border-color: #a5d5b2; }
+.stato-operazione--errore { background: #fff0ef; color: #921c16; border-color: #efaca6; }
+.stato-operazione--caricamento { background: #eff4fa; color: #254b6e; }
+.stato-operazione--info { background: #eef4fa; color: #254b6e; }
+.avviso { display: flex; gap: .8rem; justify-content: space-between; align-items: start; border-radius: 10px; min-width: min(300px, 90vw); }
+.avviso__chiudi { color: inherit; background: transparent; border: 1px solid currentColor; cursor: pointer; font-size: 1.35rem; width: 32px; height: 32px; border-radius: 50%; line-height: 1; flex: 0 0 32px; }
+.conferma-dialogo { border: 0; border-radius: 14px; padding: 1.6rem; width: min(450px, calc(100vw - 2rem)); color: var(--grigio-testo); box-shadow: 0 16px 60px #132f4a44; }
+.conferma-dialogo::backdrop { background: #09264199; }
+.conferma-dialogo h2 { margin-top: 0; font-size: 1.3rem; }
+.conferma-dialogo__azioni { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .6rem; margin-top: 1.25rem; }
+.riepilogo-mensa { display: flex; flex-wrap: wrap; gap: .7rem; margin: 1rem 0; }
+.riepilogo-mensa__dato { background: #f6f9fc; border: 1px solid #d5e2ee; border-radius: 8px; padding: .75rem 1rem; flex: 1 1 130px; }
+.riepilogo-mensa__dato strong { display:block; font-size: 1.5rem; line-height: 1.1; }
+.riepilogo-mensa__dato span { display: block; font-size: .9rem; color: #42576c; }
+.azioni-giorno { display:flex; flex-wrap:wrap; gap:.6rem; padding:.6rem 0; }
+.azioni-giorno .btn { flex:1 1 170px; }
+.calendario .giorno { position:relative; min-height:84px; }
+.calendario .giorno.selezionato { outline: 3px solid var(--blu-italia); outline-offset: 1px; }
+.calendario .giorno.senza-mensa { background:#eef1f5; color:#405268; border-style:dashed; }
+.calendario .giorno.non-disponibile { background:#f7f8fa; color:#42576c; }
+.calendario .giorno small { display:block; font-size:.78rem; margin-top:.2rem; font-weight:600; }
+input:disabled, button:disabled { opacity:.65; }
+@media (max-width:700px) {
+  .schede { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.35rem; }
+  .scheda { border:1px solid #d5e2ee; border-radius:7px; text-align:center; padding:.7rem .35rem; }
+  .scheda.attiva { border:2px solid var(--blu-italia); border-radius:7px; }
+  .riga-filtri { gap:.65rem; }
+  .riga-filtri label { width:100%; flex:1 1 100%; }
+  .riga-filtri input, .riga-filtri select { min-height:44px; }
+  .btn, .btn-azione { min-height:44px; }
+  .calendario .giorno { font-size:.7rem; min-height:68px; padding:.2rem; }
+  .calendario .giorno small { font-size:.66rem; }
+  .calendario .intestazione-giorno { font-size:.7rem; }
+  .avvisi { right:.5rem; bottom:.5rem; left:.5rem; }
+  .avviso { max-width:none; width:100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration:.01ms!important; animation-duration:.01ms!important; }
+}
