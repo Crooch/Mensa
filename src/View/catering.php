@@ -40,6 +40,7 @@ require __DIR__ . '/partials/testa.php';
         <button type="submit" class="btn btn-primary" data-testid="menu-submit-button">Pubblica per oggi</button>
     </form>
     <h2>Menu già pubblicati oggi</h2>
+    <p id="menu-stato" class="stato-operazione" role="status" hidden></p>
     <div id="menu-lista" class="griglia-cards" data-testid="menu-lista"></div>
 </section>
 
@@ -53,6 +54,7 @@ require __DIR__ . '/partials/testa.php';
         <label for="fb-tipologia">Tipologia</label><select id="fb-tipologia" data-testid="feedback-tipologia-select"></select>
         <button class="btn btn-primary btn-sm" id="btn-feedback" data-testid="feedback-filtra-button">Filtra</button>
     </div>
+    <p id="feedback-stato" class="stato-operazione" role="status" hidden></p>
     <div class="tabella-scroll">
         <table class="table" data-testid="feedback-tabella">
             <thead><tr><th>Data</th><th>Alunno</th><th>Plesso</th><th>Classe</th><th>Tipologia</th><th>Voto</th><th>Commento</th></tr></thead>
