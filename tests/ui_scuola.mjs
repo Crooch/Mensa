@@ -42,6 +42,7 @@ el('data').handlers.change();
 assert.equal(chiamate.length, 2);
 const creaVista = (n) => ({
     cutoff_orario: '09:15', oltre_cutoff: false, assenza_massa: null,
+    servizio_mensa: { attivo: true, motivo: 'giorno_di_servizio' },
     alunni: Array.from({length:n}, (_,i) => ({
         bambino_id: i + 1, nome: 'Figlio', cognome: 'Prova',
         tipologia_nome: 'Ordinario', default_calcolato: 'presente',
@@ -94,3 +95,21 @@ for (const label of ['Alunno', 'Menu', 'Comunicazione famiglia', 'Correzione scu
 assert.match(script, /data-testid="override-assente-\$\{a\.bambino_id\}"/);
 assert.match(script, /data-testid="override-presente-\$\{a\.bambino_id\}"/);
 console.log('OK: tabella Scuola piena sul desktop, schede mobili e azioni preservate.');
+
+/* Una giornata prima dell'avvio non puo' mostrare pasti/assenze o azioni. */
+el('data').value = '2026-10-15';
+el('data').handlers.change();
+await tick();
+const nonAvviata = creaVista(2);
+nonAvviata.servizio_mensa = { attivo: false, motivo: 'servizio_non_avviato' };
+nonAvviata.alunni.forEach(a => { a.stato_effettivo = null; a.default_calcolato = null; });
+chiamate.at(-1).resolve(nonAvviata);
+await tick();
+assert.match(el('scuola-stato').textContent, /Servizio non iniziato/);
+assert.match(el('scuola-riepilogo').innerHTML, /<strong>0<\/strong><span>Pasti previsti/);
+assert.match(el('scuola-riepilogo').innerHTML, /<strong>0<\/strong><span>Pasti non previsti/);
+assert.match(el('presenze-corpo').innerHTML, /Mensa non prevista/);
+assert.ok(!el('presenze-corpo').innerHTML.includes('data-override='),
+    'Nessuna azione deve apparire per giorni senza mensa');
+assert.match(el('stato-cutoff').className, /banner--neutro/);
+console.log('OK: il 15 ottobre nessun pasto, nessuna assenza e nessuna azione Scuola.');
