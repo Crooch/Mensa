@@ -145,21 +145,21 @@ elemento('menu-plesso').value = '1';
 elemento('menu-tipologia').value = '1';
 callbackSchede[0]('menu');
 await new Promise((resolve) => setImmediate(resolve));
-assert.equal(elemento('menu-submit').textContent, 'Aggiorna questo menu');
+assert.equal(elemento('menu-submit').textContent, 'Aggiorna menu');
 assert.equal(elemento('menu-submit').disabled, false);
 assert.equal(elemento('menu-descrizione').value, 'Pasta');
 assert.match(elemento('menu-selezione-stato').textContent, /Aggiornerai solo questo menu/);
 assert.match(elemento('menu-foto-stato').textContent, /rimane quella attuale/);
-assert.match(elemento('menu-lista').innerHTML, /Modifica questo menu/);
+assert.match(elemento('menu-lista').innerHTML, /Modifica menu/);
 
 elemento('menu-tipologia').value = '2';
 elemento('menu-tipologia').handlers.change();
 assert.equal(elemento('menu-descrizione').value, 'Riso');
-assert.equal(elemento('menu-submit').textContent, 'Aggiorna questo menu');
+assert.equal(elemento('menu-submit').textContent, 'Aggiorna menu');
 
 elemento('menu-plesso').value = '2';
 elemento('menu-plesso').handlers.change();
-assert.equal(elemento('menu-submit').textContent, 'Pubblica questo menu');
+assert.equal(elemento('menu-submit').textContent, 'Pubblica menu');
 assert.equal(elemento('menu-descrizione').value, '');
 assert.match(elemento('menu-selezione-stato').textContent, /Verrà creato solo questo menu/);
 
@@ -168,7 +168,7 @@ await elemento('form-menu').handlers.submit({ preventDefault() {} });
 assert.equal(salvataggi.at(-1).plesso_id, 2);
 assert.equal(salvataggi.at(-1).tipologia_menu_id, 2);
 assert.equal(menuPubblicati.length, 4);
-assert.equal(elemento('menu-submit').textContent, 'Aggiorna questo menu');
+assert.equal(elemento('menu-submit').textContent, 'Aggiorna menu');
 
 elemento('menu-plesso').value = '1';
 elemento('menu-tipologia').value = '1';
@@ -184,5 +184,5 @@ assert.equal(menuPubblicati.find((m) => m.id === 7).foto_path, 'menu/1_1/2026-10
 assert.equal(menuPubblicati.find((m) => m.id === 8).descrizione, 'Riso');
 assert.equal(menuPubblicati.find((m) => m.id === 9).descrizione, 'Minestra');
 assert.equal(elemento('menu-descrizione').value, 'Pasta aggiornata');
-assert.equal(elemento('menu-submit').textContent, 'Aggiorna questo menu');
+assert.equal(elemento('menu-submit').textContent, 'Aggiorna menu');
 console.log('OK: menu precompilati, creazione, aggiornamento isolato, conferma e foto conservata.');
