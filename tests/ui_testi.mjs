@@ -71,3 +71,18 @@ assert.match(css, /#figli-lista\s+\.figlio-azioni\s*\{[^}]*grid-template-columns
 assert.match(css, /#figli-lista\s+\.figlio-calendario\s*\{\s*margin:\s*0/);
 assert.match(css, /@media\s*\(max-width:\s*600px\)[\s\S]*#figli-lista\s+\.figlio-azioni\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
 console.log('OK: layout famiglia con stato separato, azioni allineate e calendario a tutta larghezza.');
+
+assert.match(genitore, /const colore = !attivo \? 'non-previsto'[\s\S]*?: presente \? 'ok' : assente \? 'assente' : 'verifica'/);
+assert.match(genitore, /const coloreStato = !attivo \? 'non-previsto'[\s\S]*?: presente \? 'ok' : assente \? 'assente' : 'verifica'/);
+assert.match(css, /\.stato-operazione--assente\s*\{[^}]*background:\s*#fff0ed/);
+assert.match(css, /\.stato-operazione--non-previsto\s*\{[^}]*background:\s*#f0f2f5/);
+assert.match(css, /#figli-lista\s+\.figlio-selezione-data\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) minmax\(0, 210px\)/s);
+assert.match(css, /#figli-lista\s+\.figlio-selezione-data input\[type="date"\]\s*\{[^}]*max-width:\s*210px/s);
+assert.match(css, /@container \(max-width: 370px\)/);
+for (const wf of ['.github/workflows/php-checks.yml', '.github/workflows/staging-smoke.yml']) {
+    const workflow = readFileSync(wf, 'utf8');
+    assert.match(workflow, /uses:\s*actions\/checkout@v5/);
+    assert.match(workflow, /runs-on:\s*ubuntu-latest/);
+    assert.ok(!workflow.includes('actions/checkout@v4'));
+}
+console.log('OK: colori coerenti, selettore data responsive, checkout@v5 e runner invariato.');
