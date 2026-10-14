@@ -96,6 +96,21 @@ final class GenitoreController
         ];
     }
 
+    /** La richiesta del piatto non cambia lo stato presenza/assenza. */
+    public function pastaBianco(Request $r, array $utente): array
+    {
+        $genitoreId = $this->genitoreId($utente);
+        $bambinoId = (int) $r->obbligatorio('bambino_id');
+        $this->c->anagrafica()->bambinoDelGenitore($bambinoId, $genitoreId);
+        $richiesta = $r->obbligatorio('richiesta');
+        if (!in_array($richiesta, [0, 1, '0', '1', false, true], true)) {
+            throw HttpException::nonValido('Valore richiesta non valido');
+        }
+        return $this->c->presenzaService()->pastaBiancoGenitore(
+            $bambinoId, (string) $r->obbligatorio('data'), (bool) $richiesta, (int) $utente['id']
+        );
+    }
+
     public function inserisciFeedback(Request $r, array $utente): array
     {
         $genitoreId = $this->genitoreId($utente);
