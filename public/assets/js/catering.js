@@ -20,29 +20,29 @@ async function caricaReport() {
     // solo la piu' recente puo' modificare la pagina.
     stato.textContent = 'Caricamento report del ' + dataIt(data) + '…';
     pulsante.disabled = true;
-    pulsante.textContent = 'Caricamento…';
+    pulsante.textContent = 'Aggiornamento…';
     try {
         const report = await API.get('/api/catering/report?data=' + encodeURIComponent(data));
         if (numeroRichiesta !== ultimaRichiestaReport) return;
         contenitore.innerHTML = report.plessi.length === 0
-            ? '<p class="vuoto">Nessun servizio mensa previsto per il ' + esc(dataIt(data)) + '.</p>'
+            ? '<p class="vuoto">Non sono previsti pasti per il ' + esc(dataIt(data)) + '. Controlla il giorno scelto.</p>'
             : report.plessi.map((p) => `
                 <article class="card-mensa" data-testid="report-plesso-${p.plesso_id}">
                     <h3>${esc(p.plesso_nome)}</h3>
                     <span class="saldo">${p.totale_pasti}</span>
-                    <p class="nota">pasti totali · orario limite ${esc(p.cutoff_orario)}</p>
+                    <p class="nota">pasti previsti · puoi ricevere modifiche fino alle ${esc(p.cutoff_orario)}</p>
                     <span class="badge-stato badge-${p.definitivo ? 'verde' : 'giallo'}">${p.definitivo ? 'Conteggio confermato' : 'Conteggio provvisorio'}</span>
                     <h4>Pasti per tipo di menu</h4>
                     <dl>${p.tipologie.map((t) => `<dt>${esc(t.tipologia_nome)}</dt><dd data-testid="report-tipologia-${p.plesso_id}-${t.tipologia_id}">${t.pasti}</dd>`).join('')}</dl>
                     <h4>Pasti per classe o sezione</h4>
                     <dl>${(p.sezioni || []).map((c) => `<dt>${esc(c.classe_nome)}</dt><dd data-testid="report-classe-${c.classe_id}">${c.pasti}</dd>`).join('')}</dl>
-                    <h4>Pasta in bianco: ${Number(p.totale_pasta_in_bianco || 0)}</h4>
+                    <h4>Richieste di pasta in bianco: ${Number(p.totale_pasta_in_bianco || 0)}</h4>
                     ${(p.pasta_in_bianco || []).length ? `
                         <ul>${p.pasta_in_bianco.map((b) =>
                             `<li>${esc(b.cognome)} ${esc(b.nome)} — ${esc(b.classe_nome)}</li>`
                         ).join('')}</ul>` : '<p class="nota">Nessuna richiesta per questa giornata.</p>'}
                 </article>`).join('');
-        stato.textContent = 'Report visualizzato: ' + dataIt(data) +
+        stato.textContent = 'Pasti per il ' + dataIt(data) +
             ' · ' + Number(report.totale_pasti || 0) + ' pasti previsti';
     } catch (errore) {
         if (numeroRichiesta !== ultimaRichiestaReport) return;
@@ -53,7 +53,7 @@ async function caricaReport() {
     } finally {
         if (numeroRichiesta === ultimaRichiestaReport) {
             pulsante.disabled = false;
-            pulsante.textContent = 'Aggiorna';
+            pulsante.textContent = 'Aggiorna i pasti';
         }
     }
 }
@@ -103,7 +103,7 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
         });
         const dati = await risposta.json();
         if (!risposta.ok || dati.ok === false) throw new Error(dati.errore || 'Errore di pubblicazione');
-        avviso('Menu pubblicato.');
+        avviso('Il menu di oggi è stato pubblicato.');
         document.getElementById('menu-descrizione').value = '';
         document.getElementById('menu-foto').value = '';
         caricaMenu();
