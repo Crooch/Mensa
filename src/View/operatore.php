@@ -18,6 +18,7 @@ require __DIR__ . '/partials/testa.php';
         <button class="btn btn-primary btn-sm" id="btn-cerca" data-testid="famiglie-cerca-button">Cerca</button>
         <button class="btn btn-outline-primary btn-sm" id="btn-nuovo-genitore" data-testid="nuovo-genitore-button">Aggiungi famiglia</button>
     </div>
+    <p id="ricerca-stato" role="status" aria-live="polite" class="stato-operazione" hidden></p>
     <div class="due-colonne">
         <div class="tabella-scroll">
             <table class="table" data-testid="famiglie-tabella">
