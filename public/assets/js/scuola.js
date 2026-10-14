@@ -3,7 +3,20 @@ const utente = proteggi('scuola');
 let classi = [];
 let versioneGiornata = 0;
 let giornataCaricata = null;
-const badgePastoScuola = (stato) => `<span class="badge-stato badge-${stato === 'presente' ? 'verde' : 'rosso'}">${stato === 'presente' ? 'Pasto previsto' : 'Pasto non previsto'}</span>`;
+const badgePastoScuola = (stato) => stato === null
+    ? '<span class="badge-stato badge-neutro">Mensa non prevista</span>'
+    : `<span class="badge-stato badge-${stato === 'presente' ? 'verde' : 'rosso'}">${stato === 'presente' ? 'Pasto previsto' : 'Pasto non previsto'}</span>`;
+const motivoServizioScuola = (motivo) => ({
+    servizio_non_avviato: 'Servizio non iniziato',
+    servizio_terminato: 'Servizio terminato',
+    fine_settimana: 'Fine settimana',
+    festivita_nazionale: 'Festività',
+    chiusura_programmata: 'Mensa chiusa',
+    giorno_senza_servizio: 'Mensa non prevista',
+    calendario_non_configurato: 'Calendario da definire',
+    plesso_non_attivo: 'Plesso non attivo',
+    data_non_valida: 'Data non valida'
+}[motivo] || 'Mensa non prevista';
 
 abilitaSchede((vista) => { if (vista === 'assenze') caricaAssenze(); });
 
@@ -39,37 +52,44 @@ async function caricaGiornata() {
     if (versione !== versioneGiornata || document.getElementById('classe').value !== classeId
         || document.getElementById('data').value !== data) return;
     giornataCaricata = { classeId, data };
-    const presenti = vista.alunni.filter((a) => a.stato_effettivo === 'presente').length;
-    const assenti = vista.alunni.length - presenti;
+    const servizioAttivo = vista.servizio_mensa?.attivo === true;
+    const presenti = servizioAttivo
+        ? vista.alunni.filter((a) => a.stato_effettivo === 'presente').length : 0;
+    const assenti = servizioAttivo ? vista.alunni.length - presenti : 0;
     const elementoDato = (valore, etichetta) =>
         '<div class="riepilogo-mensa__dato"><strong>' + valore + '</strong><span>' + etichetta + '</span></div>';
     document.getElementById('scuola-riepilogo').innerHTML =
         elementoDato(presenti, 'Pasti previsti') + elementoDato(assenti, 'Pasti non previsti') +
         elementoDato(vista.alunni.length, 'Bambini nella classe');
-    UI.stato('scuola-stato', 'Stai guardando i dati del ' + dataIt(data) +
-        '. Aggiornati alle ' + UI.oraAggiornamento(), 'ok');
+    const motivo = motivoServizioScuola(vista.servizio_mensa?.motivo);
+    UI.stato('scuola-stato', servizioAttivo
+        ? 'Stai guardando i dati del ' + dataIt(data) + '. Aggiornati alle ' + UI.oraAggiornamento()
+        : 'Nessun servizio mensa il ' + dataIt(data) + ': ' + motivo + '.', servizioAttivo ? 'ok' : 'info');
 
     const banner = document.getElementById('stato-cutoff');
-    banner.className = 'banner ' + (vista.oltre_cutoff ? 'banner--rosso' : 'banner--verde');
-    banner.innerHTML = `Orario limite per modificare i pasti: <strong>${esc(vista.cutoff_orario)}</strong> · ${vista.oltre_cutoff
-        ? 'l’orario limite è passato. Puoi confermare un pasto realmente consumato da un bambino che risultava assente. Le altre modifiche vengono registrate, ma non restituiscono automaticamente i buoni.'
-        : 'puoi ancora modificare il numero dei pasti previsti.'}
-        ${vista.assenza_massa ? `<br>Tutta la classe non mangerà a mensa. Motivo: <strong>${esc(vista.assenza_massa.motivo)}</strong>` : ''}`;
+    banner.className = 'banner ' + (!servizioAttivo ? 'banner--neutro'
+        : vista.oltre_cutoff ? 'banner--rosso' : 'banner--verde');
+    banner.innerHTML = !servizioAttivo
+        ? 'Non sono previsti pasti né modifiche delle presenze per questa giornata.'
+        : `Orario limite per modificare i pasti: <strong>${esc(vista.cutoff_orario)}</strong> · ${vista.oltre_cutoff
+            ? 'l’orario limite è passato. Puoi confermare un pasto realmente consumato da un bambino che risultava assente. Le altre modifiche vengono registrate, ma non restituiscono automaticamente i buoni.'
+            : 'puoi ancora modificare il numero dei pasti previsti.'}
+          ${vista.assenza_massa ? `<br>Tutta la classe non mangerà a mensa. Motivo: <strong>${esc(vista.assenza_massa.motivo)}</strong>` : ''}`;
 
     document.getElementById('presenze-corpo').innerHTML = vista.alunni.map((a) => `
         <tr data-testid="riga-alunno-${a.bambino_id}">
             <td data-label="Alunno">${esc(a.cognome)} ${esc(a.nome)}</td>
             <td data-label="Menu">${esc(a.tipologia_nome)}</td>
-            <td data-label="Comunicazione famiglia">${a.dichiarazione_genitore ? badgePastoScuola(a.dichiarazione_genitore) : '<span class="scuola-senza-modifica">Nessuna</span>'}</td>
-            <td data-label="Correzione scuola">${a.override_scuola ? '<div class="scuola-correzione">' + badgePastoScuola(a.override_scuola) +
+            <td data-label="Comunicazione famiglia">${servizioAttivo && a.dichiarazione_genitore ? badgePastoScuola(a.dichiarazione_genitore) : '<span class="scuola-senza-modifica">Nessuna</span>'}</td>
+            <td data-label="Correzione scuola">${servizioAttivo && a.override_scuola ? '<div class="scuola-correzione">' + badgePastoScuola(a.override_scuola) +
                 (a.override_motivazione ? '<small>Motivo: ' + esc(a.override_motivazione) + '</small>' : '') +
                 '</div>' : '<span class="scuola-senza-modifica">Nessuna</span>'}</td>
-            <td data-label="Stato del pasto"><div class="scuola-stato-pasto">${badgePastoScuola(a.stato_effettivo)} ${Number(a.fuori_cutoff) === 1 ? '<small>Modifica dopo il limite</small>' : ''}</div></td>
+            <td data-label="Stato del pasto"><div class="scuola-stato-pasto">${badgePastoScuola(a.stato_effettivo)} ${servizioAttivo && Number(a.fuori_cutoff) === 1 ? '<small>Modifica dopo il limite</small>' : ''}</div></td>
             <td data-label="Azioni">
                 <div class="scuola-azioni">
-                    ${a.stato_effettivo !== 'presente' ?
+                    ${servizioAttivo && a.stato_effettivo !== 'presente' ?
                         `<button type="button" class="btn btn-outline-primary btn-sm" data-override="${a.bambino_id}" data-alunno="${esc(a.cognome + ' ' + a.nome)}" data-stato="presente" data-testid="override-presente-${a.bambino_id}">Conferma pasto</button>` : ''}
-                    ${a.stato_effettivo !== 'assente' ?
+                    ${servizioAttivo && a.stato_effettivo !== 'assente' ?
                         `<button type="button" class="btn btn-outline-primary btn-sm" data-override="${a.bambino_id}" data-alunno="${esc(a.cognome + ' ' + a.nome)}" data-stato="assente" data-testid="override-assente-${a.bambino_id}">Segna assente</button>` : ''}
                 </div>
             </td>
