@@ -74,4 +74,18 @@ try {
 } catch (HttpException $e) {
     if ($e->getCode() !== 422) throw $e;
 }
-echo "OK: acquisto e rettifica ripetuti non duplicano movimenti o variazioni di saldo.\n";
+$movimentiPrima = (int) $pdo->query('SELECT COUNT(*) FROM movimenti_crediti')->fetchColumn();
+try {
+    $c->creditoService()->acquistaBuoni(
+        $genitore, $plesso, 2, $operatore, 'tariffa errata',
+        'test-prezzo-non-coerente-2026', 9999.99
+    );
+    throw new RuntimeException('Acquisto con importo atteso diverso accettato.');
+} catch (HttpException $e) {
+    if ($e->getCode() !== 409) throw $e;
+}
+$movimentiDopo = (int) $pdo->query('SELECT COUNT(*) FROM movimenti_crediti')->fetchColumn();
+if ($movimentiPrima !== $movimentiDopo) {
+    throw new RuntimeException('Acquisto con prezzo modificato ha creato movimenti.');
+}
+echo "OK: acquisto/rettifica idempotenti e importo cambiato bloccato senza movimenti.\n";
