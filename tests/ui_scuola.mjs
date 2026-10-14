@@ -73,3 +73,24 @@ assert.match(script, /UI\.conferma\(/);
 assert.match(view, /class="scuola-filtri"/);
 assert.match(view, /class="scuola-filtri scuola-filtri--assenza"/);
 console.log('OK: tabella scuola di sei colonne, filtri compatti e motivazione in dialog.');
+
+/* La tabella deve occupare tutto il contenitore su desktop e diventare
+   una sequenza di schede etichettate su smartphone (non sei colonne strette). */
+const css = readFileSync('public/assets/css/app.css', 'utf8');
+const tabellaCss = css.slice(css.indexOf('/* Sostituisce il max-content'));
+assert.ok(tabellaCss.startsWith('/* Sostituisce il max-content'),
+    'Manca la correzione della tabella a larghezza piena');
+assert.match(tabellaCss, /\.scuola-tabella\s*>\s*table\.table\s*\{[^}]*width:\s*100%\s*!important/s);
+assert.match(tabellaCss, /\.scuola-tabella\s*>\s*table\.table\s*\{[^}]*min-width:\s*920px/s);
+const cssMobile = css.slice(css.indexOf('/* Scuola su smartphone:'));
+assert.ok(cssMobile.startsWith('/* Scuola su smartphone:'));
+assert.match(cssMobile, /@media\s*\(max-width:\s*760px\)/);
+assert.match(cssMobile, /\.scuola-tabella\s*>\s*table\.table\s*\{[^}]*min-width:\s*0/s);
+assert.match(cssMobile, /\.scuola-tabella\s+\.table tbody\s*\{[^}]*display:\s*grid/s);
+assert.match(cssMobile, /\.scuola-tabella\s+\.table tbody td::before\s*\{[^}]*content:\s*attr\(data-label\)/s);
+for (const label of ['Alunno', 'Menu', 'Comunicazione famiglia', 'Correzione scuola', 'Stato del pasto', 'Azioni']) {
+    assert.ok(script.includes('data-label="' + label + '"'), 'Etichetta mobile mancante: ' + label);
+}
+assert.match(script, /data-testid="override-assente-\$\{a\.bambino_id\}"/);
+assert.match(script, /data-testid="override-presente-\$\{a\.bambino_id\}"/);
+console.log('OK: tabella Scuola piena sul desktop, schede mobili e azioni preservate.');
