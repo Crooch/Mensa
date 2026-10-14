@@ -962,24 +962,13 @@ input[type="datetime-local"]:focus-visible {
     overflow-wrap: anywhere;
     min-width: 0;
 }
-/* L'opzione di rimozione compare solo se esiste una foto del menu scelto. */
-.catering-rimuovi-foto {
-    display: inline-flex;
-    align-items: center;
-    align-self: flex-start;
-    gap: .55rem;
-    margin: .25rem 0 0;
-    font-size: .92rem;
-    cursor: pointer;
-}
-.catering-rimuovi-foto[hidden] { display: none !important; }
-.catering-rimuovi-foto input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-    flex: 0 0 20px;
-    margin: 0;
-    accent-color: var(--blu-italia);
-}
-@media (max-width: 600px) {
-    .catering-rimuovi-foto { min-height: 44px; }
-}
+
+/* Anteprima della foto modificabile anche da smartphone. */
+.catering-foto-anteprima { position: relative; display: inline-block; align-self: flex-start; max-width: min(100%, 380px); margin-top: .3rem; }
+.catering-foto-anteprima[hidden], .catering-foto-annulla[hidden] { display: none !important; }
+.catering-foto-anteprima img { display: block; max-width: 100%; max-height: 240px; object-fit: contain; border-radius: 8px; border: 1px solid #d4e0eb; }
+.catering-foto-anteprima__elimina { position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; border: 2px solid white; border-radius: 50%; background: #ac271e; color: white; font-size: 1.5rem; font-weight: 700; cursor: pointer; }
+.catering-foto-anteprima__elimina:hover { background: #841e17; }
+.catering-foto-anteprima__elimina:focus-visible { outline: 3px solid var(--blu-italia); outline-offset: 2px; }
+.catering-foto-annulla { align-self: flex-start; min-height: 40px; margin: 0; }
+@media (max-width: 600px) { .catering-foto-anteprima { max-width: 100%; } }
