@@ -58,14 +58,14 @@ async function caricaGiornata() {
 
     document.getElementById('presenze-corpo').innerHTML = vista.alunni.map((a) => `
         <tr data-testid="riga-alunno-${a.bambino_id}">
-            <td>${esc(a.cognome)} ${esc(a.nome)}</td>
-            <td>${esc(a.tipologia_nome)}</td>
-            <td>${a.dichiarazione_genitore ? badgePastoScuola(a.dichiarazione_genitore) : '<span class="scuola-senza-modifica">Nessuna</span>'}</td>
-            <td>${a.override_scuola ? '<div class="scuola-correzione">' + badgePastoScuola(a.override_scuola) +
+            <td data-label="Alunno">${esc(a.cognome)} ${esc(a.nome)}</td>
+            <td data-label="Menu">${esc(a.tipologia_nome)}</td>
+            <td data-label="Comunicazione famiglia">${a.dichiarazione_genitore ? badgePastoScuola(a.dichiarazione_genitore) : '<span class="scuola-senza-modifica">Nessuna</span>'}</td>
+            <td data-label="Correzione scuola">${a.override_scuola ? '<div class="scuola-correzione">' + badgePastoScuola(a.override_scuola) +
                 (a.override_motivazione ? '<small>Motivo: ' + esc(a.override_motivazione) + '</small>' : '') +
                 '</div>' : '<span class="scuola-senza-modifica">Nessuna</span>'}</td>
-            <td><div class="scuola-stato-pasto">${badgePastoScuola(a.stato_effettivo)} ${Number(a.fuori_cutoff) === 1 ? '<small>Modifica dopo il limite</small>' : ''}</div></td>
-            <td>
+            <td data-label="Stato del pasto"><div class="scuola-stato-pasto">${badgePastoScuola(a.stato_effettivo)} ${Number(a.fuori_cutoff) === 1 ? '<small>Modifica dopo il limite</small>' : ''}</div></td>
+            <td data-label="Azioni">
                 <div class="scuola-azioni">
                     ${a.stato_effettivo !== 'presente' ?
                         `<button type="button" class="btn btn-outline-primary btn-sm" data-override="${a.bambino_id}" data-alunno="${esc(a.cognome + ' ' + a.nome)}" data-stato="presente" data-testid="override-presente-${a.bambino_id}">Conferma pasto</button>` : ''}
