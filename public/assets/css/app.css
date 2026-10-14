@@ -556,3 +556,95 @@ input[type="datetime-local"]:focus-visible {
     justify-self: start;
     align-self: start;
 }
+
+/* Area Scuola — griglie esplicite: etichette, date e pulsanti
+   allineati senza spaziature create dai filtri generici. */
+#vista-giornata h1, #vista-assenze h1 { margin-bottom: .35rem; }
+#vista-giornata > .nota, #vista-assenze > .nota { margin: 0 0 1rem; }
+.scuola-filtri {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 220px) auto;
+    align-items: end;
+    gap: .8rem;
+    margin: 0 0 .85rem;
+}
+.scuola-filtri--assenza { grid-template-columns: minmax(0, 1fr) minmax(0, 220px); }
+.scuola-campo { display: flex; flex-direction: column; min-width: 0; gap: .35rem; }
+.scuola-campo label { margin: 0; line-height: 1.3; text-align: left; }
+.scuola-campo select { width: 100%; min-width: 0; min-height: 46px; }
+.scuola-campo input[type="date"] { width: 100% !important; }
+.scuola-aggiorna { min-height: 46px; align-self: end; margin: 0; white-space: nowrap; }
+#vista-giornata > .stato-operazione { margin: 0 0 .75rem; }
+#vista-giornata .riepilogo-mensa { margin: 0 0 .75rem; gap: .65rem; }
+#vista-giornata .riepilogo-mensa__dato { padding: .6rem .8rem; }
+#vista-giornata > .banner { margin: 0 0 .85rem; line-height: 1.45; }
+.scuola-tabella { width: 100%; }
+.scuola-tabella > table.table { min-width: 850px; }
+.scuola-tabella .table th, .scuola-tabella .table td {
+    padding: .65rem .7rem;
+    vertical-align: middle;
+}
+.scuola-tabella .table th:last-child, .scuola-tabella .table td:last-child {
+    min-width: 140px;
+}
+.scuola-azioni { display: flex; flex-direction: column; gap: .4rem; width: 100%; }
+.scuola-azioni .btn { width: 100%; min-height: 40px; padding: .38rem .5rem; }
+.scuola-correzione, .scuola-stato-pasto {
+    display: flex; flex-direction: column; align-items: flex-start; gap: .35rem;
+}
+.scuola-correzione small, .scuola-stato-pasto small {
+    display: block; color: #4b6177; font-size: .84rem; line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+.scuola-senza-modifica { color: #566e82; }
+.scuola-assenza-form { display: flex; flex-direction: column; gap: .9rem; margin-bottom: 1.35rem; }
+.scuola-assenza-form .scuola-filtri { margin: 0; }
+.scuola-campo--motivo { width: 100%; max-width: 630px; }
+.scuola-assenza-form > .btn { align-self: flex-start; min-height: 44px; }
+
+/* Finestra condivisa per motivazioni obbligatorie, senza prompt del browser. */
+.motivo-dialogo {
+    box-sizing: border-box;
+    width: min(510px, calc(100vw - 2rem));
+    max-width: 100%;
+    max-height: calc(100dvh - 2rem);
+    padding: 1.35rem;
+    margin: auto;
+    overflow-y: auto;
+    border: 1px solid #d2dce7;
+    border-radius: 12px;
+    color: var(--grigio-testo);
+    background: #fff;
+    box-shadow: 0 20px 70px rgba(8, 35, 60, .25);
+}
+.motivo-dialogo::backdrop { background: rgba(8, 28, 47, .56); }
+.motivo-dialogo__testa { display: flex; align-items: center; justify-content: space-between; gap: .8rem; }
+.motivo-dialogo__testa h2 { margin: 0; font-size: 1.25rem; line-height: 1.35; }
+.motivo-dialogo__chiudi {
+    flex: 0 0 36px; width: 36px; height: 36px;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin: 0; padding: 0; border: 1px solid #cad7e3;
+    border-radius: 50%; color: #244968; background: #f6f9fc;
+    font-family: inherit; font-size: 1.4rem; line-height: 1; cursor: pointer;
+}
+.motivo-dialogo__testo { margin: .65rem 0 1rem; }
+.motivo-dialogo__etichetta { margin: 0 0 .4rem; }
+.motivo-dialogo textarea {
+    display: block; min-width: 0; width: 100%; min-height: 100px;
+    padding: .65rem .75rem; border-radius: 8px; border: 1px solid #8ba2b8;
+}
+.motivo-dialogo textarea[aria-invalid="true"] { border-color: var(--rosso); }
+.motivo-dialogo__errore { margin: .45rem 0 0; color: var(--rosso); font-size: .88rem; }
+.motivo-dialogo__azioni { display: flex; justify-content: flex-end; gap: .6rem; flex-wrap: wrap; margin-top: 1.1rem; }
+.motivo-dialogo__azioni .btn { min-height: 44px; }
+@media (max-width: 760px) {
+    .scuola-filtri, .scuola-filtri--assenza {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .scuola-campo input[type="date"] { max-width: 100%; }
+    .scuola-aggiorna { width: 100%; }
+}
+@media (max-width: 440px) {
+    .motivo-dialogo { padding: 1rem; }
+    .motivo-dialogo__azioni .btn { flex: 1 1 130px; }
+}
