@@ -22,7 +22,7 @@ async function caricaDashboard() {
                 <h3>${esc(c.plesso_nome)}</h3>
                 <span class="saldo">${c.saldo}</span>
                 <p class="nota">buoni mensa disponibili</p>
-                <span class="badge-stato badge-${c.stato}">${c.stato === 'verde' ? 'regolare' : c.stato === 'giallo' ? 'attenzione' : 'oltre fido'}</span>
+                <span class="badge-stato badge-${c.stato}">${c.stato === 'verde' ? 'regolare' : c.stato === 'giallo' ? 'buoni da ricaricare' : 'ricarica consigliata'}</span>
                 <dl>
                     <dt>Soglia per il sollecito</dt><dd>Saldo di -${c.fido_buoni} buoni</dd>
                     <dt>Costo di un pasto</dt><dd>${euro(c.tariffa_attiva)}${c.origine_tariffa === 'override' ? ' (tariffa agevolata)' : ''}</dd>
