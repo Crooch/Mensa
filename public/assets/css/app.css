@@ -75,12 +75,12 @@ a { color: var(--blu-italia); }
     transition: box-shadow .2s ease, transform .2s ease;
 }
 .card-mensa:hover { box-shadow: 0 6px 18px rgba(23,50,77,.12); transform: translateY(-2px); }
-.card-mensa h3 { margin: 0 0 .35rem; font-size: 1rem; }
+.card-mensa h3 { margin: 0 0 .35rem; font-size: 1.1rem; }
 .card-mensa .saldo { font-size: 2rem; font-weight: 700; line-height: 1.1; }
 .card-mensa--verde { border-left-color: var(--verde); }
 .card-mensa--giallo { border-left-color: var(--giallo); }
 .card-mensa--rosso { border-left-color: var(--rosso); }
-.card-mensa dl { display: grid; grid-template-columns: auto 1fr; gap: .15rem .5rem; margin: .5rem 0 0; font-size: .88rem; }
+.card-mensa dl { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: .35rem .65rem; margin: .6rem 0 0; font-size: .96rem; }
 .card-mensa dt { color: #5d7285; }
 .card-mensa dd { margin: 0; font-weight: 600; }
 .card-mensa img { width: 100%; border-radius: var(--raggio); margin-top: .6rem; }
@@ -89,13 +89,13 @@ a { color: var(--blu-italia); }
     background: #fff; border: 1px solid var(--grigio-bordo); border-radius: var(--raggio);
     padding: 1.1rem 1.25rem; margin-bottom: 1.25rem;
 }
-.nota { font-size: .88rem; color: #5d7285; }
+.nota { font-size: .96rem; color: #42576c; line-height: 1.55; }
 .vuoto { color: #7d8b99; font-style: italic; }
 
 /* ---------------- badge di stato ---------------- */
 .badge-stato {
     display: inline-block; padding: .15rem .55rem; border-radius: 999px;
-    font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+    font-size: .88rem; font-weight: 700; text-transform: none; letter-spacing: 0;
 }
 .badge-verde { background: #e3f4e6; color: var(--verde); }
 .badge-giallo { background: #fdf3e0; color: var(--giallo); }
@@ -103,7 +103,7 @@ a { color: var(--blu-italia); }
 .badge-neutro { background: var(--blu-chiaro); color: var(--blu-scuro); }
 
 /* ---------------- form ---------------- */
-label { display: block; font-size: .82rem; font-weight: 600; margin-bottom: .2rem; color: #46617d; }
+label { display: block; font-size: .98rem; font-weight: 600; margin-bottom: .35rem; color: #334d65; }
 input, select, textarea {
     font-family: inherit; font-size: .95rem; padding: .5rem .6rem;
     border: 1px solid #7a8a99; border-radius: var(--raggio); background: #fff; color: inherit; width: 100%;
@@ -124,16 +124,16 @@ textarea { resize: vertical; }
 .btn-primary:hover { background: var(--blu-scuro); }
 .btn-outline-primary { background: #fff; color: var(--blu-italia); border-color: var(--blu-italia); }
 .btn-outline-primary:hover { background: var(--blu-chiaro); }
-.btn-sm { padding: .35rem .8rem; font-size: .85rem; }
+.btn-sm { padding: .5rem .9rem; font-size: .95rem; }
 .btn-link { background: none; border: none; color: var(--blu-italia); text-decoration: underline; }
-.btn-azione { background: #fff; border: 1px solid var(--grigio-bordo); border-radius: var(--raggio); padding: .25rem .55rem; font-size: .8rem; cursor: pointer; }
+.btn-azione { background: #fff; border: 1px solid #8fa1b4; border-radius: var(--raggio); padding: .45rem .7rem; font-size: .92rem; cursor: pointer; margin: .1rem; }
 .btn-azione:hover { border-color: var(--blu-italia); color: var(--blu-italia); }
 
 /* ---------------- tabelle ---------------- */
 .tabella-scroll { overflow-x: auto; background: #fff; border: 1px solid var(--grigio-bordo); border-radius: var(--raggio); }
 table.table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 table.table th, table.table td { padding: .6rem .75rem; text-align: left; border-bottom: 1px solid var(--grigio-bordo); vertical-align: middle; }
-table.table thead th { background: var(--blu-chiaro); color: var(--blu-scuro); font-size: .78rem; text-transform: uppercase; letter-spacing: .4px; }
+table.table thead th { background: var(--blu-chiaro); color: var(--blu-scuro); font-size: .88rem; text-transform: none; letter-spacing: 0; }
 table.table tbody tr:hover { background: #fafcfe; }
 table.table tr.selezionata { background: var(--blu-chiaro); }
 
@@ -142,14 +142,14 @@ table.table tr.selezionata { background: var(--blu-chiaro); }
 
 /* ---------------- calendario ---------------- */
 .calendario { display: grid; grid-template-columns: repeat(7, 1fr); gap: .35rem; background: #fff; padding: .75rem; border: 1px solid var(--grigio-bordo); border-radius: var(--raggio); }
-.calendario .giorno { border: 1px solid var(--grigio-bordo); border-radius: var(--raggio); min-height: 64px; padding: .3rem .4rem; font-size: .8rem; cursor: pointer; background: #fff; text-align: left; }
-.calendario .giorno strong { display: block; font-size: .9rem; }
+.calendario .giorno { border: 1px solid var(--grigio-bordo); border-radius: var(--raggio); min-height: 76px; padding: .4rem .3rem; font-size: .83rem; line-height: 1.25; overflow-wrap: anywhere; cursor: pointer; background: #fff; text-align: left; }
+.calendario .giorno strong { display: block; font-size: 1rem; }
 .calendario .giorno.presente { background: #eaf6ec; border-color: #b7dfc0; }
 .calendario .giorno.assente { background: #fbe9e7; border-color: #f0b7b1; }
 .calendario .giorno.gita { background: #fdf3e0; border-color: #f0d9a8; }
 .calendario .giorno.override { border-width: 2px; border-color: var(--blu-italia); }
 .calendario .giorno.vuoto { background: var(--grigio-sfondo); border-style: dashed; cursor: default; }
-.calendario .intestazione-giorno { font-size: .72rem; text-transform: uppercase; text-align: center; color: #5d7285; font-weight: 700; }
+.calendario .intestazione-giorno { font-size: .85rem; text-align: center; color: #42576c; font-weight: 700; }
 
 /* ---------------- stelle feedback ---------------- */
 .stelle { display: flex; gap: .25rem; margin: .5rem 0; }
@@ -192,3 +192,16 @@ table.table tr.selezionata { background: var(--blu-chiaro); }
 .piede { background: #0b2136; color: #cfdcea; font-size: .82rem; padding: 1.25rem 0; }
 .piede .contenitore { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .w-100 { width: 100%; }
+
+/* Accessibilità: focus visibile anche per chi usa solo la tastiera. */
+button:focus-visible, a:focus-visible, summary:focus-visible {
+    outline: 3px solid #0066cc; outline-offset: 3px;
+}
+button:disabled { cursor: progress; opacity: .7; }
+@media (max-width: 600px) {
+    .contenitore { width: calc(100% - 1rem); }
+    .pannello { padding: .85rem; }
+    .griglia-cards { grid-template-columns: minmax(0, 1fr); }
+    .calendario { gap: .15rem; padding: .35rem; }
+    .calendario .giorno { padding: .25rem .15rem; }
+}
