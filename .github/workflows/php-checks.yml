@@ -9,6 +9,19 @@ on:
 jobs:
   php:
     runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: ci_root_password
+          MARIADB_DATABASE: mensa_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -uroot -pci_root_password --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=15
     steps:
       - uses: actions/checkout@v4
       - name: Check PHP syntax
@@ -17,3 +30,25 @@ jobs:
           php -l bootstrap.php
       - name: Calendar regression tests
         run: php tests/calendario.php
+      - name: Install MariaDB CLI
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y mariadb-client
+      - name: Verify additive SQL migrations on isolated database
+        env:
+          MYSQL_PWD: ci_root_password
+        run: |
+          set -euo pipefail
+          DB="mariadb --host=127.0.0.1 --port=3306 --user=root --database=mensa_ci"
+          $DB < database/migrations/001_schema.sql
+          $DB <<'SQL'
+          INSERT INTO plessi (nome) VALUES
+            ('Scuola dell''Infanzia - Via Catania'),
+            ('Scuola Secondaria di I grado');
+          SQL
+          $DB < database/migrations/002_calendario_mensa.sql
+          $DB < database/migrations/002_calendario_mensa.sql
+          $DB < database/migrations/003_richieste_pasta_bianco.sql
+          $DB < database/migrations/003_richieste_pasta_bianco.sql
+          test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM calendari_servizio')" = "2"
+          test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name = "richieste_pasta_bianco"')" = "1"
