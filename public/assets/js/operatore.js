@@ -50,8 +50,8 @@ async function apriFamiglia(id) {
         ${Number(g.cancellato_logicamente) === 1 ? '<span class="badge-stato badge-rosso">cancellata</span>' : ''}</p>
         <div class="riga-filtri">
             <button class="btn btn-primary btn-sm" id="btn-acquisto" data-testid="acquisto-buoni-button">Acquisto buoni</button>
-            <button class="btn btn-outline-primary btn-sm" id="btn-override" data-testid="override-tariffa-button">Override tariffario</button>
-            <button class="btn btn-outline-primary btn-sm" id="btn-rettifica" data-testid="rettifica-button">Rettifica crediti</button>
+            <button class="btn btn-outline-primary btn-sm" id="btn-override" data-testid="override-tariffa-button">Tariffa agevolata</button>
+            <button class="btn btn-outline-primary btn-sm" id="btn-rettifica" data-testid="rettifica-button">Correggi buoni</button>
             <button class="btn btn-outline-primary btn-sm" id="btn-modifica-genitore" data-testid="modifica-genitore-button">Modifica dati</button>
             <button class="btn btn-outline-primary btn-sm" id="btn-nuovo-figlio" data-testid="nuovo-figlio-button">Aggiungi figlio</button>
         </div>
@@ -60,7 +60,7 @@ async function apriFamiglia(id) {
         <div class="griglia-cards">${s.crediti.map((c) => `
             <article class="card-mensa card-mensa--${c.stato}" data-testid="credito-${c.plesso_id}">
                 <h3>${esc(c.plesso_nome)}</h3><span class="saldo">${c.saldo}</span>
-                <dl><dt>Fido</dt><dd>${c.fido_buoni}</dd>
+                <dl><dt>Soglia di avviso</dt><dd>${c.fido_buoni}</dd>
                 <dt>Tariffa</dt><dd>${euro(c.tariffa_attiva)} (${esc(c.origine_tariffa)})</dd></dl>
             </article>`).join('') || '<p class="vuoto">Nessun pool crediti.</p>'}</div>
 
@@ -82,12 +82,12 @@ async function apriFamiglia(id) {
                 </div>
             </div>`).join('') || '<p class="vuoto">Nessun figlio registrato.</p>'}
 
-        <h2>Override tariffari (storico)</h2>
+        <h2>Storico delle tariffe agevolate</h2>
         <div class="tabella-scroll"><table class="table" data-testid="override-tabella">
             <thead><tr><th>Data</th><th>Plesso</th><th>Tariffa</th><th>Motivazione</th><th>Inserito da</th></tr></thead>
             <tbody>${s.override_tariffe.map((o) => `<tr><td>${dataIt(o.data_inserimento)}</td><td>${esc(o.plesso_nome)}</td>
                 <td>${euro(o.tariffa)}</td><td>${esc(o.motivazione)}</td><td>${esc(o.inserito_da || '-')}</td></tr>`).join('')
-                || '<tr><td colspan="5" class="vuoto">Nessun override.</td></tr>'}</tbody>
+                || '<tr><td colspan="5" class="vuoto">Nessuna tariffa agevolata registrata.</td></tr>'}</tbody>
         </table></div>
 
         <h2>Movimenti</h2>
@@ -143,7 +143,7 @@ function formAcquisto(genitoreId) {
         const buoni = Number(document.getElementById('acq-buoni').value || 0);
         const t = await API.get(`/api/tariffe/attiva?genitore_id=${genitoreId}&plesso_id=${plessoId}`);
         document.getElementById('acq-importo').innerHTML =
-            `Tariffa applicata: <strong>${euro(t.tariffa)}</strong> (${t.origine === 'override' ? 'override attivo' : 'tariffa base'}) ·
+            `Tariffa applicata: <strong>${euro(t.tariffa)}</strong> (${t.origine === 'override' ? 'tariffa agevolata' : 'tariffa base'}) ·
              Importo da incassare: <strong>${euro(t.tariffa * buoni)}</strong>`;
     };
     document.getElementById('acq-plesso').addEventListener('change', aggiornaImporto);
@@ -152,12 +152,12 @@ function formAcquisto(genitoreId) {
 }
 
 function formOverride(genitoreId) {
-    apriModale('Nuovo override tariffario', `
+    apriModale('Imposta una tariffa agevolata', `
         <form data-testid="override-form">
             <label>Plesso</label><select name="plesso_id" data-testid="override-plesso-select">${opzioniPlessi()}</select>
             <label>Tariffa concordata (€)</label><input type="number" step="0.01" min="0" name="tariffa" data-testid="override-tariffa-input" required>
             <label>Motivazione (es. delibera n. .../2026)</label><textarea name="motivazione" rows="2" data-testid="override-motivazione-input" required></textarea>
-            <button class="btn btn-primary" type="submit" data-testid="override-submit-button">Salva override</button>
+            <button class="btn btn-primary" type="submit" data-testid="override-submit-button">Salva tariffa agevolata</button>
         </form>`, async (fd) => {
         await API.post('/api/tariffe/override', {
             genitore_id: genitoreId,
@@ -165,13 +165,13 @@ function formOverride(genitoreId) {
             tariffa: Number(fd.get('tariffa')),
             motivazione: fd.get('motivazione')
         });
-        avviso('Override registrato e storicizzato.');
+        avviso('Tariffa agevolata registrata.');
         apriFamiglia(genitoreId);
     });
 }
 
 function formRettifica(genitoreId) {
-    apriModale('Rettifica manuale crediti', `
+    apriModale('Correggi il numero di buoni', `
         <form data-testid="rettifica-form">
             <label>Plesso</label><select name="plesso_id" data-testid="rettifica-plesso-select">${opzioniPlessi()}</select>
             <label>Variazione buoni (positiva o negativa)</label><input type="number" name="delta" data-testid="rettifica-delta-input" required>
