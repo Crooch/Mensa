@@ -220,7 +220,9 @@ final class PresenzaService
             throw HttpException::nonAutorizzato('Alunno non appartenente al plesso assegnato');
         }
         $plesso = $this->plessi->trova($plessoId);
-        if ($data >= date('Y-m-d') && !$this->calendario->previsto($plessoId, $data)['attivo']) {
+        if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
+            // Anche le correzioni retroattive non possono inventare un pasto
+            // in una giornata antecedente l'avvio o senza servizio mensa.
             throw HttpException::nonValido('Nessun servizio mensa previsto per questa data');
         }
         if (!$this->job->acquisisciLock($plessoId, $data)) {
@@ -397,12 +399,21 @@ final class PresenzaService
         if ($plessoUtente !== null && (int) $classe['plesso_id'] !== $plessoUtente) {
             throw HttpException::nonAutorizzato();
         }
-        $plesso = $this->plessi->trova((int) $classe['plesso_id']);
+        $plessoId = (int) $classe['plesso_id'];
+        $plesso = $this->plessi->trova($plessoId);
+        $servizio = $this->calendario->previsto($plessoId, $data);
         $righe = $this->presenze->dettaglioGiornoClasse($classeSezioneId, $data);
 
-        // Per gli alunni senza record il default e' calcolato "a vista" (nessuna scrittura).
+        // Quando la mensa non e' prevista, non esistono pasti da preparare:
+        // non confondere una giornata chiusa con un alunno assente.
+        // Eventuali registrazioni storiche restano nel DB, senza nuove scritture.
         $assenzaMassa = $this->presenze->assenzaMassa($classeSezioneId, $data);
         foreach ($righe as &$riga) {
+            if (!$servizio['attivo']) {
+                $riga['default_calcolato'] = null;
+                $riga['stato_effettivo'] = null;
+                continue;
+            }
             if ($riga['presenza_id'] === null) {
                 $riga['default_calcolato'] = $assenzaMassa !== null ? 'assente' : 'presente';
                 $riga['stato_effettivo'] = $riga['default_calcolato'];
@@ -417,6 +428,7 @@ final class PresenzaService
             'data'          => $data,
             'cutoff_orario' => substr((string) $plesso['cutoff_orario'], 0, 5),
             'oltre_cutoff'  => $this->oltreCutoff($plesso, $data),
+            'servizio_mensa' => $servizio,
             'assenza_massa' => $assenzaMassa,
             'alunni'        => $righe,
         ];
@@ -480,7 +492,12 @@ final class PresenzaService
         $bambino = $this->bambinoConPlesso($bambinoId, $data);
         $plesso = $this->plessi->trova((int) $bambino['plesso_id']);
         $record = $this->presenze->trovaPresenza($bambinoId, $data);
-        $default = $record['default_calcolato'] ?? $this->defaultCalcolato($bambinoId, $data);
+        $servizio = $this->calendario->previsto((int) $bambino['plesso_id'], $data);
+        $attivo = $servizio['attivo'] === true;
+        $default = $attivo
+            ? ($record['default_calcolato'] ?? $this->defaultCalcolato($bambinoId, $data))
+            : null;
+        $stato = $attivo ? ($record['stato_effettivo'] ?? $default) : null;
 
         return [
             'bambino_id'             => $bambinoId,
@@ -489,14 +506,14 @@ final class PresenzaService
             'dichiarazione_genitore' => $record['dichiarazione_genitore'] ?? null,
             'override_scuola'        => $record['override_scuola'] ?? null,
             'override_motivazione'   => $record['override_motivazione'] ?? null,
-            'stato_effettivo'        => $record['stato_effettivo'] ?? $default,
-            'pasta_in_bianco'        => ($record['stato_effettivo'] ?? $default) === 'presente'
+            'stato_effettivo'        => $stato,
+            'pasta_in_bianco'        => $attivo && $stato === 'presente'
                 && (int) ($this->presenze->richiestaPastaBianco($bambinoId, $data)['richiesta'] ?? 0) === 1,
             'fuori_cutoff'           => (int) ($record['fuori_cutoff'] ?? 0),
             'congelato'              => (int) ($record['congelato'] ?? 0),
             'cutoff_orario'          => substr((string) $plesso['cutoff_orario'], 0, 5),
             'oltre_cutoff'           => $this->oltreCutoff($plesso, $data),
-            'servizio_mensa'         => $this->calendario->previsto((int) $bambino['plesso_id'], $data),
+            'servizio_mensa'         => $servizio,
         ];
     }
 
