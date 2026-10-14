@@ -2,6 +2,11 @@
 const utente = proteggi('genitore');
 let statoApp = { figli: [], votoSelezionato: null };
 
+// Etichette comprensibili senza modificare i valori usati dalle API.
+const testoPasto = (stato) => stato === 'presente' ? 'Pasto previsto' : stato === 'assente' ? 'Pasto non previsto' : 'Da verificare';
+const testoScelta = (stato) => stato === 'presente' ? 'Mangerà a mensa' : stato === 'assente' ? 'Non mangerà a mensa' : 'Nessuna comunicazione';
+const badgePasto = (stato) => `<span class="badge-stato badge-${stato === 'presente' ? 'verde' : 'rosso'}">${testoPasto(stato)}</span>`;
+
 abilitaSchede((vista) => {
     if (vista === 'calendario') caricaCalendario();
 });
@@ -16,37 +21,37 @@ async function caricaDashboard() {
             <article class="card-mensa card-mensa--${c.stato}" data-testid="credito-card-${c.plesso_id}">
                 <h3>${esc(c.plesso_nome)}</h3>
                 <span class="saldo">${c.saldo}</span>
-                <p class="nota">buoni disponibili</p>
+                <p class="nota">buoni mensa disponibili</p>
                 <span class="badge-stato badge-${c.stato}">${c.stato === 'verde' ? 'regolare' : c.stato === 'giallo' ? 'attenzione' : 'oltre fido'}</span>
                 <dl>
-                    <dt>Fido</dt><dd>${c.fido_buoni} buoni</dd>
-                    <dt>Tariffa</dt><dd>${euro(c.tariffa_attiva)}${c.origine_tariffa === 'override' ? ' (agevolata)' : ''}</dd>
+                    <dt>Buoni anticipabili</dt><dd>${c.fido_buoni} buoni</dd>
+                    <dt>Costo di un pasto</dt><dd>${euro(c.tariffa_attiva)}${c.origine_tariffa === 'override' ? ' (tariffa agevolata)' : ''}</dd>
                 </dl>
             </article>`).join('');
 
     document.getElementById('figli-lista').innerHTML = dati.figli.map((f) => {
         const s = f.stato_oggi;
-        const dichiarazione = s ? (s.dichiarazione_genitore || '—') : '—';
+        const dichiarazione = s ? testoScelta(s.dichiarazione_genitore) : 'Nessuna comunicazione';
         return `
         <article class="card-mensa" data-testid="figlio-card-${f.id}">
             <h3>${esc(f.cognome)} ${esc(f.nome)}</h3>
             <dl>
-                <dt>Plesso</dt><dd>${esc(f.plesso_nome || 'non assegnato')}</dd>
+                <dt>Scuola</dt><dd>${esc(f.plesso_nome || 'non assegnato')}</dd>
                 <dt>Classe</dt><dd>${esc(f.classe_nome || '-')} ${esc(f.anno_scolastico || '')}</dd>
-                <dt>Dieta</dt><dd>${esc(f.tipologia_nome)}</dd>
-                <dt>Oggi</dt><dd>${s ? (s.servizio_mensa && !s.servizio_mensa.attivo ? 'Mensa non prevista' : badgeStato(s.stato_effettivo)) : '-'}</dd>
-                <dt>Tua dichiarazione</dt><dd>${esc(dichiarazione)}</dd>
+                <dt>Tipo di menu</dt><dd>${esc(f.tipologia_nome)}</dd>
+                <dt>Mensa di oggi</dt><dd>${s ? (s.servizio_mensa && !s.servizio_mensa.attivo ? 'Mensa non prevista oggi' : badgePasto(s.stato_effettivo)) : '-'}</dd>
+                <dt>Hai comunicato</dt><dd>${esc(dichiarazione)}</dd>
                 <dt>Pasta in bianco oggi</dt><dd>${s && s.pasta_in_bianco ? 'richiesta' : 'non richiesta'}</dd>
-                <dt>Cutoff</dt><dd>${s ? s.cutoff_orario + (s.oltre_cutoff ? ' (superato)' : '') : '-'}</dd>
+                <dt>Orario limite per le modifiche</dt><dd>${s ? 'Ore ' + esc(s.cutoff_orario) + (s.oltre_cutoff ? ' (oggi non puoi più modificare)' : '') : '-'}</dd>
             </dl>
             ${s ? `<div class="riga-filtri" style="margin-top:.75rem">
-                ${s.oltre_cutoff ? '<p class="nota">Oggi le dichiarazioni sono chiuse. Puoi selezionare una data futura.</p>' : ''}
-                <label for="figlio-data-${f.id}">Data (oggi o futura)</label>
+                ${s.oltre_cutoff ? '<p class="nota">Per oggi è passato l’orario limite. Puoi ancora indicare un giorno futuro.</p>' : ''}
+                <label for="figlio-data-${f.id}">Per quale giorno?</label>
                 <input type="date" id="figlio-data-${f.id}" value="${oggi()}" min="${oggi()}" data-testid="figlio-data-${f.id}">
-                <button class="btn-azione" data-azione="presente" data-figlio="${f.id}" data-testid="dichiara-presente-${f.id}">Sarà presente</button>
-                <button class="btn-azione" data-azione="assente" data-figlio="${f.id}" data-testid="dichiara-assente-${f.id}">Sarà assente</button>
-                <button class="btn-azione" data-pasta="1" data-figlio="${f.id}" data-testid="pasta-richiesta-${f.id}">Richiedi pasta in bianco</button>
-                <button class="btn-azione" data-pasta="0" data-figlio="${f.id}" data-testid="pasta-annulla-${f.id}">Annulla pasta in bianco</button>
+                <button class="btn-azione" data-azione="presente" data-figlio="${f.id}" data-testid="dichiara-presente-${f.id}">Mangerà a mensa</button>
+                <button class="btn-azione" data-azione="assente" data-figlio="${f.id}" data-testid="dichiara-assente-${f.id}">Non mangerà a mensa</button>
+                <button class="btn-azione" data-pasta="1" data-figlio="${f.id}" data-testid="pasta-richiesta-${f.id}">Chiedi pasta in bianco</button>
+                <button class="btn-azione" data-pasta="0" data-figlio="${f.id}" data-testid="pasta-annulla-${f.id}">Annulla richiesta pasta in bianco</button>
             </div>` : '<p class="nota">Nessuna classe attiva: contattare l\'ufficio comunale.</p>'}
         </article>`;
     }).join('') || '<p class="vuoto">Nessun figlio associato.</p>';
@@ -54,10 +59,10 @@ async function caricaDashboard() {
     document.querySelectorAll('[data-azione]').forEach((b) => b.addEventListener('click', () => {
         const bambinoId = Number(b.dataset.figlio);
         const data = document.getElementById('figlio-data-' + bambinoId).value;
-        if (!data || data < oggi()) { avviso('Seleziona oggi o una data futura.', 'errore'); return; }
+        if (!data || data < oggi()) { avviso('Scegli oggi o un giorno futuro.', 'errore'); return; }
         const figlio = statoApp.figli.find((f) => Number(f.id) === bambinoId);
         if (data === oggi() && figlio?.stato_oggi?.oltre_cutoff) {
-            avviso('La giornata di oggi e chiusa. Scegli una data futura.', 'errore');
+            avviso('L’orario limite di oggi è passato. Scegli un altro giorno.', 'errore');
             return;
         }
         dichiara(bambinoId, b.dataset.azione, data);
@@ -66,17 +71,17 @@ async function caricaDashboard() {
     document.querySelectorAll('[data-pasta]').forEach((b) => b.addEventListener('click', async () => {
         const bambinoId = Number(b.dataset.figlio);
         const data = document.getElementById('figlio-data-' + bambinoId).value;
-        if (!data || data < oggi()) { avviso('Seleziona oggi o una data futura.', 'errore'); return; }
+        if (!data || data < oggi()) { avviso('Scegli oggi o un giorno futuro.', 'errore'); return; }
         const figlio = statoApp.figli.find((f) => Number(f.id) === bambinoId);
         if (data === oggi() && figlio?.stato_oggi?.oltre_cutoff) {
-            avviso('La giornata di oggi e chiusa. Scegli una data futura.', 'errore');
+            avviso('L’orario limite di oggi è passato. Scegli un altro giorno.', 'errore');
             return;
         }
         try {
             await API.post('/api/genitore/pasta-bianco', {
                 bambino_id: bambinoId, data, richiesta: Number(b.dataset.pasta)
             });
-            avviso((Number(b.dataset.pasta) === 1 ? 'Pasta in bianco richiesta' : 'Richiesta pasta in bianco annullata')
+            avviso((Number(b.dataset.pasta) === 1 ? 'Richiesta di pasta in bianco registrata' : 'Richiesta di pasta in bianco annullata')
                 + ' per il ' + dataIt(data) + '.');
             await caricaDashboard();
         } catch (err) { avviso(err.message, 'errore'); }
@@ -107,8 +112,8 @@ async function dichiara(bambinoId, stato, data = oggi()) {
     try {
         const esito = await API.post('/api/genitore/presenze/dichiarazione', { bambino_id: bambinoId, data, stato });
         avviso(esito.fuori_cutoff
-            ? 'Dichiarazione registrata dopo il cutoff: non modifica il pasto di oggi, ma resta tracciata.'
-            : `Dichiarazione per il ${dataIt(data)} registrata: ${esito.stato_effettivo}.`, esito.fuori_cutoff ? 'errore' : 'ok');
+            ? 'L’orario limite è passato: la comunicazione è stata registrata, ma non cambia il pasto previsto per oggi.'
+            : `Comunicazione registrata per il ${dataIt(data)}. ${testoScelta(stato)}.`, esito.fuori_cutoff ? 'errore' : 'ok');
         caricaDashboard();
     } catch (e) { avviso(e.message, 'errore'); }
 }
@@ -155,22 +160,23 @@ function disegnaCalendario(dati, anno, mese) {
             if (r.override_scuola) classi += ' override';
         }
         html += `<button class="${classi}" data-data="${data}" data-testid="giorno-${data}">
-            <strong>${giorno}</strong>${r ? (r.stato_effettivo === 'presente' ? 'presente' : 'assente') : ''}</button>`;
+            <strong>${giorno}</strong>${r ? (r.stato_effettivo === 'presente' ? 'A mensa' : 'Non a mensa') + (r.dichiarazione_genitore ? '<small> · Hai comunicato</small>' : '') : ''}</button>`;
     }
     const griglia = document.getElementById('calendario');
     griglia.innerHTML = html;
     griglia.querySelectorAll('.giorno[data-data]').forEach((b) => b.addEventListener('click', () => {
         const r = perData[b.dataset.data];
         document.getElementById('calendario-dettaglio').innerHTML = !r
-            ? `<p class="vuoto">Nessun dato registrato per il ${dataIt(b.dataset.data)}.</p>`
-            : `<h2>Dettaglio ${dataIt(r.data)}</h2>
+            ? `<p class="vuoto">Non ci sono dettagli salvati per il ${dataIt(b.dataset.data)}. Per comunicare una presenza o un'assenza, usa la schermata iniziale.</p>`
+            : `<h2>La mensa del ${dataIt(r.data)}</h2>
+               <p class="nota">Normalmente il pasto è previsto. Se tutta la classe non pranza, ad esempio per una gita, la scuola può indicare un'assenza per tutti. Le tue comunicazioni e le correzioni della scuola possono cambiare questa situazione.</p>
                <dl class="card-mensa">
-                 <dt>Default (assenze di massa)</dt><dd>${esc(r.default_calcolato)}</dd>
-                 <dt>Dichiarazione famiglia</dt><dd>${esc(r.dichiarazione_genitore || '—')}</dd>
-                 <dt>Override scuola</dt><dd>${esc(r.override_scuola || '—')} ${r.override_motivazione ? '· ' + esc(r.override_motivazione) : ''}</dd>
-                 <dt>Stato effettivo</dt><dd>${badgeStato(r.stato_effettivo)}</dd>
+                 <dt>Situazione prevista inizialmente</dt><dd>${testoPasto(r.default_calcolato)}</dd>
+                 <dt>Hai comunicato</dt><dd>${testoScelta(r.dichiarazione_genitore)}</dd>
+                 <dt>Correzione della scuola</dt><dd>${r.override_scuola ? testoScelta(r.override_scuola) : 'Nessuna correzione'} ${r.override_motivazione ? '· Motivo: ' + esc(r.override_motivazione) : ''}</dd>
+                 <dt>Situazione attuale</dt><dd>${badgePasto(r.stato_effettivo)}</dd>
                  <dt>Pasta in bianco</dt><dd>${Number(r.pasta_in_bianco) === 1 ? 'richiesta' : 'non richiesta'}</dd>
-                 <dt>Fuori cutoff</dt><dd>${Number(r.fuori_cutoff) === 1 ? 'sì (senza effetto sul conteggio)' : 'no'}</dd>
+                 <dt>Modifica dopo l'orario limite</dt><dd>${Number(r.fuori_cutoff) === 1 ? 'Sì' : 'No'}</dd>
                </dl>`;
     }));
 }
@@ -196,7 +202,7 @@ document.getElementById('form-feedback').addEventListener('submit', async (e) =>
             voto: statoApp.votoSelezionato,
             commento: document.getElementById('fb-commento').value
         });
-        avviso('Feedback inviato. Grazie!');
+        avviso('Valutazione inviata. Grazie!');
         document.getElementById('fb-commento').value = '';
         statoApp.votoSelezionato = null;
         contenitoreStelle.querySelectorAll('button').forEach((x) => x.classList.remove('attiva'));
@@ -208,7 +214,7 @@ function mostraFeedback(elenco) {
     document.getElementById('feedback-corpo').innerHTML = elenco.map((f) => `
         <tr><td>${dataIt(f.data)}</td><td>${esc(f.bambino_cognome)} ${esc(f.bambino_nome)}</td>
         <td>${esc(f.tipologia_nome)}</td><td>${f.voto ? '★'.repeat(f.voto) : '-'}</td><td>${esc(f.commento || '')}</td></tr>`
-    ).join('') || '<tr><td colspan="5" class="vuoto">Nessun feedback inviato.</td></tr>';
+    ).join('') || '<tr><td colspan="5" class="vuoto">Non hai ancora inviato valutazioni.</td></tr>';
 }
 
 caricaDashboard().catch((e) => avviso(e.message, 'errore'));
