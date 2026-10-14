@@ -80,6 +80,15 @@ $router->get('/api/catering/report', [$catering, 'report'], ['catering', 'admin'
 $router->get('/api/catering/menu', [$catering, 'menu'], ['catering', 'admin', 'operatore', 'scuola']);
 $router->post('/api/catering/menu', [$catering, 'pubblicaMenu'], ['catering', 'admin']);
 $router->get('/api/catering/feedback', [$catering, 'feedback'], ['catering', 'admin', 'operatore']);
+// Modelli ricorrenti: chi può leggere i menu può vedere il catalogo;
+// scrittura riservata a Catering e Admin.
+$router->get('/api/catering/menu-settimanali', [$catering, 'menuSettimanali'], ['catering', 'admin']);
+$router->post('/api/catering/menu-settimanali', [$catering, 'salvaMenuSettimanale'], ['catering', 'admin']);
+$router->put('/api/catering/menu-settimanali/{id}', [$catering, 'modificaMenuSettimanale'], ['catering', 'admin']);
+$router->post('/api/catering/menu-settimanali/{id}/duplica', [$catering, 'duplicaMenuSettimanale'], ['catering', 'admin']);
+$router->get('/api/catering/menu-settimanali/assegnazioni', [$catering, 'assegnazioniMenuSettimanali'], ['catering', 'admin']);
+$router->post('/api/catering/menu-settimanali/assegnazioni', [$catering, 'assegnaMenuSettimanale'], ['catering', 'admin']);
+
 
 // ---------------- area admin ----------------
 $router->get('/api/admin/calendari/{id}', [$admin, 'dettaglioCalendario'], ['admin']);
