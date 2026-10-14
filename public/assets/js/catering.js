@@ -24,8 +24,12 @@ function sincronizzaMenuSelezionato() {
     const fotoStato = document.getElementById('menu-foto-stato');
     const descrizione = document.getElementById('menu-descrizione');
     const foto = document.getElementById('menu-foto');
+    const rimuoviFoto = document.getElementById('menu-rimuovi-foto');
+    const opzioneRimuovi = document.getElementById('menu-rimuovi-foto-opzione');
 
     if (!menuDisponibili || !plesso || !tipologia) {
+        rimuoviFoto.checked = false;
+        opzioneRimuovi.hidden = true;
         pulsante.disabled = true;
         pulsante.textContent = 'Pubblica menu';
         stato.className = 'stato-operazione catering-menu-stato stato-operazione--info';
@@ -40,6 +44,9 @@ function sincronizzaMenuSelezionato() {
     // deve rimanere nel campo della nuova pubblicazione.
     descrizione.value = esistente?.descrizione || '';
     foto.value = '';
+    foto.disabled = false;
+    rimuoviFoto.checked = false;
+    opzioneRimuovi.hidden = !esistente?.foto_path;
     pulsante.disabled = false;
     pulsante.textContent = esistente ? 'Aggiorna menu' : 'Pubblica menu';
     stato.className = 'stato-operazione catering-menu-stato stato-operazione--' +
@@ -141,7 +148,7 @@ async function caricaMenu() {
                 <article class="card-mensa catering-menu-card" data-testid="menu-card-${m.id}">
                     <h3>${esc(m.plesso_nome)}</h3>
                     <p class="catering-menu-card__tipo">${esc(m.tipologia_nome)}</p>
-                    <p>${esc(m.descrizione || 'Solo foto pubblicata')}</p>
+                    <p class="menu-descrizione">${esc(m.descrizione || 'Solo foto pubblicata')}</p>
                     ${m.foto_path ? `<img src="${BASE}/storage/${esc(m.foto_path)}" alt="Foto del menu">` : ''}
                     <button type="button" class="btn btn-outline-primary" data-menu-modifica="${m.id}" data-testid="menu-modifica-${m.id}">Modifica menu</button>
                 </article>`).join('');
@@ -188,6 +195,23 @@ async function caricaFeedback() {
 
 document.getElementById('menu-plesso').addEventListener('change', sincronizzaMenuSelezionato);
 document.getElementById('menu-tipologia').addEventListener('change', sincronizzaMenuSelezionato);
+document.getElementById('menu-rimuovi-foto').addEventListener('change', () => {
+    const rimozione = document.getElementById('menu-rimuovi-foto').checked;
+    const foto = document.getElementById('menu-foto');
+    if (rimozione) foto.value = '';
+    foto.disabled = rimozione;
+    document.getElementById('menu-foto-stato').textContent = rimozione
+        ? 'La foto verrà rimossa quando confermi l’aggiornamento.'
+        : 'Se non scegli una nuova foto, rimane quella pubblicata.';
+});
+document.getElementById('menu-foto').addEventListener('change', () => {
+    const foto = document.getElementById('menu-foto');
+    if (foto.files.length) {
+        document.getElementById('menu-rimuovi-foto').checked = false;
+        document.getElementById('menu-foto-stato').textContent =
+            'La nuova foto sostituirà quella precedente al salvataggio.';
+    }
+});
 
 document.getElementById('form-menu').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -204,10 +228,12 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
         return;
     }
     const esistente = menuSelezionato();
+    const rimuoviFoto = document.getElementById('menu-rimuovi-foto').checked;
     if (esistente && !await UI.conferma(
         'Aggiorna solo questo menu',
         'Stai per aggiornare il menu ' + tipologia.nome + ' del plesso ' + plesso.nome +
-            ' per oggi. Gli altri menu resteranno invariati. Una foto nuova sostituirà quella attuale.',
+            ' per oggi. Gli altri menu resteranno invariati. ' +
+            (rimuoviFoto ? 'La foto verrà rimossa.' : 'Una foto nuova sostituirà quella attuale.'),
         'Aggiorna menu'
     )) return;
     // Ripristina il blocco in caso di selezione cambiata durante il dialogo.
@@ -219,7 +245,7 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
     }
     const descrizione = document.getElementById('menu-descrizione').value.trim();
     const foto = document.getElementById('menu-foto').files[0];
-    if (!descrizione && !foto) {
+    if (!descrizione && !foto && (rimuoviFoto || !esistente?.foto_path)) {
         avviso('Inserisci una descrizione oppure seleziona una foto.', 'errore');
         document.getElementById('menu-descrizione').focus();
         return;
@@ -229,6 +255,7 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
     fd.append('tipologia_menu_id', tipologiaId);
     fd.append('data', oggi());
     fd.append('descrizione', descrizione);
+    fd.append('rimuovi_foto', rimuoviFoto ? '1' : '0');
     if (foto) fd.append('foto', foto);
     const pulsante = document.getElementById('menu-submit');
     try {
