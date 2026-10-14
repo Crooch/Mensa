@@ -9,7 +9,8 @@ use App\Core\Request;
 
 /**
  * API area Catering: report pasti (sola lettura), pubblicazione menu, feedback.
- * Nessun endpoint di quest'area espone dati anagrafici, economici o di credito.
+ * Nessun endpoint di quest'area espone dati economici o di credito.
+ * Il report pasti include i soli nominativi necessari alle richieste pasta in bianco.
  */
 final class CateringController
 {
