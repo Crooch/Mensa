@@ -247,6 +247,7 @@ const oggi = () => {
     return `${anno}-${mese}-${giorno}`;
 };
 const euro = (v) => (v === null || v === undefined ? '-' : Number(v).toFixed(2).replace('.', ',') + ' €');
+const fidoConcesso = (v) => Number(v) === 0 ? '0 buoni' : '-' + Math.abs(Number(v)) + ' buoni';
 
 /** Testi per le persone: i codici tecnici delle API non devono apparire nelle schermate. */
 const nomeMovimento = (tipo) => ({
