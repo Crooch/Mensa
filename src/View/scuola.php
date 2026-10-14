@@ -10,21 +10,21 @@ require __DIR__ . '/partials/testa.php';
 </nav>
 
 <section id="vista-giornata" class="vista">
-    <h1>Controlla chi mangia a mensa</h1>
+    <h1>Chi mangerà a mensa?</h1>
     <p class="nota">Controlla le comunicazioni delle famiglie e indica eventuali correzioni. La scuola deve sempre spiegare il motivo di una modifica.</p>
     <div class="riga-filtri">
         <label for="classe">Classe/sezione</label>
         <select id="classe" data-testid="classe-select"></select>
         <label for="data">Data</label>
         <input type="date" id="data" data-testid="data-input">
-        <button class="btn btn-primary btn-sm" id="btn-carica" data-testid="carica-giornata-button">Mostra</button>
+        <button class="btn btn-primary btn-sm" id="btn-carica" data-testid="carica-giornata-button">Mostra gli alunni</button>
     </div>
-    <div id="stato-cutoff" class="banner" data-testid="stato-cutoff"></div>
+    <div id="stato-cutoff" class="banner" data-testid="stato-cutoff" role="status"></div>
     <div class="tabella-scroll">
         <table class="table" data-testid="presenze-tabella">
             <thead><tr>
-                <th>Alunno</th><th>Tipo di menu</th><th>Situazione iniziale</th><th>Comunicazione famiglia</th>
-                <th>Correzione scuola</th><th>Pasto previsto</th><th>Modifica</th>
+                <th>Alunno</th><th>Menu</th><th>Previsto inizialmente</th><th>La famiglia ha comunicato</th>
+                <th>Modifica della scuola</th><th>Risultato attuale</th><th>Correggi</th>
             </tr></thead>
             <tbody id="presenze-corpo"></tbody>
         </table>
@@ -43,7 +43,7 @@ require __DIR__ . '/partials/testa.php';
         </div>
         <label for="am-motivo">Perché la classe non mangerà a mensa?</label>
         <input type="text" id="am-motivo" maxlength="255" placeholder="Es. Gita a Palermo" data-testid="assenza-motivo-input">
-        <button type="submit" class="btn btn-primary" data-testid="assenza-submit-button">Segna tutta la classe assente</button>
+        <button type="submit" class="btn btn-primary" data-testid="assenza-submit-button">Conferma: nessun pasto per la classe</button>
     </form>
     <h2>Giornate senza mensa per tutta la classe</h2>
     <div class="tabella-scroll">
