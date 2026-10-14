@@ -57,6 +57,7 @@ async function caricaDashboard() {
                 ${s.oltre_cutoff ? '<p class="nota">Per oggi è passato l’orario limite. Puoi ancora indicare un giorno futuro.</p>' : ''}
                 <label for="figlio-data-${f.id}">Per quale giorno?</label>
                 <input type="date" id="figlio-data-${f.id}" value="${giorniSelezionati[f.id] || oggi()}" min="${oggi()}" data-testid="figlio-data-${f.id}">
+                <p id="anteprima-figlio-${f.id}" class="stato-operazione" role="status">Caricamento della situazione del giorno…</p>
                 <button class="btn-azione" data-azione="presente" data-figlio="${f.id}" data-testid="dichiara-presente-${f.id}">Mangerà a mensa</button>
                 <button class="btn-azione" data-azione="assente" data-figlio="${f.id}" data-testid="dichiara-assente-${f.id}">Non mangerà a mensa</button>
                 <details><summary>Opzioni per la pasta in bianco</summary><div class="azioni-giorno">
@@ -68,6 +69,10 @@ async function caricaDashboard() {
         </article>`;
     }).join('') || '<p class="vuoto">Nessun figlio associato.</p>';
 
+    document.querySelectorAll('[id^="figlio-data-"]').forEach((input) => input.addEventListener('change', () => {
+        anteprimaGiorno(Number(input.id.replace('figlio-data-', '')));
+    }));
+
     document.querySelectorAll('[data-azione]').forEach((b) => b.addEventListener('click', () => {
         const bambinoId = Number(b.dataset.figlio);
         const data = document.getElementById('figlio-data-' + bambinoId).value;
@@ -77,7 +82,7 @@ async function caricaDashboard() {
             avviso('L’orario limite di oggi è passato. Scegli un altro giorno.', 'errore');
             return;
         }
-        dichiara(bambinoId, b.dataset.azione, data);
+        UI.esegui(b, () => dichiara(bambinoId, b.dataset.azione, data), 'Salvataggio…');
     }));
 
     document.querySelectorAll('[data-apri-calendario]').forEach((b) => b.addEventListener('click', () => {
@@ -105,6 +110,8 @@ async function caricaDashboard() {
         } catch (err) { avviso(err.message, 'errore'); }
     }));
 
+    statoApp.figli.forEach((f) => { if (document.getElementById('figlio-data-' + f.id)) anteprimaGiorno(f.id); });
+
     document.getElementById('movimenti-corpo').innerHTML = dati.movimenti.map((m) => `
         <tr>
             <td>${dataIt(m.data)}</td><td>${esc(m.plesso_nome)}</td>
@@ -119,6 +126,41 @@ async function caricaDashboard() {
     riempiSelectFigli();
     caricaMenu();
 }
+
+/** Anticipa il risultato del giorno scelto ed evita pulsanti inutili. */
+const richiesteAnteprima = new Map();
+async function anteprimaGiorno(bambinoId) {
+    const input = document.getElementById('figlio-data-' + bambinoId);
+    if (!input) return;
+    const data = input.value;
+    const versione = (richiesteAnteprima.get(bambinoId) || 0) + 1;
+    richiesteAnteprima.set(bambinoId, versione);
+    const azioni = Array.from(document.querySelectorAll('[data-figlio="' + bambinoId + '"]'));
+    UI.stato('anteprima-figlio-' + bambinoId, 'Controllo della mensa del ' + dataIt(data) + '…', 'caricamento');
+    try {
+        const g = await API.get('/api/genitore/figli/' + bambinoId + '/giornata?data=' + encodeURIComponent(data));
+        if (richiesteAnteprima.get(bambinoId) !== versione || input.value !== data) return;
+        const attivo = g.servizio_mensa && g.servizio_mensa.attivo;
+        const modificabile = attivo && !g.oltre_cutoff && !g.congelato;
+        azioni.filter((b) => b.dataset.azione || b.dataset.pasta).forEach((b) => {
+            b.disabled = !modificabile;
+            if (b.dataset.azione) b.hidden = attivo && g.stato_effettivo === b.dataset.azione;
+            if (b.dataset.pasta) b.hidden = attivo &&
+                Number(b.dataset.pasta) === (g.pasta_in_bianco ? 1 : 0);
+        });
+        const testo = !attivo ? 'Il ' + dataIt(data) + ' non è prevista la mensa.'
+            : (g.stato_effettivo === 'presente' ? 'Pasto previsto' : 'Pasto non previsto') +
+              ' per il ' + dataIt(data) + '.' + (g.pasta_in_bianco ? ' Hai richiesto pasta in bianco.' : '') +
+              (modificabile ? '' : ' Non puoi più modificare questa giornata.');
+        UI.stato('anteprima-figlio-' + bambinoId, testo, !attivo ? 'info' : 'ok');
+    } catch (errore) {
+        if (richiesteAnteprima.get(bambinoId) !== versione) return;
+        azioni.filter((b) => b.dataset.azione || b.dataset.pasta).forEach((b) => { b.disabled = true; });
+        UI.stato('anteprima-figlio-' + bambinoId,
+            'Non riesco a controllare la data: ' + errore.message + '. Riprova o usa il calendario.', 'errore');
+    }
+}
+
 
 function riempiSelectFigli() {
     const campoCalendario = document.getElementById('cal-figlio');
