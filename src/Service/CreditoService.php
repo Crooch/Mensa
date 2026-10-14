@@ -105,7 +105,7 @@ final class CreditoService
      * lock plesso/data prima di accedere a questo metodo.
      */
     public function registraConsumoInTransazione(int $genitoreId, int $plessoId,
-                                                 int $bambinoId, string $data): ?int
+                                                 int $bambinoId, string $data, ?int $utenteId = null): ?int
     {
         if ($this->crediti->esisteConsumo($bambinoId, $data)) {
             return null;
@@ -117,8 +117,8 @@ final class CreditoService
             'delta' => -1,
             'data' => $data,
             'bambino_id' => $bambinoId,
-            'utente_id' => null,
-            'note' => 'Consumo automatico o confermato dalla scuola',
+            'utente_id' => $utenteId,
+            'note' => $utenteId === null ? 'Consumo automatico post-cutoff' : 'Pasto confermato dalla scuola',
         ]);
         $this->crediti->aggiornaSaldo($poolId, -1);
         return $id;
