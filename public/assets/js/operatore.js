@@ -16,6 +16,7 @@ document.getElementById('modale-chiudi').addEventListener('click', () => { modal
 function apriModale(titolo, html, alSalva) {
     document.getElementById('modale-titolo').textContent = titolo;
     document.getElementById('modale-corpo').innerHTML = html;
+    raggruppaCampi(document.getElementById('modale-corpo'));
     modale.hidden = false;
     const form = modale.querySelector('form');
     if (form) {
