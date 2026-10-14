@@ -6,6 +6,7 @@ require __DIR__ . '/partials/testa.php';
 ?>
 <nav class="schede" role="tablist">
     <button class="scheda attiva" data-vista="plessi" data-testid="tab-plessi">Plessi</button>
+    <button class="scheda" data-vista="calendario" data-testid="tab-calendario">Calendario mensa</button>
     <button class="scheda" data-vista="classi" data-testid="tab-classi">Classi/sezioni</button>
     <button class="scheda" data-vista="tipologie" data-testid="tab-tipologie">Tipologie menu</button>
     <button class="scheda" data-vista="email" data-testid="tab-email">Email e solleciti</button>
@@ -35,6 +36,61 @@ require __DIR__ . '/partials/testa.php';
             <thead><tr><th>Plesso</th><th>Tariffa</th><th>Fido</th><th>Cutoff</th><th>Dirigente</th><th></th></tr></thead>
             <tbody id="plessi-corpo"></tbody>
         </table>
+    </div>
+</section>
+
+
+<section id="vista-calendario" class="vista" hidden>
+    <h1>Calendario del servizio mensa</h1>
+    <p class="nota">La configurazione vale per ciascun plesso. Sabato, domenica e festività nazionali sono sempre esclusi dai consumi. Il servizio non è attivo finché il calendario non viene configurato.</p>
+    <div class="riga-filtri">
+        <label for="calendario-plesso">Plesso</label>
+        <select id="calendario-plesso" data-testid="calendario-plesso-select"></select>
+    </div>
+    <form id="form-calendario" class="pannello" data-testid="calendario-form">
+        <h2>Periodo e giorni di servizio</h2>
+        <div class="riga-filtri">
+            <label for="calendario-inizio">Inizio servizio</label>
+            <input type="date" id="calendario-inizio" required>
+            <label for="calendario-fine">Fine servizio (facoltativa)</label>
+            <input type="date" id="calendario-fine">
+        </div>
+        <div class="riga-filtri">
+            <label><input type="checkbox" id="calendario-lunedi"> Lunedì</label>
+            <label><input type="checkbox" id="calendario-martedi"> Martedì</label>
+            <label><input type="checkbox" id="calendario-mercoledi"> Mercoledì</label>
+            <label><input type="checkbox" id="calendario-giovedi"> Giovedì</label>
+            <label><input type="checkbox" id="calendario-venerdi"> Venerdì</label>
+        </div>
+        <button class="btn btn-primary" type="submit" data-testid="calendario-salva">Salva calendario</button>
+    </form>
+
+    <h2>Chiusure e aperture straordinarie</h2>
+    <p class="nota">Un'eccezione vale per una sola data. Le aperture aggiuntive sono ammesse soltanto nei giorni feriali non festivi.</p>
+    <form id="form-eccezione-calendario" class="pannello">
+        <div class="riga-filtri">
+            <label for="eccezione-data">Data</label><input type="date" id="eccezione-data" required>
+            <label for="eccezione-attivo">Servizio</label>
+            <select id="eccezione-attivo">
+                <option value="0">Chiusura</option>
+                <option value="1">Apertura straordinaria</option>
+            </select>
+            <label for="eccezione-motivazione">Motivazione</label>
+            <input type="text" maxlength="255" id="eccezione-motivazione" required placeholder="Es. sospensione attività didattiche">
+        </div>
+        <button class="btn btn-primary" type="submit" data-testid="eccezione-salva">Salva eccezione</button>
+    </form>
+    <div class="tabella-scroll">
+        <table class="table">
+            <thead><tr><th>Data</th><th>Stato</th><th>Motivazione</th><th>Azioni</th></tr></thead>
+            <tbody id="eccezioni-calendario-corpo"></tbody>
+        </table>
+    </div>
+    <h2>Verifica una data</h2>
+    <div class="riga-filtri">
+        <label for="calendario-verifica-data">Data</label><input type="date" id="calendario-verifica-data">
+        <button type="button" class="btn btn-outline-primary" id="calendario-verifica">Verifica servizio</button>
+        <span id="calendario-verifica-esito" role="status"></span>
     </div>
 </section>
 
