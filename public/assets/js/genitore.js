@@ -201,6 +201,20 @@ async function caricaMenu() {
 }
 
 
+/* Etichette sintetiche per le cause reali del calendario scolastico. */
+const motivoChiusura = (motivo) => ({
+    fine_settimana: 'Fine settimana',
+    festivita_nazionale: 'Festività',
+    chiusura_programmata: 'Mensa chiusa',
+    giorno_senza_servizio: 'Mensa non prevista',
+    servizio_non_avviato: 'Servizio non iniziato',
+    servizio_terminato: 'Servizio terminato',
+    calendario_non_configurato: 'Calendario da definire',
+    nessuna_classe: 'Scuola non assegnata',
+    plesso_non_attivo: 'Scuola non attiva',
+    data_non_valida: 'Data non valida'
+}[motivo] || 'Servizio non previsto');
+
 /* ---------------- Calendario completo e azioni contestuali ---------------- */
 let versioneCalendario = 0;
 let giornoSelezionato = null;
@@ -239,7 +253,7 @@ function disegnaCalendario(dati, anno, mese, giorno, bambinoId) {
         const data = anno + '-' + String(mese).padStart(2, '0') + '-' + String(n).padStart(2, '0');
         const r = perData[data];
         const attivo = r && r.servizio_mensa && r.servizio_mensa.attivo;
-        const testo = !attivo ? 'Niente mensa' : r.stato_effettivo === 'presente' ? 'Pasto previsto'
+        const testo = !attivo ? motivoChiusura(r?.servizio_mensa?.motivo) : r.stato_effettivo === 'presente' ? 'Pasto previsto'
             : r.stato_effettivo === 'assente' ? 'Pasto non previsto' : 'Dati non disponibili';
         const classe = !attivo ? 'senza-mensa' : r.stato_effettivo === 'presente' ? 'presente'
             : r.stato_effettivo === 'assente' ? 'assente' : 'non-disponibile';
@@ -271,8 +285,8 @@ function mostraDettaglio(r, bambinoId) {
     const nodo = document.getElementById('calendario-dettaglio');
     if (!r) { nodo.textContent = 'Nessun dettaglio disponibile.'; return; }
     const attivo = r.servizio_mensa && r.servizio_mensa.attivo;
-    const stato = !attivo ? 'In questo giorno non è prevista la mensa'
-        : r.stato_effettivo === null ? 'Non ci sono dati sul pasto'
+    const stato = !attivo ? motivoChiusura(r.servizio_mensa?.motivo)
+        : r.stato_effettivo === null ? 'Pasto da verificare'
         : testoPasto(r.stato_effettivo);
     const azioni = attivo && r.modificabile
         ? '<h3>Cosa vuoi comunicare per questo giorno?</h3><div class="azioni-giorno">' +
@@ -282,8 +296,7 @@ function mostraDettaglio(r, bambinoId) {
           '</button><button type="button" class="btn btn-outline-primary" data-cal-pasta="' +
           (Number(r.pasta_in_bianco) === 1 ? '0' : '1') + '" data-testid="cal-modifica-pasta">' +
           (Number(r.pasta_in_bianco) === 1 ? 'Annulla pasta in bianco' : 'Chiedi pasta in bianco') + '</button></div>'
-        : '<p class="nota">' + (!attivo ? 'In questo giorno non è prevista la mensa.'
-            : 'Per questo giorno non è più possibile inviare modifiche.') + '</p>';
+        : (attivo ? '<p class="nota">Modifiche non disponibili per questo giorno.</p>' : '');
     nodo.innerHTML = '<h2>' + dataIt(r.data) + '</h2>' +
         '<p class="stato-operazione stato-operazione--info">' + esc(stato) + '</p>' +
         (attivo ? '<dl class="card-mensa"><dt>Hai comunicato</dt><dd>' + testoScelta(r.dichiarazione_genitore) +
