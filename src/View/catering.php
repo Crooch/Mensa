@@ -12,18 +12,19 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-report" class="vista">
     <h1>Pasti da preparare</h1>
+    <p class="nota">Scegli il giorno per vedere quanti pasti preparare, divisi per scuola, classe e tipo di menu.</p>
     <div class="riga-filtri">
         <label for="report-data">Data</label>
         <input type="date" id="report-data" data-testid="report-data-input">
         <button class="btn btn-primary btn-sm" type="button" id="btn-report" data-testid="report-carica-button">Aggiorna</button>
     </div>
     <p class="nota" id="report-stato" role="status" aria-live="polite" data-testid="report-stato">Seleziona una data per consultare i pasti.</p>
-    <p class="nota">Conteggi per plesso, tipologia e classe/sezione. Le richieste di pasta in bianco sono riportate con il nome dell'alunno e la classe. Nessuna informazione economica viene mostrata.</p>
+    <p class="nota">Le richieste di pasta in bianco riportano il nome del bambino e la classe, per preparare il piatto corretto. Il conteggio è provvisorio finché non viene confermato dopo l'orario limite.</p>
     <div id="report" class="griglia-cards" data-testid="report-plessi"></div>
 </section>
 
 <section id="vista-menu" class="vista" hidden>
-    <h1>Pubblicazione menu (facoltativa)</h1>
+    <h1>Pubblica il menu del giorno (facoltativo)</h1>
     <form id="form-menu" class="pannello" enctype="multipart/form-data" data-testid="menu-form">
         <div class="riga-filtri">
             <label for="menu-plesso">Plesso</label>
