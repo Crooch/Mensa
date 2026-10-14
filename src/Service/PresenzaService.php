@@ -115,26 +115,41 @@ final class PresenzaService
     public function dichiaraGenitore(int $bambinoId, string $data, string $stato, int $utenteId): array
     {
         $this->validaStato($stato);
+        $this->validaDataDichiarazione($data);
         $bambino = $this->bambinoConPlesso($bambinoId, $data);
-        if ($data < date('Y-m-d')) {
-            throw HttpException::nonValido('Non è possibile dichiarare eccezioni per giornate passate: contattare la scuola');
+        $plessoId = (int) $bambino['plesso_id'];
+        if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
+            throw HttpException::nonValido('Non e previsto servizio mensa in questa data');
         }
-        $plesso = $this->plessi->trova((int) $bambino['plesso_id']);
-        $servizio = $this->calendario->previsto((int) $bambino['plesso_id'], $data);
-        if (!$servizio['attivo']) {
-            throw HttpException::nonValido('Giorno senza servizio mensa: ' . $servizio['motivo']);
+        $plesso = $this->plessi->trova($plessoId);
+        if (!$this->job->acquisisciLock($plessoId, $data)) {
+            throw new HttpException(409, 'Elaborazione della giornata in corso. Riprovare.');
         }
-        $fuoriCutoff = $this->oltreCutoff($plesso, $data);
-
-        $record = $this->assicuraRecord($bambinoId, $data);
-        $this->presenze->modificaPresenza((int) $record['id'], [
-            'dichiarazione_genitore'  => $stato,
-            'dichiarazione_timestamp' => date('Y-m-d H:i:s'),
-            'dichiarazione_utente_id' => $utenteId,
-            'fuori_cutoff'            => $fuoriCutoff ? 1 : 0,
-        ]);
-
-        return $this->ricalcola($bambinoId, $data, $fuoriCutoff, 'dichiarazione');
+        try {
+            $this->verificaModificabile($plesso, $plessoId, $data);
+            return Database::inTransazione(function () use ($bambinoId, $data, $stato, $utenteId) {
+                $record = $this->assicuraRecord($bambinoId, $data);
+                if ((int) $record['congelato'] === 1) {
+                    throw HttpException::nonValido('Giornata chiusa');
+                }
+                if ($record['dichiarazione_genitore'] === $stato) {
+                    return $record + ['effetto' => 'invariato', 'fonte' => 'dichiarazione'];
+                }
+                $this->presenze->modificaPresenza((int) $record['id'], [
+                    'dichiarazione_genitore' => $stato,
+                    'dichiarazione_timestamp' => date('Y-m-d H:i:s'),
+                    'dichiarazione_utente_id' => $utenteId,
+                    'fuori_cutoff' => 0,
+                ]);
+                $this->presenze->registraAudit(
+                    $bambinoId, $data, 'dichiarazione_genitore',
+                    $record['dichiarazione_genitore'], $stato, $utenteId
+                );
+                return $this->ricalcola($bambinoId, $data, false, 'dichiarazione');
+            });
+        } finally {
+            $this->job->rilasciaLock($plessoId, $data);
+        }
     }
 
     /**
