@@ -24,8 +24,9 @@ Data preparazione: 14 ottobre 2026. **Non eseguire i passi di rilascio senza col
 
 - `database/migrations/002_calendario_mensa.sql`: crea `calendari_servizio` ed `eccezioni_calendario`, inserisce le regole iniziali per infanzia e secondaria SOLO se il nome del plesso coincide.
 - `database/migrations/003_richieste_pasta_bianco.sql`: crea `richieste_pasta_bianco` con FK verso `bambini` e `utenti`.
+- `database/migrations/004_audit_operazioni_presenze.sql`: crea il log append-only di tutte le modifiche a presenze e richieste speciali.
 
-Entrambe sono **additive** e testate per doppia applicazione su un database vuoto di CI; NON disabilitano FK e NON contengono `TRUNCATE` o cancellazioni di movimenti. Non applicare `001_schema.sql` al DB di produzione durante questa manutenzione.
+Le tre migration sono **additive** e testate per doppia applicazione su un database vuoto di CI; NON disabilitano FK e NON contengono `TRUNCATE` o cancellazioni di movimenti. Non applicare `001_schema.sql` al DB di produzione durante questa manutenzione.
 
 ### Controllo di configurazione obbligatorio
 
@@ -39,13 +40,13 @@ Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non 
 ## Sequenza consigliata
 
 1. Preparare ambiente isolato (staging) con dati di prova **sintetici**. Non esportare anagrafiche di minori in servizi pubblici di CI o repository.
-2. Creare backup dello staging. Applicare 002 e 003, nell'ordine, sul solo database staging.
+2. Creare backup dello staging. Applicare 002, 003 e 004, nell'ordine, sul solo database staging.
 3. Pubblicare il codice del branch `dev` su staging; configurare SMTP per **non inviare email reali**.
 4. Eseguire `php tests/calendario.php` e il lint PHP. Verificare GitHub Actions `PHP quality checks`.
 5. Effettuare test applicativi con utenze Admin, Genitore, Catering e due classi di prova; verificare API e interfacce.
 6. Documentare risultati e predisporre Pull Request verso `main` solo dopo revisione/autorizzazione di Corrado.
 7. Eseguire nuovo backup di produzione e congelare le modifiche operative al momento del deploy.
-8. Applicare le sole migration 002/003 e poi i file rilasciati, con accessi e permessi coerenti. Verificare collegamenti fra config DB e codice.
+8. Applicare le sole migration 002/003/004 e poi i file rilasciati, con accessi e permessi coerenti. Verificare collegamenti fra config DB e codice.
 9. **Cron ancora sospeso** fino a conferma delle condizioni del 19/10 e del cutoff; verificare manualmente che il job NON addebiti fuori calendario prima di ripristinare la pianificazione.
 10. Dopo l'avvio controllare esecuzioni, conteggi, email, saldi e stato presenze; in caso di problemi fermare il job prima di correggere.
 
@@ -62,12 +63,20 @@ Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non 
 - Pasta in bianco: due figli e due date, richiedi/annulla in modo indipendente; il catering vede nome e classe SOLO del figlio presente con richiesta attiva.
 - Infanzia: classi A/B/C/D mostrate con totali separati, anche con zero presenti.
 - Prima del job: conteggio presenti calcolato anche per i bambini senza `presenze_giornaliere`.
-- Doppia invocazione cron/mandato manuale: non genera doppio consumo.
+- Doppia invocazione cron/comando manuale: non genera doppio consumo.
+- Doppia dichiarazione uguale del genitore: un solo evento audit. Cambio di stato futuro: entrambi gli eventi registrati.
+- Tentativo di modifica dopo cutoff: rifiuto server senza ricalcoli economici, anche prima del passaggio del job.
+- Scuola senza plesso assegnato: accesso negato. Scuola assegnata: azioni limitate al plesso.
+- Scuola: conferma motivata di un pasto servito dopo il cutoff, una sola registrazione contabile e nessun rimborso automatico in caso di successiva segnalazione di assenza.
 - Integrità contabile: `SUM(pool_crediti.saldo) = SUM(movimenti_crediti.delta)`, acquisti e rettifiche originari invariati; nessuna modifica ai 112 movimenti precedenti e ai 70 storni.
 - Consegna: niente nomi, dati economici o crediti dei familiari fuori dalle API autorizzate.
 
 ## Ambiti da verificare con attenzione
 
-- Non è ancora stato effettuato un collaudo funzionale completo su database staging con utenti reali simulati.
+- La CI esegue test su MariaDB sintetico, inclusi i tentativi di modifica tardiva e il pasto eccezionale. Non è ancora stato effettuato un collaudo end-to-end su staging via browser.
 - Le impostazioni settimanali oggi sono per plesso, non versionate per anno scolastico; evitare modifiche retroattive dopo le prime esecuzioni finché non si introduce una storia delle configurazioni.
 - Se un processo crasha lasciando il job in stato `in_corso`, la protezione blocca ulteriori tentativi automatici per lo stesso giorno: accertare manualmente l'esito prima di gestire un recupero, senza reinviare addebiti.
+
+## Principio gestionale da confermare con il Comune
+
+Il ticket viene contabilizzato in base al pasto previsto al cutoff; una presenza effettiva accertata dalla scuola, quando non prevista, genera un solo ticket. Le assenze comunicate a cutoff superato non determinano rimborso automatico. Confermare che queste regole coincidano con la disciplina comunale di prenotazione e pagamento prima del rilascio.
