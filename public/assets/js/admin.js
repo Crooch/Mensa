@@ -14,6 +14,17 @@ abilitaSchede((vista) => {
 /* ---------------- plessi ---------------- */
 async function caricaPlessi() {
     plessi = await API.get('/api/admin/plessi');
+    const dato = (numero, etichetta) => '<div class="riepilogo-mensa__dato"><strong>' +
+        esc(numero) + '</strong><span>' + esc(etichetta) + '</span></div>';
+    try {
+        const esecuzioni = await API.get('/api/job/esecuzioni');
+        const errori = esecuzioni.filter((x) => x.esito === 'errore').length;
+        document.getElementById('admin-riepilogo').innerHTML =
+            dato(plessi.length, 'Scuole attive') + dato(esecuzioni.length, 'Ultimi conteggi registrati') +
+            dato(errori, 'Conteggi con errore');
+    } catch (errore) {
+        document.getElementById('admin-riepilogo').innerHTML = dato(plessi.length, 'Scuole attive');
+    }
     document.getElementById('plessi-corpo').innerHTML = plessi.map((p) => `
         <tr data-testid="plesso-riga-${p.id}">
             <td>${esc(p.nome)}</td><td>${euro(p.tariffa_base_pasto)}</td><td>${p.fido_buoni}</td>
@@ -344,26 +355,59 @@ async function caricaEsecuzioni() {
         || '<tr><td colspan="4" class="vuoto">Nessuna esecuzione registrata.</td></tr>';
 }
 
-document.getElementById('btn-scheduler').addEventListener('click', async () => {
-    if (!confirm('ATTENZIONE: questa operazione può confermare i pasti di oggi e scalare i buoni delle famiglie. Non è una simulazione. Vuoi eseguire il conteggio per tutte le scuole?')) return;
+
+function mostraEsitoJob(esito) {
+    const righe = Array.isArray(esito) ? esito : [esito];
+    const traduci = (stato) => ({
+        eseguito: 'Conteggio completato',
+        gia_eseguito: 'Conteggio già completato in precedenza',
+        fuori_calendario: 'Mensa non prevista oggi',
+        cutoff_non_raggiunto: 'Orario limite non ancora raggiunto',
+        in_corso: 'Elaborazione già in corso',
+        errore: 'Errore nel conteggio'
+    }[stato] || esitoOperazione(stato));
+    const html = righe.map((r) => {
+        const colore = r.stato === 'errore' ? 'rosso' :
+            r.stato === 'eseguito' || r.stato === 'gia_eseguito' ? 'verde' : 'giallo';
+        return '<article class="card-mensa"><h3>' + esc(r.plesso || 'Scuola') + '</h3>' +
+            '<p><span class="badge-stato badge-' + colore + '">' + esc(traduci(r.stato)) + '</span></p>' +
+            (r.consumi !== undefined ? '<p>Buoni utilizzati: <strong>' + Number(r.consumi) + '</strong></p>' : '') +
+            (r.pasti_report !== undefined ? '<p>Pasti nel report: <strong>' + Number(r.pasti_report) + '</strong></p>' : '') +
+            (r.messaggio ? '<p class="nota">' + esc(r.messaggio) + '</p>' : '') +
+            '</article>';
+    }).join('');
+    document.getElementById('job-esito').className = 'griglia-cards';
+    document.getElementById('job-esito').innerHTML = html || '<p>Nessun nuovo conteggio.</p>';
+}
+
+document.getElementById('btn-scheduler').addEventListener('click', async (e) => {
+    if (!await UI.conferma('Conferma conteggio dei pasti',
+        'Questa operazione non è una simulazione: dove il servizio è attivo e l’orario limite è passato, può scalare i buoni alle famiglie.',
+        'Esegui il conteggio')) return;
     try {
-        const esito = await API.post('/api/job/scheduler', {});
-        document.getElementById('job-esito').textContent = JSON.stringify(esito, null, 2);
-        avviso('Conteggio di tutte le scuole eseguito. Controlla il risultato qui sotto.');
-        caricaEsecuzioni();
-    } catch (err) { avviso(err.message, 'errore'); }
+        await UI.esegui(e.currentTarget, async () => {
+            const esito = await API.post('/api/job/scheduler', {});
+            mostraEsitoJob(esito);
+            await caricaEsecuzioni();
+            avviso('Controllo concluso. Consulta l’esito per ciascuna scuola.');
+        }, 'Elaborazione…');
+    } catch (err) { UI.stato('job-esito', 'Conteggio non completato: ' + err.message, 'errore'); }
 });
 
-document.getElementById('btn-job-plesso').addEventListener('click', async () => {
+document.getElementById('btn-job-plesso').addEventListener('click', async (e) => {
     const scelta = document.getElementById('job-plesso');
     const nomeScuola = scelta.options[scelta.selectedIndex]?.text || 'la scuola selezionata';
-    if (!confirm('ATTENZIONE: il conteggio di ' + nomeScuola + ' può confermare i pasti e scalare i buoni delle famiglie. Non è una simulazione. Vuoi continuare?')) return;
+    if (!await UI.conferma('Conferma conteggio di ' + nomeScuola,
+        'L’operazione può confermare i pasti e scalare i buoni. Non è una simulazione.',
+        'Conferma conteggio')) return;
     try {
-        const esito = await API.post('/api/job/plessi/' + document.getElementById('job-plesso').value, {});
-        document.getElementById('job-esito').textContent = JSON.stringify(esito, null, 2);
-        avviso('Conteggio della scuola eseguito. Controlla il risultato qui sotto.');
-        caricaEsecuzioni();
-    } catch (err) { avviso(err.message, 'errore'); }
+        await UI.esegui(e.currentTarget, async () => {
+            const esito = await API.post('/api/job/plessi/' + scelta.value, {});
+            mostraEsitoJob(esito);
+            await caricaEsecuzioni();
+            avviso('Controllo terminato. Consulta l’esito qui sotto.');
+        }, 'Elaborazione…');
+    } catch (err) { UI.stato('job-esito', 'Conteggio non completato: ' + err.message, 'errore'); }
 });
 
 caricaPlessi().catch((e) => avviso(e.message, 'errore'));
