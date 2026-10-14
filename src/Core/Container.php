@@ -94,7 +94,7 @@ final class Container
 
     public function calendario(): S\CalendarioService
     {
-        return $this->ottieni('s.calendario', fn () => new S\CalendarioService($this->calendarioRepo()));
+        return $this->ottieni('s.calendario', fn () => new S\CalendarioService($this->calendarioRepo(), $this->plessi()));
     }
 
     public function jobRepo(): R\JobRepository
