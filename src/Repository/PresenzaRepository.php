@@ -91,27 +91,48 @@ final class PresenzaRepository extends Repository
     }
 
     /**
-     * Report per plesso, classe/sezione e tipologia alimentare.
-     * Anche prima del primo job, gli alunni senza record sono presenti per
-     * default, salvo un'assenza di massa della rispettiva classe.
+     * Pasti per plesso, classe/sezione e tipologia.
+     *
+     * La query parte dalle CLASSI (e non dagli alunni): anche una sezione
+     * senza alcun bambino assegnato deve comparire con zero pasti.
+     * Mostra le classi dell'anno scolastico della data richiesta, includendo
+     * eventuali classi di anni diversi ancora con assegnazioni attive.
      */
     public function reportPasti(string $data, ?int $plessoId = null): array
     {
+        $anno = (int) substr($data, 0, 4);
+        if ((int) substr($data, 5, 2) < 9) {
+            $anno--;
+        }
+        $annoScolastico = $anno . '/' . ($anno + 1);
         $sql = "SELECT p.id AS plesso_id, p.nome AS plesso_nome,
                        cs.id AS classe_id, cs.nome AS classe_nome,
                        t.id AS tipologia_id, t.nome AS tipologia_nome,
-                       SUM(CASE WHEN COALESCE(pg.stato_effettivo,
-                           IF(am.id IS NULL, 'presente', 'assente')) = 'presente'
+                       SUM(CASE WHEN b.id IS NOT NULL AND
+                            COALESCE(pg.stato_effettivo,
+                                IF(am.id IS NULL, 'presente', 'assente')) = 'presente'
                            THEN 1 ELSE 0 END) AS pasti
-                FROM assegnazioni_classe ac
-                JOIN bambini b ON b.id = ac.bambino_id AND b.cancellato_logicamente = 0
-                JOIN classi_sezioni cs ON cs.id = ac.classe_sezione_id
+                FROM classi_sezioni cs
                 JOIN plessi p ON p.id = cs.plesso_id AND p.cancellato_logicamente = 0
-                JOIN tipologie_menu t ON t.id = b.tipologia_menu_id
+                LEFT JOIN assegnazioni_classe ac
+                  ON ac.classe_sezione_id = cs.id
+                 AND ac.data_inizio <= :data
+                 AND (ac.data_fine IS NULL OR ac.data_fine >= :data)
+                LEFT JOIN bambini b ON b.id = ac.bambino_id AND b.cancellato_logicamente = 0
+                LEFT JOIN tipologie_menu t ON t.id = b.tipologia_menu_id
                 LEFT JOIN presenze_giornaliere pg ON pg.bambino_id = b.id AND pg.data = :data
                 LEFT JOIN assenze_massa am ON am.classe_sezione_id = cs.id AND am.data = :data
-                WHERE ac.data_inizio <= :data AND (ac.data_fine IS NULL OR ac.data_fine >= :data)";
-        $parametri = ['data' => $data];
+                WHERE cs.cancellata_logicamente = 0
+                  AND (
+                       cs.anno_scolastico = :anno_scolastico
+                       OR EXISTS (
+                           SELECT 1 FROM assegnazioni_classe aa
+                           WHERE aa.classe_sezione_id = cs.id
+                             AND aa.data_inizio <= :data
+                             AND (aa.data_fine IS NULL OR aa.data_fine >= :data)
+                       )
+                  )";
+        $parametri = ['data' => $data, 'anno_scolastico' => $annoScolastico];
         if ($plessoId !== null) {
             $sql .= ' AND p.id = :plesso';
             $parametri['plesso'] = $plessoId;
