@@ -11,6 +11,7 @@ use App\Repository\MenuGiornalieroRepository;
 use App\Repository\PlessoRepository;
 use App\Repository\PresenzaRepository;
 use App\Repository\TipologiaMenuRepository;
+use App\Repository\MenuSettimanaleRepository;
 
 /**
  * Vista catering: report pasti, pubblicazione menu del giorno.
@@ -26,7 +27,8 @@ final class CateringService
         private MenuGiornalieroRepository $menu,
         private PresenzaService $presenzaService,
         private CalendarioService $calendario,
-        private JobRepository $job
+        private JobRepository $job,
+        private MenuSettimanaleRepository $settimanali
     ) {
     }
 
@@ -112,7 +114,108 @@ final class CateringService
 
     public function menuDelGiorno(string $data, ?int $plessoId = null): array
     {
-        return $this->menu->elenco($data, $plessoId);
+        $giorno = \DateTimeImmutable::createFromFormat('!Y-m-d', $data);
+        if (!$giorno || $giorno->format('Y-m-d') !== $data) {
+            throw HttpException::nonValido('Data del menu non valida');
+        }
+        // Un menu pubblicato per il giorno è un'eccezione che prevale
+        // sulla settimana tipo. Non viene MAI riscritto dai modelli.
+        $giornalieri = $this->menu->elenco($data, $plessoId);
+        $chiavi = [];
+        foreach ($giornalieri as &$g) {
+            $g['origine'] = 'giornaliero';
+            $chiavi[$g['plesso_id'] . ':' . $g['tipologia_menu_id']] = true;
+        }
+        unset($g);
+        foreach ($this->settimanali->giorniDiSettimana($data, $plessoId) as $modello) {
+            $chiave = $modello['plesso_id'] . ':' . $modello['tipologia_menu_id'];
+            if (isset($chiavi[$chiave])) continue;
+            if (!$this->calendario->previsto((int) $modello['plesso_id'], $data)['attivo']) continue;
+            $giornalieri[] = $modello;
+        }
+        return $giornalieri;
+    }
+
+    private function dalGiornoSuccessivo(): string
+    {
+        return (new \DateTimeImmutable('tomorrow'))->format('Y-m-d');
+    }
+
+    private function validaGiorni(array $giorni): array
+    {
+        $puliti = [];
+        for ($g = 1; $g <= 7; $g++) {
+            $valore = $giorni[(string) $g] ?? $giorni[$g] ?? '';
+            if (!is_string($valore) || mb_strlen($valore) > 3000) {
+                throw HttpException::nonValido('Descrizione non valida per il giorno ' . $g);
+            }
+            $puliti[(string) $g] = trim($valore);
+        }
+        if (implode('', $puliti) === '') {
+            throw HttpException::nonValido('Inserisci almeno un giorno del menu settimanale');
+        }
+        return $puliti;
+    }
+
+    public function elencoMenuSettimanali(): array
+    {
+        return $this->settimanali->elenco($this->dalGiornoSuccessivo());
+    }
+
+    public function salvaMenuSettimanale(?int $id, string $nome, int $tipo, array $giorni, int $autore): int
+    {
+        $nome = trim($nome);
+        if ($nome === '' || mb_strlen($nome) > 150) {
+            throw HttpException::nonValido('Indica un nome per il menu settimanale (massimo 150 caratteri)');
+        }
+        if ($this->tipologie->trova($tipo) === null) {
+            throw HttpException::nonValido('Tipologia menu inesistente');
+        }
+        $contenuti = $this->validaGiorni($giorni);
+        $dal = $this->dalGiornoSuccessivo();
+        if ($id === null) return $this->settimanali->crea($nome, $tipo, $contenuti, $dal, $autore);
+        $esistente = $this->settimanali->modello($id, $dal);
+        if (!$esistente) throw HttpException::nonTrovato('Menu settimanale inesistente');
+        if ((int) $esistente['tipologia_menu_id'] !== $tipo) {
+            throw HttpException::nonValido('La tipologia di un menu già assegnato non può cambiare: duplicalo');
+        }
+        $this->settimanali->modifica($id, $nome, $contenuti, $dal, $autore);
+        return $id;
+    }
+
+    public function duplicaMenuSettimanale(int $id, string $nome, int $tipo, int $autore): int
+    {
+        $modello = $this->settimanali->modello($id, $this->dalGiornoSuccessivo());
+        if (!$modello) throw HttpException::nonTrovato('Menu settimanale da duplicare inesistente');
+        return $this->salvaMenuSettimanale(null, $nome, $tipo, $modello['giorni'], $autore);
+    }
+
+    public function assegnazioniMenuSettimanali(): array
+    {
+        return $this->settimanali->assegnazioni($this->dalGiornoSuccessivo());
+    }
+
+    public function assegnaMenuSettimanale(?int $id, int $tipologiaId, array $plessi, int $autore): array
+    {
+        if ($this->tipologie->trova($tipologiaId) === null) {
+            throw HttpException::nonValido('Tipologia menu inesistente');
+        }
+        if ($id !== null) {
+            $modello = $this->settimanali->modello($id, $this->dalGiornoSuccessivo());
+            if (!$modello || (int) $modello['tipologia_menu_id'] !== $tipologiaId) {
+                throw HttpException::nonValido('Il modello non appartiene alla tipologia selezionata');
+            }
+        }
+        $ids = array_values(array_unique(array_map('intval', $plessi)));
+        if ($ids === []) throw HttpException::nonValido('Seleziona almeno un plesso');
+        foreach ($ids as $plesso) {
+            if ($plesso <= 0 || $this->plessi->trova($plesso) === null) {
+                throw HttpException::nonValido('Plesso non valido');
+            }
+        }
+        $dal = $this->dalGiornoSuccessivo();
+        $this->settimanali->assegna($ids, $tipologiaId, $id, $dal, $autore);
+        return ['valido_dal' => $dal, 'plessi' => $ids, 'menu_id' => $id];
     }
 
     /**
