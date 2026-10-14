@@ -31,37 +31,89 @@ final class CreditoService
      *
      * @return array{movimento_id:int, importo:float, tariffa:float, origine_tariffa:string, saldo:int}
      */
-    public function acquistaBuoni(int $genitoreId, int $plessoId, int $numeroBuoni, int $utenteId, ?string $note = null): array
+    public function acquistaBuoni(int $genitoreId, int $plessoId, int $numeroBuoni, int $utenteId,
+                                  ?string $note = null, ?string $richiestaId = null): array
     {
         if ($numeroBuoni <= 0) {
             throw HttpException::nonValido('Il numero di buoni deve essere maggiore di zero');
         }
+        if ($richiestaId !== null && !preg_match('/^[a-zA-Z0-9-]{16,64}$/D', $richiestaId)) {
+            throw HttpException::nonValido('Identificativo della richiesta non valido');
+        }
         $tariffa = $this->tariffe->tariffaAttiva($genitoreId, $plessoId);
         $importo = round($numeroBuoni * $tariffa['tariffa'], 2);
 
-        return Database::inTransazione(function () use ($genitoreId, $plessoId, $numeroBuoni, $utenteId, $note, $tariffa, $importo) {
-            $poolId = $this->crediti->assicuraPool($genitoreId, $plessoId);
-            $movimentoId = $this->crediti->registraMovimento([
-                'pool_id'      => $poolId,
-                'tipo'         => 'acquisto',
-                'delta'        => $numeroBuoni,
-                'data'         => date('Y-m-d'),
-                'bambino_id'   => null,
-                'importo_euro' => $importo,
-                'utente_id'    => $utenteId,
-                'note'         => $note,
-            ]);
-            $this->crediti->aggiornaSaldo($poolId, $numeroBuoni);
-            $pool = $this->crediti->trovaPool($genitoreId, $plessoId);
+        // Il medesimo token deve sempre riferirsi allo stesso acquisto.
+        // Il controllo preliminare migliora la risposta; il DB UNIQUE evita
+        // duplicati anche fra richieste parallele da browser diversi.
+        if ($richiestaId !== null) {
+            $precedente = $this->crediti->acquistoPerRichiesta($richiestaId);
+            if ($precedente !== null) {
+                return $this->rispostaAcquistoEsistente($precedente, $genitoreId, $plessoId, $numeroBuoni, $utenteId);
+            }
+        }
 
-            return [
-                'movimento_id'    => $movimentoId,
-                'importo'         => $importo,
-                'tariffa'         => $tariffa['tariffa'],
-                'origine_tariffa' => $tariffa['origine'],
-                'saldo'           => (int) $pool['saldo'],
-            ];
-        });
+        try {
+            return Database::inTransazione(function () use (
+                $genitoreId, $plessoId, $numeroBuoni, $utenteId, $note, $tariffa, $importo, $richiestaId
+            ) {
+                $poolId = $this->crediti->assicuraPool($genitoreId, $plessoId);
+                $movimentoId = $this->crediti->registraMovimento([
+                    'pool_id'      => $poolId,
+                    'tipo'         => 'acquisto',
+                    'delta'        => $numeroBuoni,
+                    'data'         => date('Y-m-d'),
+                    'bambino_id'   => null,
+                    'importo_euro' => $importo,
+                    'utente_id'    => $utenteId,
+                    'note'         => $note,
+                    'richiesta_id' => $richiestaId,
+                ]);
+                $this->crediti->aggiornaSaldo($poolId, $numeroBuoni);
+                $pool = $this->crediti->trovaPool($genitoreId, $plessoId);
+
+                return [
+                    'movimento_id'    => $movimentoId,
+                    'importo'         => $importo,
+                    'tariffa'         => $tariffa['tariffa'],
+                    'origine_tariffa' => $tariffa['origine'],
+                    'saldo'           => (int) $pool['saldo'],
+                    'gia_registrato'  => false,
+                ];
+            });
+        } catch (\PDOException $errore) {
+            // Un retry parallelo può incontrare la chiave UNIQUE già inserita.
+            // La transazione fallita è stata annullata: rilegge il movimento
+            // originario senza alterare una seconda volta il saldo.
+            if ($richiestaId === null || (string) $errore->getCode() !== '23000') {
+                throw $errore;
+            }
+            $precedente = $this->crediti->acquistoPerRichiesta($richiestaId);
+            if ($precedente === null) {
+                throw $errore;
+            }
+            return $this->rispostaAcquistoEsistente($precedente, $genitoreId, $plessoId, $numeroBuoni, $utenteId);
+        }
+    }
+
+    private function rispostaAcquistoEsistente(array $precedente, int $genitoreId, int $plessoId,
+                                               int $numeroBuoni, int $utenteId): array
+    {
+        if ((int) $precedente['genitore_id'] !== $genitoreId
+            || (int) $precedente['plesso_id'] !== $plessoId
+            || (int) $precedente['delta'] !== $numeroBuoni
+            || (int) $precedente['utente_id'] !== $utenteId) {
+            throw HttpException::nonValido('Questa richiesta è già stata usata per un acquisto diverso. Riapri il modulo.');
+        }
+        $pool = $this->crediti->trovaPool($genitoreId, $plessoId);
+        return [
+            'movimento_id'    => (int) $precedente['id'],
+            'importo'         => (float) $precedente['importo_euro'],
+            'tariffa'         => (float) $precedente['importo_euro'] / $numeroBuoni,
+            'origine_tariffa' => 'acquisto_precedente',
+            'saldo'           => (int) $pool['saldo'],
+            'gia_registrato'  => true,
+        ];
     }
 
     /** Rettifica manuale del saldo (con nota obbligatoria per tracciabilita'). */
