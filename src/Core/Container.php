@@ -77,6 +77,11 @@ final class Container
         return $this->ottieni('r.menu', fn () => new R\MenuGiornalieroRepository());
     }
 
+    public function menuSettimanali(): R\MenuSettimanaleRepository
+    {
+        return $this->ottieni('r.menuSettimanali', fn () => new R\MenuSettimanaleRepository());
+    }
+
     public function feedbackRepo(): R\FeedbackRepository
     {
         return $this->ottieni('r.feedback', fn () => new R\FeedbackRepository());
@@ -159,7 +164,8 @@ final class Container
             $this->menu(),
             $this->presenzaService(),
             $this->calendario(),
-            $this->jobRepo()
+            $this->jobRepo(),
+            $this->menuSettimanali()
         ));
     }
 
