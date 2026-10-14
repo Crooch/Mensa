@@ -30,3 +30,18 @@ assert.match(css, /\.campo-filtro\s*\{/);
 assert.match(css, /\.tabella-scroll\s*\{[^}]*overflow-x:\s*auto/s);
 assert.match(css, /overflow-wrap:\s*anywhere/);
 console.log('OK: motivazioni concise, testi superflui rimossi e regole anti-overflow presenti.');
+
+const common = readFileSync('public/assets/js/api.js', 'utf8');
+const funzioneFido = vm.runInNewContext(
+    common.slice(common.indexOf('const fidoConcesso ='), common.indexOf(';', common.indexOf('const fidoConcesso =')) + 1) + '\nfidoConcesso'
+);
+assert.equal(funzioneFido(5), '-5 buoni');
+assert.equal(funzioneFido(0), '0 buoni');
+assert.equal(funzioneFido(-5), '-5 buoni');
+const genitore = readFileSync('public/assets/js/genitore.js', 'utf8');
+const operatore = readFileSync('public/assets/js/operatore.js', 'utf8');
+const amministratore = readFileSync('public/assets/js/admin.js', 'utf8');
+assert.match(genitore, /<dt>Fido concesso<\/dt><dd>\$\{fidoConcesso\(c\.fido_buoni\)\}<\/dd>/);
+assert.match(operatore, /<dt>Fido concesso<\/dt><dd>\$\{fidoConcesso\(c\.fido_buoni\)\}<\/dd>/);
+assert.match(amministratore, /fido_buoni: Math\.abs\(Number\(document\.getElementById\('plesso-fido'\)\.value\)\)/);
+console.log('OK: fido concesso mostrato negativo con unità buoni; salvataggio in formato DB invariato.');
