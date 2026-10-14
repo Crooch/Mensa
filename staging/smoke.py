@@ -1,6 +1,7 @@
 import json
 import datetime as dt
 import urllib.request
+import urllib.error
 
 base = "http://127.0.0.1:18080"
 def call(path, payload=None, token=None):
@@ -43,20 +44,46 @@ assert giorni["2026-10-17"]["servizio_mensa"]["attivo"] is False
 assert giorni["2026-10-17"]["stato_effettivo"] is None
 print("OK: calendario familiare completo, giorni attivi e giorni senza mensa distinti")
 saldo_iniziale = dashboard["crediti"][0]["saldo"]
+# Pasta in bianco è richiedibile soltanto se il bambino mangerà a mensa.
 call("/api/genitore/presenze/dichiarazione", {
-    "bambino_id": figlio, "data": giorno, "stato": "assente"
+    "bambino_id": figlio, "data": giorno, "stato": "presente"
 }, token=genitore)
 call("/api/genitore/pasta-bianco", {
     "bambino_id": figlio, "data": giorno, "richiesta": 1
 }, token=genitore)
 report = call("/api/catering/report?data=" + giorno, token=catering)
 infanzia = next(x for x in report["plessi"] if x["plesso_id"] == 1)
+assert any(int(r["bambino_id"]) == figlio for r in infanzia["pasta_in_bianco"])
+
+call("/api/genitore/presenze/dichiarazione", {
+    "bambino_id": figlio, "data": giorno, "stato": "assente"
+}, token=genitore)
+stato = call("/api/genitore/figli/" + str(figlio) +
+             "/giornata?data=" + giorno, token=genitore)
+assert stato["stato_effettivo"] == "assente"
+assert not stato["pasta_in_bianco"], "L'assenza deve annullare la pasta in bianco"
+try:
+    call("/api/genitore/pasta-bianco", {
+        "bambino_id": figlio, "data": giorno, "richiesta": 1
+    }, token=genitore)
+    raise AssertionError("La richiesta di pasta in bianco è consentita con bambino assente")
+except urllib.error.HTTPError as exc:
+    assert exc.code in (400, 403, 409, 422), "Errore atteso per bambino assente"
+report = call("/api/catering/report?data=" + giorno, token=catering)
+infanzia = next(x for x in report["plessi"] if x["plesso_id"] == 1)
 assert all(int(r["bambino_id"]) != figlio for r in infanzia["pasta_in_bianco"])
+
 call("/api/genitore/presenze/dichiarazione", {
     "bambino_id": figlio, "data": giorno, "stato": "presente"
+}, token=genitore)
+stato = call("/api/genitore/figli/" + str(figlio) +
+             "/giornata?data=" + giorno, token=genitore)
+assert not stato["pasta_in_bianco"], "La vecchia richiesta non deve riattivarsi"
+call("/api/genitore/pasta-bianco", {
+    "bambino_id": figlio, "data": giorno, "richiesta": 1
 }, token=genitore)
 report = call("/api/catering/report?data=" + giorno, token=catering)
 infanzia = next(x for x in report["plessi"] if x["plesso_id"] == 1)
 assert any(int(r["bambino_id"]) == figlio for r in infanzia["pasta_in_bianco"])
 assert call("/api/genitore/dashboard", token=genitore)["crediti"][0]["saldo"] == saldo_iniziale
-print("OK: assenza, richiesta pasta, riattivazione e saldo invariato")
+print("OK: pasta solo se presente, cancellazione con assenza, riattivazione esplicita e saldo invariato")
