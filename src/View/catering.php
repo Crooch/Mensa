@@ -49,7 +49,7 @@ require __DIR__ . '/partials/testa.php';
             <input type="file" id="menu-foto" accept="image/*" data-testid="menu-foto-input">
             <p id="menu-foto-stato" class="nota catering-foto-nota" data-testid="menu-foto-stato">Puoi aggiungere una foto al menu.</p>
         </div>
-        <button type="submit" id="menu-submit" class="btn btn-primary catering-menu-submit" disabled data-testid="menu-submit-button">Pubblica questo menu</button>
+        <button type="submit" id="menu-submit" class="btn btn-primary catering-menu-submit" disabled data-testid="menu-submit-button">Pubblica menu</button>
     </form>
     <h2>Menu già pubblicati oggi</h2>
     <p id="menu-stato" class="stato-operazione" role="status" hidden></p>
