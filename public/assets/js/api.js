@@ -177,13 +177,29 @@ function abilitaSchede(alCambio) {
         bottone.setAttribute('role', 'tab');
         bottone.setAttribute('aria-controls', 'vista-' + bottone.dataset.vista);
         bottone.setAttribute('aria-selected', bottone.classList.contains('attiva') ? 'true' : 'false');
+        bottone.tabIndex = bottone.classList.contains('attiva') ? 0 : -1;
+        bottone.addEventListener('keydown', (evento) => {
+            const schede = Array.from(document.querySelectorAll('.scheda'));
+            const indice = schede.indexOf(bottone);
+            let prossimo = indice;
+            if (evento.key === 'ArrowRight') prossimo = (indice + 1) % schede.length;
+            else if (evento.key === 'ArrowLeft') prossimo = (indice + schede.length - 1) % schede.length;
+            else if (evento.key === 'Home') prossimo = 0;
+            else if (evento.key === 'End') prossimo = schede.length - 1;
+            else return;
+            evento.preventDefault();
+            schede[prossimo].click();
+            schede[prossimo].focus();
+        });
         bottone.addEventListener('click', () => {
             document.querySelectorAll('.scheda').forEach((b) => {
                 b.classList.remove('attiva');
                 b.setAttribute('aria-selected', 'false');
+                b.tabIndex = -1;
             });
             bottone.classList.add('attiva');
             bottone.setAttribute('aria-selected', 'true');
+            bottone.tabIndex = 0;
             document.querySelectorAll('.vista').forEach((v) => { v.hidden = true; });
             const vista = document.getElementById('vista-' + bottone.dataset.vista);
             if (vista) {
