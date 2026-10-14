@@ -504,6 +504,43 @@ html, body { max-width: 100%; }
 }
 
 
+/* Select condiviso: freccia centrata e distanziata dal testo su tutti
+   i profili (i controlli multipli mantengono l'aspetto nativo). */
+select:not([multiple]):not([size]) {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+    height: 46px;
+    padding: .55rem 2.65rem .55rem .75rem !important;
+    margin: 0;
+    border: 1px solid #91a9bd !important;
+    border-radius: 8px !important;
+    background-color: #fff !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6' fill='none' stroke='%23334d65' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right .85rem center !important;
+    background-size: 18px 18px !important;
+    box-shadow: 0 1px 2px rgba(18, 49, 77, .07) !important;
+    color: var(--grigio-testo);
+    font: inherit;
+    font-size: .95rem;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+select:not([multiple]):not([size]):focus-visible {
+    outline: 3px solid var(--blu-italia);
+    outline-offset: 2px;
+}
+select:not([multiple]):not([size]):disabled {
+    cursor: not-allowed;
+    background-color: #f0f2f5 !important;
+}
+
 /* Componente comune data/mese/ora: Scuola, Genitore, Catering, Operatore e Admin.
    Bootstrap Italia applicava una sottolineatura a tutta larghezza mentre
    l'icona del calendario restava vicina alla data. Il bordo appartiene ora
@@ -598,11 +635,40 @@ input[type="datetime-local"]:focus-visible {
 }
 .scuola-azioni { display: flex; flex-direction: column; gap: .4rem; width: 100%; }
 .scuola-azioni .btn { width: 100%; min-height: 40px; padding: .38rem .5rem; }
+/* Badge e note appartengono alla stessa colonna, anche se il testo va a capo.
+   La nota inizia in corrispondenza del testo interno al badge, non del bordo. */
 .scuola-correzione, .scuola-stato-pasto {
-    display: flex; flex-direction: column; align-items: flex-start; gap: .35rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    min-width: 0;
+    max-width: 100%;
+    gap: .25rem;
 }
-.scuola-correzione small, .scuola-stato-pasto small {
-    display: block; color: #4b6177; font-size: .84rem; line-height: 1.35;
+.scuola-correzione > .badge-stato,
+.scuola-stato-pasto > .badge-stato {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-start;
+    max-width: 100%;
+    min-height: 28px;
+    margin: 0;
+    line-height: 1.3;
+    vertical-align: middle;
+}
+.scuola-correzione > small,
+.scuola-stato-pasto > small {
+    display: block;
+    box-sizing: border-box;
+    max-width: 100%;
+    margin: 0;
+    padding: 0 0 0 .55rem;
+    color: #4b6177;
+    font-size: .84rem;
+    line-height: 1.35;
+    text-align: left;
     overflow-wrap: anywhere;
 }
 .scuola-senza-modifica { color: #566e82; }
