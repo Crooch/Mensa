@@ -194,29 +194,83 @@ final class PresenzaService
     }
 
     /** Override della scuola, sempre motivato. Consentito anche su date passate (correzione tracciata). */
-    public function overrideScuola(int $bambinoId, string $data, string $stato, string $motivazione, int $utenteId, ?int $plessoUtente = null): array
+    public function overrideScuola(int $bambinoId, string $data, string $stato,
+                                   string $motivazione, int $utenteId, ?int $plessoUtente = null): array
     {
         $this->validaStato($stato);
-        if (trim($motivazione) === '') {
-            throw HttpException::nonValido('La motivazione dell\'override è obbligatoria');
+        $motivazione = trim($motivazione);
+        if ($motivazione === '' || strlen($motivazione) > 255) {
+            throw HttpException::nonValido('La motivazione e obbligatoria (massimo 255 caratteri)');
         }
         $bambino = $this->bambinoConPlesso($bambinoId, $data);
-        if ($plessoUtente !== null && (int) $bambino['plesso_id'] !== $plessoUtente) {
-            throw HttpException::nonAutorizzato('L\'alunno non appartiene al plesso dell\'utenza');
+        $plessoId = (int) $bambino['plesso_id'];
+        if ($plessoUtente !== null && $plessoId !== $plessoUtente) {
+            throw HttpException::nonAutorizzato('Alunno non appartenente al plesso assegnato');
         }
-        $plesso = $this->plessi->trova((int) $bambino['plesso_id']);
-        $fuoriCutoff = $this->oltreCutoff($plesso, $data);
+        $plesso = $this->plessi->trova($plessoId);
+        if ($data >= date('Y-m-d') && !$this->calendario->previsto($plessoId, $data)['attivo']) {
+            throw HttpException::nonValido('Nessun servizio mensa previsto per questa data');
+        }
+        if (!$this->job->acquisisciLock($plessoId, $data)) {
+            throw new HttpException(409, 'Elaborazione della giornata in corso. Riprovare.');
+        }
+        try {
+            return Database::inTransazione(function () use (
+                $bambinoId, $bambino, $data, $stato, $motivazione, $utenteId, $plessoId, $plesso
+            ) {
+                $record = $this->assicuraRecord($bambinoId, $data);
+                $fuoriCutoff = $this->oltreCutoff($plesso, $data);
+                $esecuzione = $this->job->esecuzione($plessoId, $data);
+                if ($esecuzione !== null && $esecuzione['esito'] === 'in_corso') {
+                    throw new HttpException(409, 'Job giornaliero ancora in elaborazione');
+                }
+                $aggiornamenti = [
+                    'override_scuola' => $stato,
+                    'override_timestamp' => date('Y-m-d H:i:s'),
+                    'override_utente_id' => $utenteId,
+                    'override_motivazione' => $motivazione,
+                    'fuori_cutoff' => $fuoriCutoff ? 1 : 0,
+                ];
 
-        $record = $this->assicuraRecord($bambinoId, $data);
-        $this->presenze->modificaPresenza((int) $record['id'], [
-            'override_scuola'      => $stato,
-            'override_timestamp'   => date('Y-m-d H:i:s'),
-            'override_utente_id'   => $utenteId,
-            'override_motivazione' => trim($motivazione),
-            'fuori_cutoff'         => $fuoriCutoff ? 1 : 0,
-        ]);
+                $consumo = false;
+                if ($fuoriCutoff && $data === date('Y-m-d') && $stato === 'presente') {
+                    // L'alunno ha usufruito del pasto nonostante la previsione di assenza.
+                    // Se il job e' concluso, la conferma genera un solo addebito;
+                    // se non e' ancora partito, lo effettuera' il job.
+                    if ($esecuzione !== null && $esecuzione['esito'] === 'errore') {
+                        throw new HttpException(409, 'Job incompleto: verificare la contabilizzazione prima della correzione');
+                    }
+                    $aggiornamenti['stato_effettivo'] = 'presente';
+                    if ($esecuzione !== null && $esecuzione['esito'] === 'ok') {
+                        $movimento = $this->crediti->registraConsumoInTransazione(
+                            (int) $bambino['genitore_id'], $plessoId, $bambinoId, $data, $utenteId
+                        );
+                        $aggiornamenti['consumo_registrato'] = 1;
+                        $consumo = $movimento !== null;
+                    }
+                } elseif (!$fuoriCutoff && (int) $record['congelato'] !== 1) {
+                    $record['override_scuola'] = $stato;
+                    $aggiornamenti['stato_effettivo'] = $this->calcolaStatoEffettivo($record);
+                }
 
-        return $this->ricalcola($bambinoId, $data, $fuoriCutoff, 'override');
+                $this->presenze->modificaPresenza((int) $record['id'], $aggiornamenti);
+                $this->presenze->registraAudit(
+                    $bambinoId, $data, 'override_scuola',
+                    $record['override_scuola'], $stato, $utenteId, $motivazione
+                );
+                $nuovo = $this->presenze->trovaPresenza($bambinoId, $data);
+                return $nuovo + [
+                    'effetto' => $fuoriCutoff
+                        ? ($consumo ? 'pasto_contabilizzato' :
+                            ($stato === 'presente' && $data === date('Y-m-d')
+                                ? 'presenza_confermata' : 'registrato_senza_effetto'))
+                        : 'applicato',
+                    'fonte' => 'override',
+                ];
+            });
+        } finally {
+            $this->job->rilasciaLock($plessoId, $data);
+        }
     }
 
     /**
