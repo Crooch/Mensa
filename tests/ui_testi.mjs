@@ -253,3 +253,17 @@ assert.match(cssCatering, /@media \(max-width: 980px\)/);
 assert.match(cssCatering, /@media \(max-width: 600px\)/);
 assert.match(cssCatering, /@media \(max-width: 600px\)[\s\S]*\.catering-filtri--report,[\s\S]*\.catering-filtri--menu,[\s\S]*\.catering-filtri--feedback\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\);/);
 console.log('OK: Catering allineato desktop/mobile; pubblicazione e modifica distinguibili.');
+
+/* Le descrizioni del menu possono contenere ritorni a capo: non vanno persi
+   né nella vista Catering né nella vista Genitore. L'eliminazione di foto
+   deve essere esplicita e disponibile solo per un menu con foto esistente. */
+const menuCss = css.slice(css.indexOf('/* Formattazione testuale del menu condivisa'));
+assert.ok(menuCss.startsWith('/* Formattazione testuale del menu condivisa'));
+assert.match(menuCss, /\.menu-descrizione\s*\{[^}]*white-space:\s*pre-wrap/s);
+assert.match(menuCss, /\.catering-rimuovi-foto\[hidden\]\s*\{[^}]*display:\s*none\s*!important/s);
+assert.match(cateringJs, /class="menu-descrizione"/);
+assert.match(genitore, /class="menu-descrizione"/);
+assert.match(cateringHtml, /id="menu-rimuovi-foto"/);
+assert.match(cateringHtml, /id="menu-rimuovi-foto-opzione"[^>]*hidden/);
+assert.match(cateringJs, /fd\.append\('rimuovi_foto', rimuoviFoto \? '1' : '0'\)/);
+console.log('OK: menu multilinea e rimozione foto in Catering e Genitore, anche da mobile.');
