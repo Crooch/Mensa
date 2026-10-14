@@ -17,14 +17,14 @@ require __DIR__ . '/partials/testa.php';
 <section id="vista-plessi" class="vista">
     <h1>Scuole e impostazioni della mensa</h1>
     <div id="admin-riepilogo" class="riepilogo-mensa" aria-live="polite"></div>
-    <p class="nota">Imposta il costo del pasto, la soglia per il sollecito e l'orario entro cui le famiglie possono modificare le presenze.</p>
+    <p class="nota">Configura tariffe, orari e soglie di avviso.</p>
     <form id="form-plesso" class="pannello" data-testid="plesso-form">
         <input type="hidden" id="plesso-id">
         <div class="riga-filtri">
             <label for="plesso-nome">Nome</label><input type="text" id="plesso-nome" data-testid="plesso-nome-input">
             <label for="plesso-tariffa">Tariffa base (€)</label><input type="number" step="0.01" min="0" id="plesso-tariffa" data-testid="plesso-tariffa-input">
-            <label for="plesso-fido">Buoni di debito prima del sollecito</label><input type="number" min="0" id="plesso-fido" data-testid="plesso-fido-input">
-            <label for="plesso-cutoff">Entro che ora si possono modificare i pasti?</label><input type="time" id="plesso-cutoff" data-testid="plesso-cutoff-input">
+            <label for="plesso-fido">Soglia sollecito (buoni)</label><input type="number" min="0" id="plesso-fido" data-testid="plesso-fido-input">
+            <label for="plesso-cutoff">Orario limite</label><input type="time" id="plesso-cutoff" data-testid="plesso-cutoff-input">
         </div>
         <div class="riga-filtri">
             <label for="plesso-dirigente">Email dirigente</label><input type="text" id="plesso-dirigente" data-testid="plesso-dirigente-input">
@@ -44,7 +44,7 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-calendario" class="vista" hidden>
     <h1>Calendario del servizio mensa</h1>
-    <p class="nota">Scegli una scuola, poi indica quando inizia la mensa e in quali giorni si mangia. Sabato, domenica e festività nazionali non prevedono pasti. Se non salvi il calendario della scuola, il sistema non conteggia i pasti.</p>
+    <p class="nota">Imposta i giorni di mensa. Fine settimana e festività sono esclusi.</p>
     <div class="riga-filtri">
         <label for="calendario-plesso">Scegli la scuola</label>
         <select id="calendario-plesso" data-testid="calendario-plesso-select"></select>
@@ -54,7 +54,7 @@ require __DIR__ . '/partials/testa.php';
         <div class="riga-filtri">
             <label for="calendario-inizio">Primo giorno di mensa</label>
             <input type="date" id="calendario-inizio" required>
-            <label for="calendario-fine">Ultimo giorno di mensa (se conosciuto)</label>
+            <label for="calendario-fine">Ultimo giorno (facoltativo)</label>
             <input type="date" id="calendario-fine">
         </div>
         <div class="riga-filtri">
@@ -68,7 +68,7 @@ require __DIR__ . '/partials/testa.php';
     </form>
 
     <h2>Un giorno diverso dal solito</h2>
-    <p class="nota">Usa questa sezione se la mensa sarà chiusa in un giorno normalmente previsto, oppure aperta in un giorno feriale normalmente escluso. La modifica vale solo per il giorno scelto.</p>
+    <p class="nota">Aperture o chiusure valide per un solo giorno.</p>
     <form id="form-eccezione-calendario" class="pannello">
         <div class="riga-filtri">
             <label for="eccezione-data">Giorno da modificare</label><input type="date" id="eccezione-data" required>
@@ -116,7 +116,7 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-tipologie" class="vista" hidden>
     <h1>Tipi di menu</h1>
-    <p class="nota">Ogni bambino ha un tipo di menu assegnato. Se servono più esigenze alimentari insieme, crea un nuovo tipo di menu che le comprenda.</p>
+    <p class="nota">Ogni bambino ha un menu assegnato.</p>
     <form id="form-tipologia" class="pannello" data-testid="tipologia-form">
         <div class="riga-filtri">
             <label for="tipologia-nome">Nome</label><input type="text" id="tipologia-nome" data-testid="tipologia-nome-input">
@@ -139,7 +139,7 @@ require __DIR__ . '/partials/testa.php';
             <label for="modello-oggetto">Oggetto</label><input type="text" id="modello-oggetto" data-testid="modello-oggetto-input">
         </div>
         <label for="modello-testo">Testo della comunicazione (puoi usare: {genitore} {alunno} {plesso} {saldo} {fido} {data})</label>
-        <p class="nota">Le parole tra parentesi graffe vengono sostituite automaticamente con i dati della famiglia. Non modificarne la scrittura.</p>
+        <p class="nota">Le parole tra { } sono compilate automaticamente.</p>
         <textarea id="modello-testo" rows="6" data-testid="modello-testo-input"></textarea>
         <button type="submit" class="btn btn-primary" data-testid="modello-submit-button">Salva modello</button>
     </form>
@@ -183,7 +183,7 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-utenti" class="vista" hidden>
     <h1>Persone che possono accedere</h1>
-    <p class="nota">Crea gli accessi per gli operatori, la scuola e il catering. Per gli utenti della scuola scegli anche la scuola di appartenenza.</p>
+    <p class="nota">Crea gli accessi e assegna il ruolo corretto.</p>
     <form id="form-utente" class="pannello" data-testid="utente-form">
         <div class="riga-filtri">
             <label for="ut-ruolo">Ruolo</label>
