@@ -149,6 +149,31 @@ const UI = {
     }
 };
 
+/**
+ * I filtri storici avevano etichette e campi come elementi separati dello
+ * stesso flex: su desktop le etichette lunghe occupavano tutta la riga.
+ * Accoppiandoli nella stessa cella ogni campo mantiene la sua etichetta
+ * e puo' andare a capo senza spingere fuori gli altri elementi.
+ */
+function raggruppaCampi(radice = document) {
+    radice.querySelectorAll('.riga-filtri').forEach((riga) => {
+        Array.from(riga.children).forEach((etichetta) => {
+            if (etichetta.tagName !== 'LABEL') return;
+            // Le caselle di selezione sono gia' racchiuse nella propria label.
+            if (etichetta.querySelector('input, select, textarea')) return;
+            const controllo = etichetta.nextElementSibling;
+            if (!controllo || !['INPUT', 'SELECT', 'TEXTAREA'].includes(controllo.tagName)) return;
+            if (etichetta.htmlFor && controllo.id !== etichetta.htmlFor) return;
+            const campo = document.createElement('div');
+            campo.className = 'campo-filtro';
+            riga.insertBefore(campo, etichetta);
+            campo.appendChild(etichetta);
+            campo.appendChild(controllo);
+        });
+    });
+}
+raggruppaCampi();
+
 /** Protegge la pagina: verifica token e ruolo, popola la navbar. */
 function proteggi(ruoloAtteso) {
     const utente = Sessione.utente();
