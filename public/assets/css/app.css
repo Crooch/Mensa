@@ -160,6 +160,7 @@ table.table tr.selezionata { background: var(--blu-chiaro); }
 .banner { border-left: 5px solid var(--blu-italia); background: var(--blu-chiaro); padding: .7rem 1rem; border-radius: var(--raggio); margin-bottom: 1rem; font-size: .9rem; }
 .banner--rosso { border-left-color: var(--rosso); background: #fbe6e4; }
 .banner--verde { border-left-color: var(--verde); background: #e3f4e6; }
+.banner--neutro { border-left-color: #9baaba; background: #eef2f6; color: #405268; }
 
 .avvisi { position: fixed; right: 1rem; bottom: 1rem; display: flex; flex-direction: column; gap: .5rem; z-index: 60; }
 .avviso { background: var(--blu-scuro); color: #fff; padding: .7rem 1rem; border-radius: var(--raggio); font-size: .9rem; box-shadow: 0 8px 24px rgba(0,0,0,.2); animation: entra .25s ease; max-width: 340px; }
