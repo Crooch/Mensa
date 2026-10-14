@@ -49,11 +49,13 @@ try {
     $nuovi['1'] = 'Primo: fusilli';
     $repo->modifica($id, 'Settimana A aggiornata', $nuovi, '2026-10-26', 0);
     $storico = $service->menuDelGiorno('2026-10-19', $infanzia);
-    if (count($storico) !== 1 || $storico[0]['descrizione'] !== $giorni['1']) {
+    if (count($storico) !== 1 || $storico[0]['descrizione'] !== $giorni['1'] ||
+        $storico[0]['modello_nome'] !== 'Settimana A') {
         throw new RuntimeException('La revisione ha riscritto un menu storico');
     }
     $futuro = $service->menuDelGiorno('2026-10-26', $infanzia);
-    if (count($futuro) !== 1 || $futuro[0]['descrizione'] !== 'Primo: fusilli') {
+    if (count($futuro) !== 1 || $futuro[0]['descrizione'] !== 'Primo: fusilli' ||
+        $futuro[0]['modello_nome'] !== 'Settimana A aggiornata') {
         throw new RuntimeException('La revisione non vale dalle date future');
     }
 
