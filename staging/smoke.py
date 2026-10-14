@@ -169,3 +169,87 @@ assert stato["stato_effettivo"] == "presente"
 assert not stato["pasta_in_bianco"], "La correzione scuola non deve riattivare una pasta annullata"
 assert call("/api/genitore/dashboard", token=genitore)["crediti"][0]["saldo"] == saldo_iniziale
 print("OK: Scuola -> Catering -> Genitore, motivazione salvata, conteggi e credito invariato")
+
+# Regressione gita: il messaggio "tutta la classe non mangera'" deve
+# prevalere sulle precedenti conferme di famiglia/scuola, e avere effetto
+# in Scuola, Catering e Genitore senza ricariche del database.
+gita_giorno = (dt.date.fromisoformat(giorno) + dt.timedelta(days=1)).isoformat()
+vista_gita = call("/api/scuola/classi/" + str(classe_figlio) +
+                  "/giornata?data=" + gita_giorno, token=scuola)
+assert vista_gita["servizio_mensa"]["attivo"] is True
+assert len(vista_gita["alunni"]) == 2
+figli_gita = [int(a["bambino_id"]) for a in vista_gita["alunni"]]
+assert figlio in figli_gita
+altro_figlio = next(b for b in figli_gita if b != figlio)
+
+call("/api/genitore/presenze/dichiarazione", {
+    "bambino_id": figlio, "data": gita_giorno, "stato": "presente"
+}, token=genitore)
+call("/api/scuola/presenze/override", {
+    "bambino_id": altro_figlio, "data": gita_giorno, "stato": "presente",
+    "motivazione": "Presenza verificata prima della gita"
+}, token=scuola)
+call("/api/genitore/pasta-bianco", {
+    "bambino_id": figlio, "data": gita_giorno, "richiesta": 1
+}, token=genitore)
+
+prima_gita = call("/api/catering/report?data=" + gita_giorno, token=catering)
+plesso_prima = next(x for x in prima_gita["plessi"] if x["plesso_id"] == 1)
+sezione_prima = next(x for x in plesso_prima["sezioni"] if x["classe_id"] == classe_figlio)
+assert int(sezione_prima["pasti"]) == 2
+
+esito_gita = call("/api/scuola/assenze-massa", {
+    "classe_sezione_id": classe_figlio, "data": gita_giorno,
+    "motivo": "Gita scolastica: nessun pasto"
+}, token=scuola)
+assert int(esito_gita["id"]) > 0
+
+dopo_gita = call("/api/scuola/classi/" + str(classe_figlio) +
+                 "/giornata?data=" + gita_giorno, token=scuola)
+assert dopo_gita["assenza_massa"]["motivo"] == "Gita scolastica: nessun pasto"
+assert all(a["stato_effettivo"] == "assente" for a in dopo_gita["alunni"])
+assert any(a["dichiarazione_genitore"] == "presente" for a in dopo_gita["alunni"])
+assert any(a["override_scuola"] == "presente" for a in dopo_gita["alunni"])
+
+report_gita = call("/api/catering/report?data=" + gita_giorno, token=catering)
+plesso_gita = next(x for x in report_gita["plessi"] if x["plesso_id"] == 1)
+sezione_gita = next(x for x in plesso_gita["sezioni"] if x["classe_id"] == classe_figlio)
+assert int(sezione_gita["pasti"]) == 0
+assert int(plesso_gita["totale_pasti"]) == int(plesso_prima["totale_pasti"]) - 2
+assert all(b["bambino_id"] not in figli_gita for b in plesso_gita["pasta_in_bianco"])
+
+stato_gita = call("/api/genitore/figli/" + str(figlio) +
+                  "/giornata?data=" + gita_giorno, token=genitore)
+assert stato_gita["servizio_mensa"] == {"attivo": False, "motivo": "assenza_classe"}
+assert stato_gita["stato_effettivo"] is None
+assert stato_gita["pasta_in_bianco"] is False
+mese_gita = call("/api/genitore/figli/" + str(figlio) +
+                 "/calendario?anno=" + gita_giorno[:4] +
+                 "&mese=" + str(int(gita_giorno[5:7])), token=genitore)
+riga_gita = next(x for x in mese_gita["giorni"] if x["data"] == gita_giorno)
+assert riga_gita["servizio_mensa"]["motivo"] == "assenza_classe"
+assert riga_gita["modificabile"] is False
+
+def rifiuta_gita(path, payload, bearer, descrizione):
+    try:
+        call(path, payload, token=bearer)
+        raise AssertionError("La gita non ha bloccato " + descrizione)
+    except urllib.error.HTTPError as exc:
+        assert exc.code == 422, descrizione + ": atteso errore di validazione"
+
+rifiuta_gita("/api/genitore/presenze/dichiarazione", {
+    "bambino_id": figlio, "data": gita_giorno, "stato": "presente"
+}, genitore, "nuova presenza familiare")
+rifiuta_gita("/api/scuola/presenze/override", {
+    "bambino_id": figlio, "data": gita_giorno, "stato": "presente",
+    "motivazione": "Conferma per errore"
+}, scuola, "nuova conferma scuola")
+rifiuta_gita("/api/genitore/pasta-bianco", {
+    "bambino_id": figlio, "data": gita_giorno, "richiesta": 1
+}, genitore, "pasta in bianco")
+rifiuta_gita("/api/scuola/assenze-massa", {
+    "classe_sezione_id": classe_figlio, "data": gita_giorno,
+    "motivo": "Inserimento duplicato"
+}, scuola, "gita duplicata")
+assert call("/api/genitore/dashboard", token=genitore)["crediti"][0]["saldo"] == saldo_iniziale
+print("OK: gita prevale su famiglia/scuola, pasti zero, niente pasta o nuovi interventi.")
