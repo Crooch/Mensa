@@ -21,8 +21,8 @@ require __DIR__ . '/partials/testa.php';
         <div class="riga-filtri">
             <label for="plesso-nome">Nome</label><input type="text" id="plesso-nome" data-testid="plesso-nome-input">
             <label for="plesso-tariffa">Tariffa base (€)</label><input type="number" step="0.01" min="0" id="plesso-tariffa" data-testid="plesso-tariffa-input">
-            <label for="plesso-fido">Fido (buoni)</label><input type="number" min="0" id="plesso-fido" data-testid="plesso-fido-input">
-            <label for="plesso-cutoff">Cutoff</label><input type="time" id="plesso-cutoff" data-testid="plesso-cutoff-input">
+            <label for="plesso-fido">Soglia di avviso (buoni)</label><input type="number" min="0" id="plesso-fido" data-testid="plesso-fido-input">
+            <label for="plesso-cutoff">Orario limite per modificare i pasti</label><input type="time" id="plesso-cutoff" data-testid="plesso-cutoff-input">
         </div>
         <div class="riga-filtri">
             <label for="plesso-dirigente">Email dirigente</label><input type="text" id="plesso-dirigente" data-testid="plesso-dirigente-input">
@@ -33,7 +33,7 @@ require __DIR__ . '/partials/testa.php';
     </form>
     <div class="tabella-scroll">
         <table class="table" data-testid="plessi-tabella">
-            <thead><tr><th>Plesso</th><th>Tariffa</th><th>Fido</th><th>Cutoff</th><th>Dirigente</th><th></th></tr></thead>
+            <thead><tr><th>Plesso</th><th>Tariffa</th><th>Soglia avviso</th><th>Orario limite</th><th>Dirigente</th><th></th></tr></thead>
             <tbody id="plessi-corpo"></tbody>
         </table>
     </div>
@@ -203,12 +203,12 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-job" class="vista" hidden>
-    <h1>Job giornaliero post-cutoff</h1>
-    <p class="nota">Lo scheduler valuta il cutoff di ciascun plesso separatamente. Cron consigliato: ogni 5 minuti.</p>
+    <h1>Conteggio automatico dei pasti del giorno</h1>
+    <p class="nota">Il sistema controlla ogni scuola dopo il suo orario limite. Il controllo automatico deve essere programmato ogni 5 minuti.</p>
     <div class="riga-filtri">
-        <button class="btn btn-primary btn-sm" id="btn-scheduler" data-testid="job-scheduler-button">Esegui scheduler adesso</button>
+        <button class="btn btn-primary btn-sm" id="btn-scheduler" data-testid="job-scheduler-button">Controlla ora tutte le scuole</button>
         <select id="job-plesso" data-testid="job-plesso-select"></select>
-        <button class="btn btn-outline-primary btn-sm" id="btn-job-plesso" data-testid="job-plesso-button">Forza esecuzione plesso</button>
+        <button class="btn btn-outline-primary btn-sm" id="btn-job-plesso" data-testid="job-plesso-button">Controlla la scuola selezionata</button>
     </div>
     <pre id="job-esito" class="esito" data-testid="job-esito"></pre>
     <h2>Ultime esecuzioni</h2>
