@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build and start isolated environment
         run: docker compose -f compose.staging.yml up --build -d --wait
       - name: Check HTTP responses
