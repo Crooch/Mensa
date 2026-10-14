@@ -1,6 +1,6 @@
 /* Area genitore: sola lettura + dichiarazione eccezioni e feedback. */
 const utente = proteggi('genitore');
-let statoApp = { figli: [], votoSelezionato: null };
+let statoApp = { figli: [], votoSelezionato: null, messaggi: {} };
 
 // Etichette comprensibili senza modificare i valori usati dalle API.
 const testoPasto = (stato) => stato === 'presente' ? 'Pasto previsto' : stato === 'assente' ? 'Pasto non previsto' : 'Da verificare';
@@ -52,14 +52,18 @@ async function caricaDashboard() {
                 <dt>Pasta in bianco oggi</dt><dd>${s && s.pasta_in_bianco ? 'richiesta' : 'non richiesta'}</dd>
                 <dt>Orario limite per le modifiche</dt><dd>${s ? 'Ore ' + esc(s.cutoff_orario) + (s.oltre_cutoff ? ' (oggi non puoi più modificare)' : '') : '-'}</dd>
             </dl>
+            ${statoApp.messaggi[f.id] ? '<p class="stato-operazione stato-operazione--ok" role="status">' + esc(statoApp.messaggi[f.id]) + '</p>' : ''}
             ${s ? `<div class="riga-filtri" style="margin-top:.75rem">
                 ${s.oltre_cutoff ? '<p class="nota">Per oggi è passato l’orario limite. Puoi ancora indicare un giorno futuro.</p>' : ''}
                 <label for="figlio-data-${f.id}">Per quale giorno?</label>
                 <input type="date" id="figlio-data-${f.id}" value="${giorniSelezionati[f.id] || oggi()}" min="${oggi()}" data-testid="figlio-data-${f.id}">
                 <button class="btn-azione" data-azione="presente" data-figlio="${f.id}" data-testid="dichiara-presente-${f.id}">Mangerà a mensa</button>
                 <button class="btn-azione" data-azione="assente" data-figlio="${f.id}" data-testid="dichiara-assente-${f.id}">Non mangerà a mensa</button>
-                <button class="btn-azione" data-pasta="1" data-figlio="${f.id}" data-testid="pasta-richiesta-${f.id}">Chiedi pasta in bianco</button>
-                <button class="btn-azione" data-pasta="0" data-figlio="${f.id}" data-testid="pasta-annulla-${f.id}">Annulla richiesta pasta in bianco</button>
+                <details><summary>Opzioni per la pasta in bianco</summary><div class="azioni-giorno">
+                    <button class="btn-azione" data-pasta="1" data-figlio="${f.id}" data-testid="pasta-richiesta-${f.id}">Chiedi pasta in bianco</button>
+                    <button class="btn-azione" data-pasta="0" data-figlio="${f.id}" data-testid="pasta-annulla-${f.id}">Annulla richiesta pasta in bianco</button>
+                </div></details>
+                <button class="btn btn-outline-primary btn-sm" data-apri-calendario="${f.id}">Vedi tutti i giorni nel calendario</button>
             </div>` : '<p class="nota">Nessuna classe attiva: contattare l\'ufficio comunale.</p>'}
         </article>`;
     }).join('') || '<p class="vuoto">Nessun figlio associato.</p>';
@@ -76,6 +80,11 @@ async function caricaDashboard() {
         dichiara(bambinoId, b.dataset.azione, data);
     }));
 
+    document.querySelectorAll('[data-apri-calendario]').forEach((b) => b.addEventListener('click', () => {
+        document.getElementById('cal-figlio').value = b.dataset.apriCalendario;
+        giornoSelezionato = null;
+        document.querySelector('.scheda[data-vista="calendario"]').click();
+    }));
     document.querySelectorAll('[data-pasta]').forEach((b) => b.addEventListener('click', async () => {
         const bambinoId = Number(b.dataset.figlio);
         const data = document.getElementById('figlio-data-' + bambinoId).value;
@@ -89,8 +98,9 @@ async function caricaDashboard() {
             await API.post('/api/genitore/pasta-bianco', {
                 bambino_id: bambinoId, data, richiesta: Number(b.dataset.pasta)
             });
-            avviso((Number(b.dataset.pasta) === 1 ? 'Richiesta di pasta in bianco registrata' : 'Richiesta di pasta in bianco annullata')
-                + ' per il ' + dataIt(data) + '.');
+            const messaggio = (Number(b.dataset.pasta) === 1 ? 'Pasta in bianco richiesta' : 'Richiesta di pasta in bianco annullata') + ' per il ' + dataIt(data) + '.';
+            statoApp.messaggi[bambinoId] = messaggio;
+            avviso(messaggio);
             await caricaDashboard();
         } catch (err) { avviso(err.message, 'errore'); }
     }));
@@ -125,10 +135,12 @@ function riempiSelectFigli() {
 async function dichiara(bambinoId, stato, data = oggi()) {
     try {
         const esito = await API.post('/api/genitore/presenze/dichiarazione', { bambino_id: bambinoId, data, stato });
-        avviso(esito.fuori_cutoff
-            ? 'L’orario limite è passato: la comunicazione è stata registrata, ma non cambia il pasto previsto per oggi.'
-            : `Comunicazione registrata per il ${dataIt(data)}. ${testoScelta(stato)}.`, esito.fuori_cutoff ? 'errore' : 'ok');
-        caricaDashboard();
+        const messaggio = esito.fuori_cutoff
+            ? 'L’orario limite è passato: la comunicazione non cambia il pasto previsto oggi.'
+            : `Comunicazione salvata per il ${dataIt(data)}: ${testoScelta(stato)}.`;
+        statoApp.messaggi[bambinoId] = messaggio;
+        avviso(messaggio, esito.fuori_cutoff ? 'errore' : 'ok');
+        await caricaDashboard();
     } catch (e) { avviso(e.message, 'errore'); }
 }
 
