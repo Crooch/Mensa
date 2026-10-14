@@ -132,7 +132,8 @@ final class Container
             $this->plessi(),
             $this->assegnazioni(),
             $this->calendario(),
-            $this->jobRepo()
+            $this->jobRepo(),
+            $this->creditoService()
         ));
     }
 
