@@ -1,6 +1,7 @@
 /* Area scuola: assenze di massa e override motivati delle presenze. */
 const utente = proteggi('scuola');
 let classi = [];
+const badgePastoScuola = (stato) => `<span class="badge-stato badge-${stato === 'presente' ? 'verde' : 'rosso'}">${stato === 'presente' ? 'Pasto previsto' : 'Pasto non previsto'}</span>`;
 
 abilitaSchede((vista) => { if (vista === 'assenze') caricaAssenze(); });
 
@@ -31,10 +32,10 @@ async function caricaGiornata() {
         <tr data-testid="riga-alunno-${a.bambino_id}">
             <td>${esc(a.cognome)} ${esc(a.nome)}</td>
             <td>${esc(a.tipologia_nome)}</td>
-            <td>${badgeStato(a.default_calcolato)}</td>
-            <td>${a.dichiarazione_genitore ? badgeStato(a.dichiarazione_genitore) : '—'}</td>
-            <td>${a.override_scuola ? badgeStato(a.override_scuola) + '<br><span class="nota">' + esc(a.override_motivazione || '') + '</span>' : '—'}</td>
-            <td>${badgeStato(a.stato_effettivo)} ${Number(a.fuori_cutoff) === 1 ? '<span class="badge-stato badge-giallo">modifica dopo l’orario limite</span>' : ''}</td>
+            <td>${badgePastoScuola(a.default_calcolato)}</td>
+            <td>${a.dichiarazione_genitore ? badgePastoScuola(a.dichiarazione_genitore) : 'Nessuna comunicazione'}</td>
+            <td>${a.override_scuola ? badgePastoScuola(a.override_scuola) + '<br><span class="nota">Motivo: ' + esc(a.override_motivazione || '') + '</span>' : 'Nessuna modifica'}</td>
+            <td>${badgePastoScuola(a.stato_effettivo)} ${Number(a.fuori_cutoff) === 1 ? '<span class="badge-stato badge-giallo">modifica dopo l’orario limite</span>' : ''}</td>
             <td>
                 <button class="btn-azione" data-override="${a.bambino_id}" data-stato="presente" data-testid="override-presente-${a.bambino_id}">Conferma pasto</button>
                 <button class="btn-azione" data-override="${a.bambino_id}" data-stato="assente" data-testid="override-assente-${a.bambino_id}">Segna assente</button>
@@ -42,6 +43,8 @@ async function caricaGiornata() {
         </tr>`).join('') || '<tr><td colspan="7" class="vuoto">Nessun alunno assegnato a questa classe nella data indicata.</td></tr>';
 
     document.querySelectorAll('[data-override]').forEach((b) => b.addEventListener('click', async () => {
+        if (vista.oltre_cutoff && b.dataset.stato === 'presente' && !confirm('L’orario limite è passato. Conferma solo se il bambino ha davvero mangiato: questa operazione può scalare un buono mensa. Vuoi continuare?')) return;
+        if (vista.oltre_cutoff && b.dataset.stato === 'assente' && !confirm('L’orario limite è passato. La modifica sarà registrata, ma non restituisce automaticamente buoni già utilizzati. Vuoi continuare?')) return;
         const motivazione = prompt('Perché stai modificando la presenza? Scrivi il motivo:');
         if (!motivazione) return;
         try {
@@ -53,9 +56,9 @@ async function caricaGiornata() {
             });
             const messaggi = {
                 pasto_contabilizzato: 'Pasto confermato e contabilizzato una sola volta.',
-                presenza_confermata: 'Presenza confermata. Nessun doppio addebito.',
-                registrato_senza_effetto: 'Segnalazione tracciata: nessuna modifica economica.',
-                applicato: 'Presenza aggiornata entro l’orario limite.'
+                presenza_confermata: 'Pasto confermato. Non viene scalato due volte lo stesso buono.',
+                registrato_senza_effetto: 'Modifica registrata. Nessun buono aggiunto o scalato.',
+                applicato: 'Il numero di pasti previsti è stato aggiornato.'
             };
             avviso(messaggi[esito.effetto] || 'Correzione registrata.', 'ok');
             caricaGiornata();
@@ -77,6 +80,7 @@ document.getElementById('classe').addEventListener('change', caricaGiornata);
 document.getElementById('form-assenza').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
+        if (!confirm('Stai segnalando che tutta la classe non mangerà a mensa nel giorno scelto. Vuoi continuare?')) return;
         await API.post('/api/scuola/assenze-massa', {
             classe_sezione_id: Number(document.getElementById('am-classe').value),
             data: document.getElementById('am-data').value,
