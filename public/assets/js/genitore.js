@@ -221,7 +221,7 @@ async function caricaMenu() {
         : menu.map((m) => `
             <article class="card-mensa">
                 <h3>${esc(m.plesso_nome)} · ${esc(m.tipologia_nome)}</h3>
-                <p>${esc(m.descrizione || '')}</p>
+                <p class="menu-descrizione">${esc(m.descrizione || '')}</p>
                 ${m.foto_path ? `<img src="${BASE}/storage/${esc(m.foto_path)}" alt="Menu del giorno">` : ''}
             </article>`).join('');
 }
