@@ -1,6 +1,61 @@
 /* Area catering: report pasti, pubblicazione menu, lettura feedback. */
 const utente = proteggi('catering');
 let riferimenti = { plessi: [], tipologie: [] };
+let menuPubblicati = [];
+let menuDisponibili = false;
+let numeroRichiestaMenu = 0;
+
+/** La chiave di pubblicazione e' data + plesso + tipologia, non l'intero elenco. */
+function menuSelezionato() {
+    const plessoId = document.getElementById('menu-plesso').value;
+    const tipologiaId = document.getElementById('menu-tipologia').value;
+    return menuPubblicati.find((m) =>
+        String(m.plesso_id) === plessoId && String(m.tipologia_menu_id) === tipologiaId
+    ) || null;
+}
+
+function sincronizzaMenuSelezionato() {
+    const plessoId = document.getElementById('menu-plesso').value;
+    const tipologiaId = document.getElementById('menu-tipologia').value;
+    const plesso = riferimenti.plessi.find((p) => String(p.id) === plessoId);
+    const tipologia = riferimenti.tipologie.find((t) => String(t.id) === tipologiaId);
+    const pulsante = document.getElementById('menu-submit');
+    const stato = document.getElementById('menu-selezione-stato');
+    const fotoStato = document.getElementById('menu-foto-stato');
+    const descrizione = document.getElementById('menu-descrizione');
+    const foto = document.getElementById('menu-foto');
+
+    if (!menuDisponibili || !plesso || !tipologia) {
+        pulsante.disabled = true;
+        pulsante.textContent = 'Pubblica questo menu';
+        stato.className = 'stato-operazione catering-menu-stato stato-operazione--info';
+        stato.textContent = menuDisponibili
+            ? 'Seleziona un plesso e una tipologia di menu.'
+            : 'Caricamento dei menu pubblicati…';
+        fotoStato.textContent = 'Puoi aggiungere una foto al menu.';
+        return;
+    }
+    const esistente = menuSelezionato();
+    // Cambiando plesso o tipologia, nessun testo del precedente menu
+    // deve rimanere nel campo della nuova pubblicazione.
+    descrizione.value = esistente?.descrizione || '';
+    foto.value = '';
+    pulsante.disabled = false;
+    pulsante.textContent = esistente ? 'Aggiorna questo menu' : 'Pubblica questo menu';
+    stato.className = 'stato-operazione catering-menu-stato stato-operazione--' +
+        (esistente ? 'info' : 'non-previsto');
+    stato.textContent = esistente
+        ? 'Menu già pubblicato per ' + plesso.nome + ' · ' + tipologia.nome +
+          ' (oggi). Aggiornerai solo questo menu: gli altri non cambiano.'
+        : 'Nessun menu ancora pubblicato per ' + plesso.nome + ' · ' + tipologia.nome +
+          ' (oggi). Verrà creato solo questo menu.';
+    fotoStato.textContent = esistente
+        ? (esistente.foto_path
+            ? 'Foto già presente. Se non ne scegli una nuova, rimane quella attuale.'
+            : 'Nessuna foto presente. Puoi aggiungerne una.')
+        : 'Puoi aggiungere una foto al nuovo menu.';
+}
+
 
 abilitaSchede((vista) => {
     if (vista === 'menu') caricaMenu().catch((e) => UI.stato('menu-stato', 'Non è possibile mostrare il menu: ' + e.message, 'errore'));
@@ -68,17 +123,49 @@ async function caricaReport() {
 }
 
 async function caricaMenu() {
-    UI.stato('menu-stato', 'Caricamento del menu…', 'caricamento');
-    const menu = await API.get('/api/catering/menu?data=' + oggi());
-    UI.stato('menu-stato', 'Menu aggiornato alle ' + UI.oraAggiornamento(), 'ok');
-    document.getElementById('menu-lista').innerHTML = menu.length === 0
-        ? '<p class="vuoto">Nessuna pubblicazione per oggi.</p>'
-        : menu.map((m) => `
-            <article class="card-mensa" data-testid="menu-card-${m.id}">
-                <h3>${esc(m.plesso_nome)} · ${esc(m.tipologia_nome)}</h3>
-                <p>${esc(m.descrizione || '')}</p>
-                ${m.foto_path ? `<img src="${BASE}/storage/${esc(m.foto_path)}" alt="Menu">` : ''}
-            </article>`).join('');
+    const richiesta = ++numeroRichiestaMenu;
+    menuDisponibili = false;
+    sincronizzaMenuSelezionato();
+    UI.stato('menu-stato', 'Caricamento dei menu…', 'caricamento');
+    try {
+        const menu = await API.get('/api/catering/menu?data=' + oggi());
+        if (richiesta !== numeroRichiestaMenu) return;
+        menuPubblicati = menu;
+        menuDisponibili = true;
+        sincronizzaMenuSelezionato();
+        UI.stato('menu-stato', menu.length + ' menu pubblicati oggi · aggiornato alle ' +
+            UI.oraAggiornamento(), 'ok');
+        document.getElementById('menu-lista').innerHTML = menu.length === 0
+            ? '<p class="vuoto">Nessuna pubblicazione per oggi.</p>'
+            : menu.map((m) => `
+                <article class="card-mensa catering-menu-card" data-testid="menu-card-${m.id}">
+                    <h3>${esc(m.plesso_nome)}</h3>
+                    <p class="catering-menu-card__tipo">${esc(m.tipologia_nome)}</p>
+                    <p>${esc(m.descrizione || 'Solo foto pubblicata')}</p>
+                    ${m.foto_path ? `<img src="${BASE}/storage/${esc(m.foto_path)}" alt="Foto del menu">` : ''}
+                    <button type="button" class="btn btn-outline-primary" data-menu-modifica="${m.id}" data-testid="menu-modifica-${m.id}">Modifica questo menu</button>
+                </article>`).join('');
+
+        document.querySelectorAll('[data-menu-modifica]').forEach((pulsante) => {
+            pulsante.addEventListener('click', () => {
+                const scelto = menuPubblicati.find((m) => String(m.id) === pulsante.dataset.menuModifica);
+                if (!scelto) return;
+                document.getElementById('menu-plesso').value = String(scelto.plesso_id);
+                document.getElementById('menu-tipologia').value = String(scelto.tipologia_menu_id);
+                sincronizzaMenuSelezionato();
+                document.getElementById('form-menu').scrollIntoView?.({
+                    behavior: 'smooth', block: 'start'
+                });
+                document.getElementById('menu-descrizione').focus();
+            });
+        });
+    } catch (errore) {
+        if (richiesta !== numeroRichiestaMenu) return;
+        menuDisponibili = false;
+        sincronizzaMenuSelezionato();
+        UI.stato('menu-stato', 'Non è possibile caricare i menu: ' + errore.message, 'errore');
+        throw errore;
+    }
 }
 
 async function caricaFeedback() {
@@ -99,31 +186,68 @@ async function caricaFeedback() {
         || '<tr><td colspan="7" class="vuoto">Nessun feedback per i filtri selezionati.</td></tr>';
 }
 
+document.getElementById('menu-plesso').addEventListener('change', sincronizzaMenuSelezionato);
+document.getElementById('menu-tipologia').addEventListener('change', sincronizzaMenuSelezionato);
+
 document.getElementById('form-menu').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const fd = new FormData();
-    fd.append('plesso_id', document.getElementById('menu-plesso').value);
-    fd.append('tipologia_menu_id', document.getElementById('menu-tipologia').value);
-    fd.append('data', oggi());
-    fd.append('descrizione', document.getElementById('menu-descrizione').value);
+    if (!menuDisponibili) {
+        avviso('Attendi il caricamento dei menu prima di procedere.', 'errore');
+        return;
+    }
+    const plessoId = document.getElementById('menu-plesso').value;
+    const tipologiaId = document.getElementById('menu-tipologia').value;
+    const plesso = riferimenti.plessi.find((p) => String(p.id) === plessoId);
+    const tipologia = riferimenti.tipologie.find((t) => String(t.id) === tipologiaId);
+    if (!plesso || !tipologia) {
+        avviso('Seleziona plesso e tipologia prima di pubblicare.', 'errore');
+        return;
+    }
+    const esistente = menuSelezionato();
+    if (esistente && !await UI.conferma(
+        'Aggiorna solo questo menu',
+        'Stai per aggiornare il menu ' + tipologia.nome + ' del plesso ' + plesso.nome +
+            ' per oggi. Gli altri menu resteranno invariati. Una foto nuova sostituirà quella attuale.',
+        'Aggiorna menu'
+    )) return;
+    // Ripristina il blocco in caso di selezione cambiata durante il dialogo.
+    if (document.getElementById('menu-plesso').value !== plessoId ||
+        document.getElementById('menu-tipologia').value !== tipologiaId ||
+        menuSelezionato()?.id !== esistente?.id) {
+        avviso('La selezione è cambiata: controlla il menu prima di salvare.', 'errore');
+        return;
+    }
+    const descrizione = document.getElementById('menu-descrizione').value.trim();
     const foto = document.getElementById('menu-foto').files[0];
+    if (!descrizione && !foto) {
+        avviso('Inserisci una descrizione oppure seleziona una foto.', 'errore');
+        document.getElementById('menu-descrizione').focus();
+        return;
+    }
+    const fd = new FormData();
+    fd.append('plesso_id', plessoId);
+    fd.append('tipologia_menu_id', tipologiaId);
+    fd.append('data', oggi());
+    fd.append('descrizione', descrizione);
     if (foto) fd.append('foto', foto);
-    const pulsante = e.submitter || document.querySelector('#form-menu [type=submit]');
+    const pulsante = document.getElementById('menu-submit');
     try {
         await UI.esegui(pulsante, async () => {
-        const risposta = await fetch(BASE + '/api/catering/menu', {
-            method: 'POST',
-            headers: { Authorization: 'Bearer ' + Sessione.token() },
-            body: fd
-        });
-        const dati = await risposta.json();
-        if (!risposta.ok || dati.ok === false) throw new Error(dati.errore || 'Errore di pubblicazione');
-        avviso('Il menu di oggi è stato pubblicato.');
-        document.getElementById('menu-descrizione').value = '';
-        document.getElementById('menu-foto').value = '';
+            const risposta = await fetch(BASE + '/api/catering/menu', {
+                method: 'POST',
+                headers: { Authorization: 'Bearer ' + Sessione.token() },
+                body: fd
+            });
+            const dati = await risposta.json();
+            if (!risposta.ok || dati.ok === false) throw new Error(dati.errore || 'Errore di salvataggio');
+        }, 'Salvataggio…');
+        avviso(esistente
+            ? 'Menu ' + tipologia.nome + ' aggiornato. Gli altri menu sono invariati.'
+            : 'Menu ' + tipologia.nome + ' pubblicato.', 'ok');
         await caricaMenu();
-        });
-    } catch (err) { avviso('Il menu non è stato pubblicato: ' + err.message, 'errore'); }
+    } catch (err) {
+        avviso('Non è stato possibile completare il salvataggio: ' + err.message, 'errore');
+    }
 });
 
 document.getElementById('btn-report').addEventListener('click', caricaReport);
@@ -144,6 +268,7 @@ document.getElementById('btn-feedback').addEventListener('click', () => caricaFe
     document.getElementById('fb-tipologia').innerHTML = opzTipologie;
     document.getElementById('menu-plesso').innerHTML = riferimenti.plessi.map((p) => `<option value="${p.id}">${esc(p.nome)}</option>`).join('');
     document.getElementById('menu-tipologia').innerHTML = riferimenti.tipologie.map((t) => `<option value="${t.id}">${esc(t.nome)}</option>`).join('');
+    sincronizzaMenuSelezionato();
     document.getElementById('fb-da').value = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
     document.getElementById('fb-a').value = oggi();
 })().catch((e) => avviso(e.message, 'errore'));
