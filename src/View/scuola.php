@@ -19,6 +19,8 @@ require __DIR__ . '/partials/testa.php';
         <input type="date" id="data" data-testid="data-input">
         <button class="btn btn-primary btn-sm" id="btn-carica" data-testid="carica-giornata-button">Mostra gli alunni</button>
     </div>
+    <p id="scuola-stato" class="stato-operazione" role="status" aria-live="polite" hidden></p>
+    <div id="scuola-riepilogo" class="riepilogo-mensa" aria-live="polite"></div>
     <div id="stato-cutoff" class="banner" data-testid="stato-cutoff" role="status"></div>
     <div class="tabella-scroll">
         <table class="table" data-testid="presenze-tabella">
