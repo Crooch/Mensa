@@ -30,11 +30,11 @@ async function caricaReport() {
                 <article class="card-mensa" data-testid="report-plesso-${p.plesso_id}">
                     <h3>${esc(p.plesso_nome)}</h3>
                     <span class="saldo">${p.totale_pasti}</span>
-                    <p class="nota">pasti totali · cutoff ${esc(p.cutoff_orario)}</p>
-                    <span class="badge-stato badge-${p.definitivo ? 'verde' : 'giallo'}">${p.definitivo ? 'definitivo' : 'provvisorio'}</span>
-                    <h4>Per tipologia menu</h4>
+                    <p class="nota">pasti totali · orario limite ${esc(p.cutoff_orario)}</p>
+                    <span class="badge-stato badge-${p.definitivo ? 'verde' : 'giallo'}">${p.definitivo ? 'Conteggio confermato' : 'Conteggio provvisorio'}</span>
+                    <h4>Pasti per tipo di menu</h4>
                     <dl>${p.tipologie.map((t) => `<dt>${esc(t.tipologia_nome)}</dt><dd data-testid="report-tipologia-${p.plesso_id}-${t.tipologia_id}">${t.pasti}</dd>`).join('')}</dl>
-                    <h4>Per classe / sezione</h4>
+                    <h4>Pasti per classe o sezione</h4>
                     <dl>${(p.sezioni || []).map((c) => `<dt>${esc(c.classe_nome)}</dt><dd data-testid="report-classe-${c.classe_id}">${c.pasti}</dd>`).join('')}</dl>
                     <h4>Pasta in bianco: ${Number(p.totale_pasta_in_bianco || 0)}</h4>
                     ${(p.pasta_in_bianco || []).length ? `
