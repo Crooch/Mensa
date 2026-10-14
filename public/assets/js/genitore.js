@@ -30,9 +30,9 @@ async function caricaDashboard() {
                 <h3>${esc(c.plesso_nome)}</h3>
                 <span class="saldo">${c.saldo}</span>
                 <p class="nota">buoni mensa disponibili</p>
-                <span class="badge-stato badge-${c.stato}">${c.stato === 'verde' ? 'regolare' : c.stato === 'giallo' ? 'buoni da ricaricare' : 'ricarica consigliata'}</span>
+                <span class="badge-stato badge-${c.stato}">${situazioneBuoni(c.stato)}</span>
                 <dl>
-                    <dt>Soglia per il sollecito</dt><dd>Saldo di -${c.fido_buoni} buoni</dd>
+                    <dt>Avviso quando il saldo arriva a</dt><dd>-${c.fido_buoni} buoni</dd>
                     <dt>Costo di un pasto</dt><dd>${euro(c.tariffa_attiva)}${c.origine_tariffa === 'override' ? ' (tariffa agevolata)' : ''}</dd>
                 </dl>
             </article>`).join('');
@@ -98,9 +98,9 @@ async function caricaDashboard() {
     document.getElementById('movimenti-corpo').innerHTML = dati.movimenti.map((m) => `
         <tr>
             <td>${dataIt(m.data)}</td><td>${esc(m.plesso_nome)}</td>
-            <td>${esc(m.tipo.replace('_', ' '))}</td>
+            <td>${esc(nomeMovimento(m.tipo))}</td>
             <td>${m.delta > 0 ? '+' : ''}${m.delta}</td>
-            <td>${m.importo_euro ? euro(m.importo_euro) : '-'}</td>
+            <td>${m.importo_euro === null || m.importo_euro === undefined ? '-' : euro(m.importo_euro)}</td>
             <td>${m.bambino_nome ? esc(m.bambino_nome + ' ' + m.bambino_cognome) : '-'}</td>
             <td>${esc(m.note || '')}</td>
         </tr>`).join('') || '<tr><td colspan="7" class="vuoto">Nessun movimento.</td></tr>';
@@ -168,23 +168,23 @@ function disegnaCalendario(dati, anno, mese) {
             if (r.override_scuola) classi += ' override';
         }
         html += `<button class="${classi}" data-data="${data}" data-testid="giorno-${data}">
-            <strong>${giorno}</strong>${r ? (r.stato_effettivo === 'presente' ? 'A mensa' : 'Non a mensa') + (r.dichiarazione_genitore ? '<small> · Hai comunicato</small>' : '') : ''}</button>`;
+            <strong>${giorno}</strong>${r ? (r.stato_effettivo === 'presente' ? 'Pasto previsto' : 'Pasto non previsto') + (r.dichiarazione_genitore ? '<small> · Hai comunicato</small>' : '') : ''}</button>`;
     }
     const griglia = document.getElementById('calendario');
     griglia.innerHTML = html;
     griglia.querySelectorAll('.giorno[data-data]').forEach((b) => b.addEventListener('click', () => {
         const r = perData[b.dataset.data];
         document.getElementById('calendario-dettaglio').innerHTML = !r
-            ? `<p class="vuoto">Non ci sono dettagli salvati per il ${dataIt(b.dataset.data)}. Per comunicare una presenza o un'assenza, usa la schermata iniziale.</p>`
+            ? `<p class="vuoto">Per il ${dataIt(b.dataset.data)} non risultano comunicazioni registrate. Questo non significa che la mensa sia chiusa. Per comunicare un'assenza, vai su «Riepilogo».</p>`
             : `<h2>La mensa del ${dataIt(r.data)}</h2>
-               <p class="nota">Normalmente il pasto è previsto. Se tutta la classe non pranza, ad esempio per una gita, la scuola può indicare un'assenza per tutti. Le tue comunicazioni e le correzioni della scuola possono cambiare questa situazione.</p>
+               <p class="nota">Nei giorni di mensa il pasto è normalmente previsto. Se la classe è in gita, la scuola può indicare che non serve il pasto. Le comunicazioni della famiglia e le correzioni della scuola possono cambiare questa previsione.</p>
                <dl class="card-mensa">
-                 <dt>Situazione prevista inizialmente</dt><dd>${testoPasto(r.default_calcolato)}</dd>
+                 <dt>Prima delle comunicazioni</dt><dd>${testoPasto(r.default_calcolato)}</dd>
                  <dt>Hai comunicato</dt><dd>${testoScelta(r.dichiarazione_genitore)}</dd>
-                 <dt>Correzione della scuola</dt><dd>${r.override_scuola ? testoScelta(r.override_scuola) : 'Nessuna correzione'} ${r.override_motivazione ? '· Motivo: ' + esc(r.override_motivazione) : ''}</dd>
-                 <dt>Situazione attuale</dt><dd>${badgePasto(r.stato_effettivo)}</dd>
+                 <dt>La scuola ha cambiato qualcosa?</dt><dd>${r.override_scuola ? testoScelta(r.override_scuola) : 'No'} ${r.override_motivazione ? '· Motivo: ' + esc(r.override_motivazione) : ''}</dd>
+                 <dt>Il pasto risulta</dt><dd>${badgePasto(r.stato_effettivo)}</dd>
                  <dt>Pasta in bianco</dt><dd>${Number(r.pasta_in_bianco) === 1 ? 'richiesta' : 'non richiesta'}</dd>
-                 <dt>Modifica dopo l'orario limite</dt><dd>${Number(r.fuori_cutoff) === 1 ? 'Sì' : 'No'}</dd>
+                 <dt>Modifica arrivata in ritardo</dt><dd>${Number(r.fuori_cutoff) === 1 ? 'Sì, non cambia il pasto già conteggiato' : 'No'}</dd>
                </dl>`;
     }));
 }
