@@ -15,14 +15,14 @@
         <h1>Mensa Scolastica</h1>
         <p>Comune di Caltavuturo &middot; Provincia di Palermo</p>
         <ul>
-            <li>Buoni pasto digitali, senza bigliettini cartacei</li>
-            <li>Presenze, assenze e diete sempre allineate con la scuola</li>
-            <li>Il pasto non viene mai negato: il debito genera solo segnalazioni agli uffici</li>
+            <li>Controlla quanti buoni mensa hai a disposizione</li>
+            <li>Comunica quando tuo figlio non mangerà a scuola</li>
+            <li>Consulta le comunicazioni e i pasti previsti</li>
         </ul>
     </div>
     <div class="accesso__modulo">
         <h2>Accedi al servizio</h2>
-        <p class="accesso__nota">Le credenziali sono rilasciate dall'ufficio comunale. Non è prevista registrazione autonoma.</p>
+        <p class="accesso__nota">Inserisci il nome utente e la password che ti ha dato il Comune. Se non li hai, rivolgiti agli uffici comunali.</p>
         <form id="form-accesso" novalidate>
             <label for="username">Nome utente</label>
             <input type="text" id="username" name="username" autocomplete="username" required data-testid="login-username-input">
