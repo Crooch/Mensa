@@ -68,6 +68,8 @@ jobs:
           $DB < database/migrations/005_idempotenza_acquisti.sql
           $DB < database/migrations/006_menu_settimanali.sql
           $DB < database/migrations/006_menu_settimanali.sql
+          $DB < database/migrations/007_storico_nomi_modelli.sql
+          $DB < database/migrations/007_storico_nomi_modelli.sql
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM calendari_servizio')" = "2"
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name = "richieste_pasta_bianco"')" = "1"
       - name: Check catering counts and pasta requests with synthetic pupils
