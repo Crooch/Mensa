@@ -28,7 +28,7 @@ async function caricaPlessi() {
     }
     document.getElementById('plessi-corpo').innerHTML = plessi.map((p) => `
         <tr data-testid="plesso-riga-${p.id}">
-            <td>${esc(p.nome)}</td><td>${euro(p.tariffa_base_pasto)}</td><td>${p.fido_buoni}</td>
+            <td>${esc(p.nome)}</td><td>${euro(p.tariffa_base_pasto)}</td><td>${fidoConcesso(p.fido_buoni)}</td>
             <td>${esc(String(p.cutoff_orario).slice(0, 5))}</td><td>${esc(p.dirigente_email || '-')}</td>
             <td><button class="btn-azione" data-modifica="${p.id}" data-testid="plesso-modifica-${p.id}">Modifica</button>
                 <button class="btn-azione" data-cancella="${p.id}" data-testid="plesso-cancella-${p.id}">Disattiva scuola</button></td>
@@ -39,7 +39,7 @@ async function caricaPlessi() {
         document.getElementById('plesso-id').value = p.id;
         document.getElementById('plesso-nome').value = p.nome;
         document.getElementById('plesso-tariffa').value = p.tariffa_base_pasto;
-        document.getElementById('plesso-fido').value = p.fido_buoni;
+        document.getElementById('plesso-fido').value = -Math.abs(Number(p.fido_buoni));
         document.getElementById('plesso-cutoff').value = String(p.cutoff_orario).slice(0, 5);
         document.getElementById('plesso-dirigente').value = p.dirigente_email || '';
         document.getElementById('plesso-protocollo').value = p.email_protocollo || '';
@@ -61,7 +61,7 @@ document.getElementById('form-plesso').addEventListener('submit', async (e) => {
     const corpo = {
         nome: document.getElementById('plesso-nome').value,
         tariffa_base_pasto: document.getElementById('plesso-tariffa').value,
-        fido_buoni: document.getElementById('plesso-fido').value,
+        fido_buoni: Math.abs(Number(document.getElementById('plesso-fido').value)),
         cutoff_orario: document.getElementById('plesso-cutoff').value,
         dirigente_email: document.getElementById('plesso-dirigente').value,
         email_protocollo: document.getElementById('plesso-protocollo').value
