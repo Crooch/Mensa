@@ -88,6 +88,12 @@ rifiutata(fn () => $servizio->dichiaraGenitore($bambino, '2026-10-32', 'assente'
 rifiutata(fn () => $c->anagrafica()->bambinoDelGenitore($bambino, $altro),
     'un altro genitore non puo intervenire sul bambino');
 
+// Una utenza scuola senza plesso assegnato non deve poter interrogare tutte le classi.
+$controllerScuola = new App\Controller\ScuolaController($c);
+rifiutata(fn () => $controllerScuola->classi(new App\Core\Request(), [
+    'ruolo' => 'scuola', 'plesso_id' => null,
+]), 'utenza scuola senza plesso non autorizzata');
+
 $pasta = $servizio->pastaBiancoGenitore($bambino, $prossimoLunedi, true, $utente);
 verifica($pasta['richiesta'] === true, 'richiesta pasta futura accettata');
 $servizio->pastaBiancoGenitore($bambino, $prossimoLunedi, false, $utente);
