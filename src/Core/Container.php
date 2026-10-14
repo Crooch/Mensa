@@ -155,7 +155,9 @@ final class Container
             $this->plessi(),
             $this->tipologie(),
             $this->menu(),
-            $this->presenzaService()
+            $this->presenzaService(),
+            $this->calendario(),
+            $this->jobRepo()
         ));
     }
 
