@@ -198,6 +198,8 @@ function formOverride(genitoreId) {
 }
 
 function formRettifica(genitoreId) {
+    const richiestaId = crypto.randomUUID ? crypto.randomUUID()
+        : Array.from(crypto.getRandomValues(new Uint8Array(16)), (n) => n.toString(16).padStart(2, '0')).join('');
     apriModale('Correggi il numero di buoni', `
         <form data-testid="rettifica-form">
             <label>Plesso</label><select name="plesso_id" data-testid="rettifica-plesso-select">${opzioniPlessi()}</select>
@@ -215,6 +217,7 @@ function formRettifica(genitoreId) {
             genitore_id: genitoreId,
             plesso_id: Number(fd.get('plesso_id')),
             delta,
+            richiesta_id: richiestaId,
             note: fd.get('note')
         });
         avviso('Saldo buoni corretto. La modifica è registrata nello storico.');
