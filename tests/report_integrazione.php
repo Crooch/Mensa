@@ -104,6 +104,45 @@ try {
     }
 
     echo "OK: sezioni A=1, B=1, C=0, D=0 (senza alunni); pasta in bianco Mario e Gianni; Lucia assente esclusa.\n";
+    // Regressione gita: anche una presenza individuale gia salvata non
+    // puo generare pasti o richieste di pasta in bianco per la classe.
+    $stmt = $pdo->prepare(
+        "INSERT INTO presenze_giornaliere (bambino_id, data, default_calcolato,
+            dichiarazione_genitore, override_scuola, stato_effettivo)
+         VALUES (?, '2026-10-20', 'presente', 'presente', 'presente', 'presente')"
+    );
+    $stmt->execute([$figli['Mario']]);
+    $pdo->prepare(
+        "INSERT INTO richieste_pasta_bianco (bambino_id, data, richiesta)
+         VALUES (?, '2026-10-20', 1)"
+    )->execute([$figli['Mario']]);
+    $pdo->prepare(
+        "INSERT INTO assenze_massa (classe_sezione_id, data, motivo)
+         VALUES (?, '2026-10-20', 'Gita scolastica')"
+    )->execute([$classi['A']]);
+    $righeGita = $repo->reportPasti('2026-10-20', (int) $infanzia);
+    $perSezioneGita = [];
+    foreach ($righeGita as $riga) {
+        $perSezioneGita[$riga['classe_nome']] =
+            ($perSezioneGita[$riga['classe_nome']] ?? 0) + (int) $riga['pasti'];
+    }
+    if (($perSezioneGita['A'] ?? -1) !== 0 || ($perSezioneGita['B'] ?? -1) !== 1) {
+        throw new RuntimeException('La gita non ha azzerato i pasti della sezione A: ' .
+            json_encode($perSezioneGita));
+    }
+    if (count($repo->elencoPastaBianco('2026-10-20', (int) $infanzia)) !== 0) {
+        throw new RuntimeException('Pasta in bianco inclusa in una giornata di gita');
+    }
+    $persistito = $pdo->prepare(
+        "SELECT stato_effettivo FROM presenze_giornaliere
+         WHERE bambino_id = ? AND data = '2026-10-20'"
+    );
+    $persistito->execute([$figli['Mario']]);
+    if ($persistito->fetchColumn() !== 'presente') {
+        throw new RuntimeException('La lettura del report non deve sovrascrivere i dati storici');
+    }
+    echo "OK: gita annulla pasti e pasta in bianco anche con una presenza precedente salvata.\n";
+
     $pdo->rollBack();
 } catch (Throwable $e) {
     $pdo->rollBack();
