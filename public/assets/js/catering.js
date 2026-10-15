@@ -4,6 +4,23 @@ let riferimenti = { plessi: [], tipologie: [] };
 let menuPubblicati = [];
 let menuDisponibili = false;
 let numeroRichiestaMenu = 0;
+let numeroRichiestaVariazioni = 0;
+let variazioniProgrammate = [];
+
+/** Cutoff del plesso, sempre riverificato dal server al salvataggio. */
+function menuDataSelezionata() {
+    return document.getElementById('menu-data').value || oggi();
+}
+function menuModificabile(plesso, data) {
+    if (!plesso || !/^\d{4}-\d{2}-\d{2}$/.test(data) || data < oggi()) return false;
+    if (data > oggi()) return true;
+    const limite = String(plesso.cutoff_orario || '').slice(0, 5);
+    const adesso = new Date();
+    const ora = String(adesso.getHours()).padStart(2, '0') + ':' +
+        String(adesso.getMinutes()).padStart(2, '0');
+    return !limite || ora < limite;
+}
+
 const fotoMenuGiorno = FotoMenu.crea('menu-foto-widget');
 
 /** La chiave di pubblicazione e' data + plesso + tipologia, non l'intero elenco. */
@@ -16,54 +33,61 @@ function menuSelezionato() {
 }
 
 function sincronizzaMenuSelezionato() {
+    const data = menuDataSelezionata();
     const plessoId = document.getElementById('menu-plesso').value;
     const tipologiaId = document.getElementById('menu-tipologia').value;
     const plesso = riferimenti.plessi.find((p) => String(p.id) === plessoId);
     const tipologia = riferimenti.tipologie.find((t) => String(t.id) === tipologiaId);
     const pulsante = document.getElementById('menu-submit');
-    const ripristina = document.getElementById('menu-ripristina');
+    const annulla = document.getElementById('menu-ripristina');
     const stato = document.getElementById('menu-selezione-stato');
     const descrizione = document.getElementById('menu-descrizione');
 
     if (!menuDisponibili || !plesso || !tipologia) {
         pulsante.disabled = true;
-        pulsante.textContent = 'Pubblica menu';
-        ripristina.hidden = true;
-        ripristina.disabled = true;
+        pulsante.textContent = 'Salva menu';
+        annulla.hidden = true;
+        annulla.disabled = true;
         stato.className = 'stato-operazione catering-menu-stato stato-operazione--info';
         stato.textContent = menuDisponibili
-            ? 'Seleziona un plesso e una tipologia di menu.'
-            : 'Caricamento dei menu pubblicati…';
+            ? 'Seleziona un plesso e una tipologia.'
+            : 'Caricamento dei menu della data selezionata…';
         fotoMenuGiorno.imposta(null);
         return;
     }
     const esistente = menuSelezionato();
-    // Cambiando plesso o tipologia, nessun testo del precedente menu
-    // deve rimanere nel campo della nuova pubblicazione.
+    const modificabile = menuModificabile(plesso, data);
     descrizione.value = esistente?.descrizione || '';
-    // Un'eccezione giornaliera non deve proporre come propria la foto del modello.
-    // Il file settimanale resta visibile nella scheda del menu, non nella bozza.
+    // La foto del modello non viene mai ereditata nella nuova variazione.
     fotoMenuGiorno.imposta(esistente?.origine === 'settimanale' ? null : esistente?.foto_path || null);
-    pulsante.disabled = false;
-    pulsante.textContent = esistente ? 'Aggiorna menu' : 'Pubblica menu';
-    ripristina.hidden = !(esistente?.origine === 'giornaliero' && esistente.ha_modello_settimanale);
-    ripristina.disabled = ripristina.hidden;
+    descrizione.disabled = !modificabile;
+    pulsante.disabled = !modificabile;
+    pulsante.textContent = esistente?.origine === 'giornaliero'
+        ? 'Salva modifica' : 'Pubblica menu';
+    annulla.hidden = esistente?.origine !== 'giornaliero';
+    annulla.disabled = !modificabile;
     stato.className = 'stato-operazione catering-menu-stato stato-operazione--' +
-        (esistente ? 'info' : 'non-previsto');
-    stato.textContent = esistente
-        ? (esistente.origine === 'settimanale'
-            ? 'Menu previsto dal modello settimanale per ' + plesso.nome + ' · ' + tipologia.nome +
-              '. Salvando creerai una modifica valida soltanto per oggi. La foto del modello non verrà copiata automaticamente.'
-            : 'Menu già pubblicato per ' + plesso.nome + ' · ' + tipologia.nome +
-              ' (oggi). Aggiornerai solo questo menu: gli altri non cambiano.')
-        : 'Nessun menu ancora pubblicato per ' + plesso.nome + ' · ' + tipologia.nome +
-          ' (oggi). Verrà creato solo questo menu.';
-
+        (!modificabile ? 'non-previsto' : 'info');
+    const quando = dataIt(data);
+    stato.textContent = !modificabile
+        ? 'Menu del ' + quando + ' in sola lettura: cutoff superato o data passata.'
+        : esistente?.origine === 'giornaliero'
+            ? 'Variazione giornaliera già salvata per il ' + quando +
+              '. Puoi modificarla o annullarla senza cambiare gli altri giorni.'
+            : esistente?.origine === 'settimanale'
+                ? 'Modello settimanale: ' + esistente.modello_nome + '. ' +
+                  'Il salvataggio creerà una variazione solo per il ' + quando +
+                  ', senza copiare automaticamente la foto del modello.'
+                : 'Nessun menu per il ' + quando + ' · ' + plesso.nome + ' · ' + tipologia.nome +
+                  '. Salverai solo questo giorno.';
 }
 
 
 abilitaSchede((vista) => {
-    if (vista === 'menu') caricaMenu().catch((e) => UI.stato('menu-stato', 'Non è possibile mostrare il menu: ' + e.message, 'errore'));
+    if (vista === 'menu') {
+        caricaMenu().catch((e) => UI.stato('menu-stato', 'Non è possibile mostrare il menu: ' + e.message, 'errore'));
+        caricaVariazioniProgrammate();
+    }
     if (vista === 'settimane') caricaSettimane().catch((e) => UI.stato('settimana-stato', 'Non è possibile caricare i menu settimanali: ' + e.message, 'errore'));
     if (vista === 'feedback') caricaFeedback().catch((e) => UI.stato('feedback-stato', 'Non è possibile mostrare le valutazioni: ' + e.message, 'errore'));
 });
@@ -216,32 +240,38 @@ async function caricaReport() {
 
 async function caricaMenu() {
     const richiesta = ++numeroRichiestaMenu;
+    const data = menuDataSelezionata();
     menuDisponibili = false;
     sincronizzaMenuSelezionato();
-    UI.stato('menu-stato', 'Caricamento dei menu…', 'caricamento');
+    UI.stato('menu-stato', 'Caricamento dei menu del ' + dataIt(data) + '…', 'caricamento');
     try {
-        const menu = await API.get('/api/catering/menu?data=' + oggi());
-        if (richiesta !== numeroRichiestaMenu) return;
+        const menu = await API.get('/api/catering/menu?data=' + encodeURIComponent(data));
+        if (richiesta !== numeroRichiestaMenu || menuDataSelezionata() !== data) return;
         menuPubblicati = menu;
         menuDisponibili = true;
         sincronizzaMenuSelezionato();
-        UI.stato('menu-stato', menu.length + ' menu pubblicati oggi · aggiornato alle ' +
-            UI.oraAggiornamento(), 'ok');
+        UI.stato('menu-stato', menu.length + ' menu previsti per il ' + dataIt(data) +
+            ' · aggiornato alle ' + UI.oraAggiornamento(), 'ok');
         document.getElementById('menu-lista').innerHTML = menu.length === 0
-            ? '<p class="vuoto">Nessuna pubblicazione per oggi.</p>'
-            : menu.map((m) => `
-                <article class="card-mensa catering-menu-card" data-testid="menu-card-${m.id}">
+            ? '<p class="vuoto">Nessun menu previsto per questa data.</p>'
+            : menu.map((m) => {
+                const p = riferimenti.plessi.find(p => Number(p.id) === Number(m.plesso_id));
+                const attivo = menuModificabile(p, data);
+                return `<article class="card-mensa catering-menu-card" data-testid="menu-card-${esc(m.id)}">
                     <h3>${esc(m.plesso_nome)}</h3>
                     <p class="catering-menu-card__tipo">${esc(m.tipologia_nome)}</p>
-                    ${m.origine === 'settimanale' ? `<span class="badge-stato badge-neutro">Da menu settimanale: ${esc(m.modello_nome)}</span>` : ''}
+                    ${m.origine === 'settimanale'
+                        ? `<span class="badge-stato badge-neutro">Da menu settimanale: ${esc(m.modello_nome)}</span>`
+                        : '<span class="badge-stato badge-neutro">Variazione giornaliera</span>'}
                     <p class="menu-descrizione">${esc(m.descrizione || 'Solo foto pubblicata')}</p>
                     ${m.foto_path ? `<img src="${BASE}/storage/${esc(m.foto_path)}" alt="Foto del menu">` : ''}
-                    <button type="button" class="btn btn-outline-primary" data-menu-modifica="${m.id}" data-testid="menu-modifica-${m.id}">Modifica menu</button>
-                </article>`).join('');
-
-        document.querySelectorAll('[data-menu-modifica]').forEach((pulsante) => {
+                    ${attivo ? `<button type="button" class="btn btn-outline-primary"
+                        data-menu-modifica="${esc(m.id)}">Modifica menu</button>` : ''}
+                </article>`;
+            }).join('');
+        document.querySelectorAll('[data-menu-modifica]').forEach(pulsante => {
             pulsante.addEventListener('click', () => {
-                const scelto = menuPubblicati.find((m) => String(m.id) === pulsante.dataset.menuModifica);
+                const scelto = menuPubblicati.find(m => String(m.id) === pulsante.dataset.menuModifica);
                 if (!scelto) return;
                 document.getElementById('menu-plesso').value = String(scelto.plesso_id);
                 document.getElementById('menu-tipologia').value = String(scelto.tipologia_menu_id);
@@ -258,6 +288,74 @@ async function caricaMenu() {
         sincronizzaMenuSelezionato();
         UI.stato('menu-stato', 'Non è possibile caricare i menu: ' + errore.message, 'errore');
         throw errore;
+    }
+}
+
+/** Elenco breve e cronologico delle sole eccezioni; un clic apre il giorno. */
+async function caricaVariazioniProgrammate() {
+    const richiesta = ++numeroRichiestaVariazioni;
+    const stato = document.getElementById('menu-variazioni-stato');
+    stato.textContent = 'Caricamento delle variazioni…';
+    try {
+        const righe = await API.get('/api/catering/menu/variazioni');
+        if (richiesta !== numeroRichiestaVariazioni) return;
+        variazioniProgrammate = righe;
+        stato.textContent = righe.length + ' variazioni da oggi in poi.';
+        document.getElementById('menu-variazioni-lista').innerHTML = righe.length
+            ? righe.map(m => `<article class="catering-variazione" data-testid="variazione-${Number(m.id)}">
+                <div class="catering-variazione__info">
+                    <strong>${esc(dataIt(m.data))} · ${esc(m.plesso_nome)}</strong>
+                    <span>${esc(m.tipologia_nome)} — ${esc(m.descrizione || 'Solo foto')}</span>
+                    ${!m.modificabile ? '<small>Non più modificabile</small>' : ''}
+                </div>
+                ${m.modificabile ? `<div class="catering-variazione__azioni">
+                    <button type="button" class="btn btn-outline-primary" data-variazione-apri="${Number(m.id)}">Modifica</button>
+                    <button type="button" class="btn btn-link" data-variazione-annulla="${Number(m.id)}">Annulla</button>
+                </div>` : ''}
+            </article>`).join('')
+            : '<p class="vuoto">Nessuna variazione giornaliera programmata.</p>';
+        document.querySelectorAll('[data-variazione-apri]').forEach(pulsante =>
+            pulsante.addEventListener('click', async () => {
+                const m = variazioniProgrammate.find(r => Number(r.id) === Number(pulsante.dataset.variazioneApri));
+                if (!m || !m.modificabile) return;
+                document.getElementById('menu-data').value = m.data;
+                document.getElementById('menu-plesso').value = String(m.plesso_id);
+                document.getElementById('menu-tipologia').value = String(m.tipologia_menu_id);
+                await caricaMenu();
+                document.getElementById('form-menu').scrollIntoView?.({behavior: 'smooth', block: 'start'});
+                document.getElementById('menu-descrizione').focus();
+            }));
+        document.querySelectorAll('[data-variazione-annulla]').forEach(pulsante =>
+            pulsante.addEventListener('click', () => {
+                const m = variazioniProgrammate.find(r => Number(r.id) === Number(pulsante.dataset.variazioneAnnulla));
+                if (m?.modificabile) annullaVariazione(m);
+            }));
+    } catch (errore) {
+        if (richiesta !== numeroRichiestaVariazioni) return;
+        stato.textContent = 'Impossibile caricare le variazioni: ' + errore.message;
+    }
+}
+
+async function annullaVariazione(m) {
+    const giorno = m.data;
+    if (!await UI.conferma(
+        'Annulla variazione giornaliera',
+        'Annullare il menu ' + m.tipologia_nome + ' del plesso ' + m.plesso_nome +
+        ' per il ' + dataIt(giorno) + '? ' +
+        (m.ha_modello_settimanale ? 'Tornerà il modello settimanale.' :
+            'Non resterà alcun menu per questa combinazione.') +
+        ' Gli altri giorni non cambieranno.',
+        'Annulla variazione'
+    )) return;
+    try {
+        await API.post('/api/catering/menu/annulla', {
+            plesso_id: Number(m.plesso_id), tipologia_menu_id: Number(m.tipologia_menu_id),
+            data: giorno
+        });
+        avviso('Variazione del ' + dataIt(giorno) + ' annullata.', 'ok');
+        await Promise.all([caricaVariazioniProgrammate(), caricaMenu()]);
+    } catch (errore) {
+        avviso('Impossibile annullare la variazione: ' + errore.message, 'errore');
     }
 }
 
