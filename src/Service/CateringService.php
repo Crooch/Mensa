@@ -385,8 +385,11 @@ final class CateringService
             throw HttpException::nonTrovato('Plesso o tipologia non validi');
         }
         if ($this->presenzaService->oltreCutoff($plesso, $data)) {
-            throw HttpException::nonValido('Orario limite superato per ' . $plesso['nome'] .
-                '. Puoi modificare soltanto menu di date future.');
+            if ($data < date('Y-m-d')) {
+                throw HttpException::nonValido('Non puoi modificare un menù di un giorno passato.');
+            }
+            throw HttpException::nonValido('È passato l’orario limite per modificare il menù di oggi nel plesso ' .
+                $plesso['nome'] . '. Puoi programmare i giorni successivi.');
         }
         if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
             throw HttpException::nonValido('Il servizio mensa non è previsto per questa data');
