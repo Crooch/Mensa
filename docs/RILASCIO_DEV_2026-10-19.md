@@ -18,6 +18,11 @@ sintetici, non una migrazione già provata sui dati di produzione.
 - Fork di lavoro: `Crooch/Mensa`, branch `dev`.
 - VPS: applicazione `/srv/www/mensa/app`; NON utilizzare la directory di produzione come ambiente di sviluppo.
 - Cron utente `mensa`: sospeso dalla manutenzione del 14/10/2026, mantenere sospeso.
+- L'aggiornamento del **job** richiede il nuovo file `bin/cron_daily.php` e la revisione
+  del crontab della VPS, separatamente dall'upgrade SQL. Seguire
+  [`RILASCIO_JOB_2026-10.md`](RILASCIO_JOB_2026-10.md).
+  La versione `dev` disabilita scheduler CLI, HTTP e comandi Admin per default
+  tramite `app.scheduler_enabled = false`, mantenendo accessibile il monitoraggio.
 - Database produzione `mensa_db`: già riallineati 112 ticket su 70 pool con movimenti compensativi; mantenuti gli originali. Totale saldo verificato: +10.
 - Backup DB post-riallineamento verificato: `/var/backups/mensa/post_riallineamento_20261014_151702.sql.gz`.
 - Nessuna migration del branch `dev` è stata finora applicata in produzione.
@@ -102,11 +107,17 @@ Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non 
    l'autorizzazione esplicita prima di qualsiasi intervento su `main`,
    VPS, database o cron di produzione.
 9. Solo durante una futura finestra autorizzata: backup reali verificati,
-   eventuale **upgrade dello schema con sole CREATE/ALTER** e codice candidato.
-   Verificare login e letture; configurare i calendari esplicitamente
-   dall'Admin con il Comune. **Non riattivare cron o comunicazioni** finché
-   non sono stati verificati calendario, cutoff e conteggi; il passaggio
-   al codice nuovo non importa né azzera dati.
+   eventuale **upgrade dello schema con sole CREATE/ALTER** e codice candidato,
+   incluso il nuovo `bin/cron_daily.php`. Mantenere
+   `app.scheduler_enabled = false` in `config.local.php`.
+   Verificare `php bin/cron_daily.php --check` (nessuna scrittura), login,
+   letture e configurazione esplicita dei calendari con il Comune. Controllare
+   il crontab reale dell'utente `mensa` ed evitare qualsiasi duplicazione
+   dell'esecuzione. **Non riattivare il cron o lo switch**, né le comunicazioni,
+   finché calendario, cutoff e conteggi non siano verificati. L'attivazione
+   finale richiede un'autorizzazione distinta e segue
+   [la procedura job](RILASCIO_JOB_2026-10.md); nessun dato di staging
+   viene importato o usato per sostituire i record esistenti.
 10. In caso di regressioni: mettere in sicurezza le elaborazioni, usare
     la procedura di ripristino collaudata e riconciliare contabilità/presenze
     prima di riprendere le attività.
