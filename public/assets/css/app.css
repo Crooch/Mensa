@@ -1353,3 +1353,445 @@ input[type="datetime-local"]:focus-visible {
     .catering-settimane-azioni .btn { flex: 1 1 130px; }
     #assegna-salva { width: 100%; min-height: 44px; }
 }
+
+
+/* =====================================================================
+   Profili Genitore, Operatore e Admin — stessa gerarchia di Scuola e Catering.
+   Regole circoscritte ai tre ruoli per non modificare le schermate collaudate.
+   ===================================================================== */
+body[data-ruolo="genitore"],
+body[data-ruolo="operatore"],
+body[data-ruolo="admin"] {
+    --raggio: 9px;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .vista {
+    min-width: 0;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .area-intro {
+    margin: 1.15rem 0 1.35rem;
+    padding-bottom: .85rem;
+    border-bottom: 1px solid #d5e2ee;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .area-intro h1 {
+    margin: 0 0 .3rem;
+    font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+    line-height: 1.25;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .area-intro p {
+    margin: 0;
+    max-width: 76ch;
+    color: #50687f;
+    line-height: 1.5;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .area-sezione-testa {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .3rem 1rem;
+    margin: 1.6rem 0 .7rem;
+    border-bottom: 1px solid #d5e2ee;
+    padding-bottom: .45rem;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .area-sezione-testa h2,
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .area-sezione-testa h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0;
+}
+.area-sezione-aiuto {
+    font-size: .86rem;
+    color: #60778c;
+}
+.area-sezione-descrizione { margin: -.2rem 0 .9rem; }
+.visivamente-nascosto {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .card-mensa {
+    border: 1px solid #d5e2ee;
+    box-shadow: 0 2px 9px rgba(18, 49, 77, .05);
+    transition: box-shadow .18s ease;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .card-mensa:hover {
+    box-shadow: 0 3px 13px rgba(18, 49, 77, .1);
+    transform: none;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .card-mensa--verde {
+    border-left: 4px solid var(--verde);
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .card-mensa--giallo {
+    border-left: 4px solid var(--giallo);
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .card-mensa--rosso {
+    border-left: 4px solid var(--rosso);
+}
+
+/* Genitore: i buoni sono un riepilogo, mentre i figli sono l'area operativa. */
+#vista-riepilogo .famiglia-crediti { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+#vista-riepilogo .famiglia-crediti .saldo { font-size: clamp(1.8rem, 2.5vw, 2.25rem); }
+#vista-riepilogo #figli-lista { grid-template-columns: repeat(auto-fit, minmax(min(100%, 365px), 1fr)); gap: 1rem; }
+#vista-riepilogo #figli-lista .card-figlio { padding: 1.15rem; }
+#vista-riepilogo #figli-lista .card-figlio > h3 {
+    font-size: 1.15rem;
+    border-bottom: 1px solid #e6edf3;
+    padding-bottom: .55rem;
+    margin-bottom: .7rem;
+}
+#vista-riepilogo #figli-lista .card-figlio dl { font-size: .91rem; gap: .3rem .75rem; }
+#vista-riepilogo #figli-lista .figlio-comandi {
+    border-top: 1px solid #e5edf4;
+    margin-top: 1rem;
+    padding-top: .9rem;
+    gap: .55rem;
+}
+#vista-riepilogo #figli-lista .figlio-stato { margin: 0; }
+#vista-riepilogo #menu-oggi { grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); }
+body[data-ruolo="genitore"] .famiglia-filtri {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+    gap: .75rem;
+    align-items: end;
+    padding: 1rem;
+    background: #fff;
+    border: 1px solid #d5e2ee;
+    border-radius: 10px;
+}
+body[data-ruolo="genitore"] .famiglia-feedback-form .famiglia-filtri {
+    padding: 0;
+    border: 0;
+}
+body[data-ruolo="genitore"] .famiglia-calendario-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, .85fr);
+    gap: 1rem;
+    align-items: start;
+    margin-top: .9rem;
+}
+body[data-ruolo="genitore"] .famiglia-calendario-mese,
+body[data-ruolo="genitore"] .famiglia-calendario-dettaglio { min-width: 0; }
+body[data-ruolo="genitore"] .famiglia-calendario-dettaglio {
+    margin: 0;
+    border-color: #d5e2ee;
+    box-shadow: 0 2px 9px rgba(18,49,77,.04);
+}
+body[data-ruolo="genitore"] .famiglia-calendario-dettaglio h2 { margin: 0 0 .65rem; }
+body[data-ruolo="genitore"] .famiglia-calendario-legenda {
+    color: #50687f;
+    font-size: .84rem;
+    margin: .65rem 0 .1rem;
+}
+body[data-ruolo="genitore"] .calendario { border-color: #d5e2ee; }
+body[data-ruolo="genitore"] .calendario .giorno {
+    min-height: 79px;
+    border-radius: 7px;
+}
+body[data-ruolo="genitore"] .famiglia-feedback-form {
+    max-width: 860px;
+}
+body[data-ruolo="genitore"] .famiglia-feedback-form .stelle {
+    display: inline-flex;
+    padding: .3rem .6rem;
+    border: 1px solid #d5e2ee;
+    border-radius: 9px;
+    gap: .45rem;
+    margin-bottom: 1rem;
+}
+body[data-ruolo="genitore"] .famiglia-feedback-form .stelle button {
+    min-width: 40px;
+    min-height: 44px;
+    font-size: 1.75rem;
+    text-align: center;
+}
+body[data-ruolo="genitore"] .famiglia-feedback-form textarea { display: block; margin-bottom: 1rem; }
+
+/* Operatore: elenco laterale di consultazione e dettaglio con spazio reale. */
+body[data-ruolo="operatore"] .operatore-ricerca {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    padding: 1rem;
+    background: #fff;
+    border: 1px solid #d5e2ee;
+    border-radius: 10px;
+    align-items: end;
+    gap: .65rem;
+}
+body[data-ruolo="operatore"] .operatore-ricerca input { min-height: 44px; }
+body[data-ruolo="operatore"] .operatore-ricerca .btn { white-space: nowrap; }
+body[data-ruolo="operatore"] .operatore-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 310px) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+body[data-ruolo="operatore"] .operatore-risultati {
+    background: #fff;
+    border: 1px solid #d5e2ee;
+    border-radius: 10px;
+    padding: .7rem;
+    min-width: 0;
+}
+body[data-ruolo="operatore"] .operatore-risultati h2 {
+    margin: .25rem .2rem .65rem;
+    font-size: 1rem;
+}
+body[data-ruolo="operatore"] .operatore-risultati .tabella-scroll {
+    border: 0;
+    overflow-x: visible;
+}
+body[data-ruolo="operatore"] .operatore-risultati .table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+}
+body[data-ruolo="operatore"] .operatore-risultati .table thead { display: none; }
+body[data-ruolo="operatore"] .operatore-risultati .table tbody {
+    display: grid;
+    gap: .45rem;
+}
+body[data-ruolo="operatore"] .operatore-risultati .table tbody tr {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .2rem;
+    padding: .65rem .7rem;
+    border: 1px solid #e0e8f1;
+    border-radius: 8px;
+}
+body[data-ruolo="operatore"] .operatore-risultati .table td {
+    border: 0;
+    padding: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-size: .88rem;
+    min-width: 0;
+}
+body[data-ruolo="operatore"] .operatore-risultati .table td:first-child {
+    font-weight: 700;
+    font-size: .97rem;
+}
+body[data-ruolo="operatore"] .operatore-risultati .table td:last-child {
+    align-self: flex-end;
+}
+body[data-ruolo="operatore"] #scheda-famiglia {
+    min-width: 0;
+    padding: 1.2rem;
+    box-shadow: 0 2px 12px rgba(18, 49, 77, .045);
+}
+body[data-ruolo="operatore"] .operatore-famiglia-testa {
+    border-bottom: 1px solid #e2eaf2;
+    padding-bottom: .85rem;
+    margin-bottom: 1rem;
+}
+body[data-ruolo="operatore"] .operatore-famiglia-testa h2 { margin: 0 0 .55rem; font-size: 1.3rem; }
+body[data-ruolo="operatore"] .operatore-contatti {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+    gap: .55rem 1rem;
+    margin: .7rem 0 0;
+}
+body[data-ruolo="operatore"] .operatore-contatti > div { min-width: 0; }
+body[data-ruolo="operatore"] .operatore-contatti dt { font-size: .8rem; color: #5a7285; }
+body[data-ruolo="operatore"] .operatore-contatti dd { margin: 0; font-size: .94rem; overflow-wrap: anywhere; }
+body[data-ruolo="operatore"] .operatore-azioni {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 185px), 1fr));
+    gap: .55rem;
+    margin-bottom: 1.2rem;
+}
+body[data-ruolo="operatore"] .operatore-azioni .btn { margin: 0; min-height: 44px; }
+body[data-ruolo="operatore"] #scheda-famiglia > .griglia-cards {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 215px), 1fr));
+}
+body[data-ruolo="operatore"] .operatore-figlio {
+    margin: 0 0 .7rem;
+    padding: 1rem;
+}
+body[data-ruolo="operatore"] .operatore-figlio h3 { margin: 0 0 .75rem; }
+body[data-ruolo="operatore"] .operatore-figlio-azioni {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-top: .8rem;
+}
+body[data-ruolo="operatore"] .operatore-figlio-azioni .btn-azione { margin: 0; }
+body[data-ruolo="operatore"] .operatore-figlio details {
+    border-top: 1px solid #e2eaf2;
+    margin-top: .8rem;
+    padding-top: .5rem;
+}
+body[data-ruolo="operatore"] .operatore-storico {
+    border: 1px solid #d5e2ee;
+    border-radius: 9px;
+    margin-top: .7rem;
+    background: #fff;
+}
+body[data-ruolo="operatore"] .operatore-storico > summary {
+    padding: .75rem .95rem;
+    color: #194d75;
+    font-weight: 700;
+    cursor: pointer;
+}
+body[data-ruolo="operatore"] .operatore-storico[open] > summary { border-bottom: 1px solid #d5e2ee; }
+body[data-ruolo="operatore"] .operatore-storico .tabella-scroll { border: 0; }
+
+/* Admin: configurazioni raggruppate per funzione, campi regolari e tabelle
+   facili da consultare, mantenendo le operazioni disponibili come prima. */
+body[data-ruolo="admin"] .admin-config {
+    border-color: #d5e2ee;
+    box-shadow: 0 2px 9px rgba(18,49,77,.04);
+}
+body[data-ruolo="admin"] .admin-config .riga-filtri {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 205px), 1fr));
+    gap: .75rem 1rem;
+}
+body[data-ruolo="admin"] .admin-config input,
+body[data-ruolo="admin"] .admin-config select {
+    min-height: 44px;
+}
+body[data-ruolo="admin"] .admin-config .btn { margin-top: .65rem; }
+body[data-ruolo="admin"] .admin-form-titolo {
+    font-size: 1.02rem;
+    margin: 1.45rem 0 .55rem;
+    color: #214b6d;
+}
+body[data-ruolo="admin"] .admin-job-azioni {
+    background: #fff;
+    border: 1px solid #d5e2ee;
+    border-radius: 10px;
+    padding: 1rem;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+body[data-ruolo="admin"] .admin-job-azioni .btn { min-height: 46px; }
+
+/* Tabelle mobili: valore e intestazione affiancati, senza scorrimento
+   orizzontale. Il JS aggiunge data-etichetta senza cambiare contenuti. */
+@media (max-width: 980px) {
+    body[data-ruolo="operatore"] .operatore-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="genitore"] .famiglia-calendario-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+@media (max-width: 760px) {
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .schede {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        max-width: 100%;
+        gap: .45rem;
+        padding-bottom: .4rem;
+        scroll-snap-type: x proximity;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .schede .scheda {
+        flex: 0 0 auto;
+        min-width: 125px;
+        scroll-snap-align: start;
+    }
+    body[data-ruolo="genitore"] .famiglia-filtri,
+    body[data-ruolo="operatore"] .operatore-ricerca,
+    body[data-ruolo="admin"] .admin-job-azioni {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="genitore"] .famiglia-filtri .btn,
+    body[data-ruolo="operatore"] .operatore-ricerca .btn {
+        width: 100%;
+    }
+    body[data-ruolo="genitore"] .calendario .giorno {
+        min-height: 55px;
+        padding: .25rem .15rem;
+        text-align: center;
+    }
+    body[data-ruolo="genitore"] .calendario .giorno strong {
+        font-size: .95rem;
+    }
+    body[data-ruolo="genitore"] .calendario .giorno small { display: none; }
+    body[data-ruolo="genitore"] .famiglia-calendario-legenda { font-size: .77rem; }
+
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll:not(.operatore-risultati .tabella-scroll) {
+        overflow-x: visible;
+        border: 0;
+        background: transparent;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table thead {
+        position: absolute;
+        height: 1px;
+        width: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table tbody {
+        display: grid;
+        gap: .65rem;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table tbody tr {
+        display: block;
+        background: #fff;
+        border: 1px solid #d5e2ee;
+        border-radius: 9px;
+        padding: .45rem .75rem;
+        min-width: 0;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table tbody td {
+        display: grid;
+        grid-template-columns: minmax(0, 36%) minmax(0, 1fr);
+        gap: .5rem;
+        align-items: start;
+        border-bottom: 1px solid #eef2f6;
+        padding: .5rem 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        font-size: .9rem;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table tbody td::before {
+        content: attr(data-etichetta);
+        color: #50687f;
+        font-size: .82rem;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table tbody td:last-child { border-bottom: 0; }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table tbody td[colspan] {
+        display: block;
+        text-align: center;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table tbody td[colspan]::before {
+        display: none;
+    }
+    body[data-ruolo="operatore"] .operatore-risultati .tabella-scroll > table.table tbody td {
+        display: block;
+        padding: 0;
+        border: 0;
+    }
+    body[data-ruolo="operatore"] .operatore-risultati .tabella-scroll > table.table tbody td::before {
+        display: none;
+    }
+    body[data-ruolo="operatore"] #scheda-famiglia { padding: .9rem; }
+    body[data-ruolo="operatore"] .operatore-azioni { grid-template-columns: minmax(0, 1fr); }
+    body[data-ruolo="operatore"] .operatore-figlio-azioni .btn-azione { flex: 1 1 130px; }
+    body[data-ruolo="admin"] .admin-config .riga-filtri {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
