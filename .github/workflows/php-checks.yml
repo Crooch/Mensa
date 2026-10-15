@@ -123,3 +123,8 @@ jobs:
           MYSQL_PWD: ci_root_password
           MENSA_TEST_DATABASE: mensa_ci
         run: php tests/job_blocco_retry.php
+      - name: Restrict reminder pupil names to the correct school
+        env:
+          MYSQL_PWD: ci_root_password
+          MENSA_TEST_DATABASE: mensa_ci
+        run: php tests/sollecito_privacy.php
