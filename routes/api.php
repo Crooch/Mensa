@@ -127,6 +127,7 @@ $router->post('/api/admin/email-prova', [$admin, 'emailDiProva'], ['admin']);
 // ---------------- job giornaliero ----------------
 $router->post('/api/job/scheduler', [$job, 'scheduler'], ['admin']);
 $router->post('/api/job/plessi/{id}', [$job, 'eseguiPlesso'], ['admin']);
+$router->get('/api/job/stato', [$job, 'stato'], ['admin']);
 $router->get('/api/job/esecuzioni', [$job, 'esecuzioni'], ['admin', 'operatore']);
 
 return $router;
