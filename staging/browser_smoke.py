@@ -195,17 +195,15 @@ def controlla_admin_calendario_classi(page, larghezza):
             scuola: document.querySelector('#classe-plesso').value,
             ids: [...document.querySelectorAll('#classe-esistente option')]
                 .filter(o => o.value).map(o => o.value),
-            plessi: [...document.querySelectorAll('#classi-corpo tr td:first-child')]
-                .filter(td => td.parentElement.querySelector('button'))
-                .map(td => td.textContent.trim()),
-            nome: document.querySelector('#classe-plesso').selectedOptions[0].textContent.trim()
+            righe: [...document.querySelectorAll('#classi-corpo tr[data-classe]')]
+                .map(tr => tr.dataset.classe)
         })""")
     prima = valori_scelta()
-    assert all(nome == prima["nome"] for nome in prima["plessi"])
+    assert set(prima["ids"]) == set(prima["righe"])
     scelta_scuola.select_option(index=1)
     seconda = valori_scelta()
     assert prima["scuola"] != seconda["scuola"]
-    assert all(nome == seconda["nome"] for nome in seconda["plessi"])
+    assert set(seconda["ids"]) == set(seconda["righe"])
     assert not set(prima["ids"]).intersection(seconda["ids"])
     page.locator('.admin-aggiungi-sezione summary').click()
     page.locator('#classe-nome').select_option('altro')
