@@ -41,11 +41,14 @@ const FotoMenuStub = {
 };
 const menuPubblicati = [
     { id: 7, plesso_id: 1, tipologia_menu_id: 1, plesso_nome: 'Infanzia',
-      tipologia_nome: 'Standard', descrizione: 'Pasta', foto_path: 'menu/1_1/2026-10-14.jpg' },
+      tipologia_nome: 'Standard', descrizione: 'Pasta', foto_path: 'menu/1_1/2026-10-14.jpg',
+      data: '2026-10-14', origine: 'giornaliero' },
     { id: 8, plesso_id: 1, tipologia_menu_id: 2, plesso_nome: 'Infanzia',
-      tipologia_nome: 'Senza glutine', descrizione: 'Riso', foto_path: null },
+      tipologia_nome: 'Senza glutine', descrizione: 'Riso', foto_path: null,
+      data: '2026-10-14', origine: 'giornaliero' },
     { id: 9, plesso_id: 2, tipologia_menu_id: 1, plesso_nome: 'Secondaria',
-      tipologia_nome: 'Standard', descrizione: 'Minestra', foto_path: null }
+      tipologia_nome: 'Standard', descrizione: 'Minestra', foto_path: null,
+      data: '2026-10-14', origine: 'giornaliero' }
 ];
 const context = {
     document: {
@@ -67,6 +70,7 @@ const context = {
     BASE: '',
     Sessione: { token: () => 'token-fittizio' },
     FormData,
+    URL,
     FotoMenu: FotoMenuStub,
     fetch: async (_url, opzioni) => {
         const fd = opzioni.body;
@@ -79,7 +83,8 @@ const context = {
         };
         salvataggi.push(dati);
         const riga = menuPubblicati.find((m) =>
-            m.plesso_id === dati.plesso_id && m.tipologia_menu_id === dati.tipologia_menu_id);
+            m.plesso_id === dati.plesso_id && m.tipologia_menu_id === dati.tipologia_menu_id &&
+            m.data === dati.data);
         if (riga) {
             riga.descrizione = dati.descrizione;
             if (riga.origine === 'settimanale') {
@@ -94,7 +99,7 @@ const context = {
         else menuPubblicati.push({
             id: 10, plesso_id: dati.plesso_id, tipologia_menu_id: dati.tipologia_menu_id,
             plesso_nome: 'Secondaria', tipologia_nome: 'Senza glutine',
-            descrizione: dati.descrizione, foto_path: null
+            descrizione: dati.descrizione, foto_path: null, data: dati.data, origine: 'giornaliero'
         });
         return { ok: true, json: async () => ({ ok: true, dati: { id: riga?.id ?? 10 } }) };
     },
@@ -107,7 +112,13 @@ const context = {
                 });
             }
             if (url.startsWith('/api/catering/menu?data=')) {
-                return Promise.resolve(menuPubblicati.map((m) => ({ ...m })));
+                const data = new URL('http://localhost' + url).searchParams.get('data');
+                return Promise.resolve(menuPubblicati.filter(m => m.data === data).map(m => ({ ...m })));
+            }
+            if (url === '/api/catering/menu/variazioni') {
+                return Promise.resolve(menuPubblicati.filter(m =>
+                    m.origine === 'giornaliero' && m.data >= '2026-10-14'
+                ).map(m => ({ ...m, modificabile: true })));
             }
             if (url.startsWith('/api/catering/report?data=')) {
                 return new Promise((resolve, reject) => richieste.push({ url, resolve, reject }));
@@ -115,17 +126,22 @@ const context = {
             throw new Error('API inattesa: ' + url);
         },
         post: (url, dati) => {
-            assert.equal(url, '/api/catering/menu/ripristina');
+            assert.equal(url, '/api/catering/menu/annulla');
             ripristini.push(dati);
-            const riga = menuPubblicati.find(m =>
-                m.plesso_id === dati.plesso_id && m.tipologia_menu_id === dati.tipologia_menu_id
+            const i = menuPubblicati.findIndex(m =>
+                m.plesso_id === dati.plesso_id && m.tipologia_menu_id === dati.tipologia_menu_id &&
+                m.data === dati.data
             );
-            assert.ok(riga && riga.origine === 'giornaliero');
-            riga.origine = 'settimanale';
-            riga.descrizione = 'Pesce';
-            riga.foto_path = 'menu/settimane/pesce.jpg';
-            riga.ha_modello_settimanale = false;
-            return Promise.resolve({ ripristinato: true });
+            assert.ok(i >= 0 && menuPubblicati[i].origine === 'giornaliero');
+            if (menuPubblicati[i].ha_modello_settimanale) {
+                menuPubblicati[i].origine = 'settimanale';
+                menuPubblicati[i].descrizione = 'Pesce';
+                menuPubblicati[i].foto_path = 'menu/settimane/pesce.jpg';
+                menuPubblicati[i].ha_modello_settimanale = false;
+            } else {
+                menuPubblicati.splice(i, 1);
+            }
+            return Promise.resolve({ annullato: true });
         }
     },
 };
@@ -286,30 +302,30 @@ elemento('menu-plesso').value = '1';
 elemento('menu-tipologia').value = '1';
 callbackSchede[0]('menu');
 await new Promise((resolve) => setImmediate(resolve));
-assert.equal(elemento('menu-submit').textContent, 'Aggiorna menu');
+assert.equal(elemento('menu-submit').textContent, 'Salva modifica');
 assert.equal(elemento('menu-submit').disabled, false);
 assert.equal(elemento('menu-descrizione').value, 'Pasta');
-assert.match(elemento('menu-selezione-stato').textContent, /Aggiornerai solo questo menu/);
+assert.match(elemento('menu-selezione-stato').textContent, /Puoi modificarla o annullarla/);
 assert.equal(fotoWidget['menu-foto-widget'].salvata, 'menu/1_1/2026-10-14.jpg');
 assert.match(elemento('menu-lista').innerHTML, /Modifica menu/);
 
 elemento('menu-tipologia').value = '2';
 elemento('menu-tipologia').handlers.change();
 assert.equal(elemento('menu-descrizione').value, 'Riso');
-assert.equal(elemento('menu-submit').textContent, 'Aggiorna menu');
+assert.equal(elemento('menu-submit').textContent, 'Salva modifica');
 
 elemento('menu-plesso').value = '2';
 elemento('menu-plesso').handlers.change();
 assert.equal(elemento('menu-submit').textContent, 'Pubblica menu');
 assert.equal(elemento('menu-descrizione').value, '');
-assert.match(elemento('menu-selezione-stato').textContent, /Verrà creato solo questo menu/);
+assert.match(elemento('menu-selezione-stato').textContent, /Salverai solo questo giorno/);
 
 elemento('menu-descrizione').value = 'Pasta nuova';
 await elemento('form-menu').handlers.submit({ preventDefault() {} });
 assert.equal(salvataggi.at(-1).plesso_id, 2);
 assert.equal(salvataggi.at(-1).tipologia_menu_id, 2);
 assert.equal(menuPubblicati.length, 4);
-assert.equal(elemento('menu-submit').textContent, 'Aggiorna menu');
+assert.equal(elemento('menu-submit').textContent, 'Salva modifica');
 
 elemento('menu-plesso').value = '1';
 elemento('menu-tipologia').value = '1';
@@ -318,14 +334,14 @@ assert.equal(elemento('menu-descrizione').value, 'Pasta');
 elemento('menu-descrizione').value = 'Pasta aggiornata';
 await elemento('form-menu').handlers.submit({ preventDefault() {} });
 assert.equal(conferme.length, 1, 'Un aggiornamento chiede conferma esplicita');
-assert.match(conferme[0][1], /Gli altri menu resteranno invariati/);
+assert.match(conferme[0][1], /Gli altri giorni resteranno invariati/);
 assert.equal(menuPubblicati.length, 4, 'Non devono comparire duplicati');
 assert.equal(menuPubblicati.find((m) => m.id === 7).descrizione, 'Pasta aggiornata');
 assert.equal(menuPubblicati.find((m) => m.id === 7).foto_path, 'menu/1_1/2026-10-14.jpg');
 assert.equal(menuPubblicati.find((m) => m.id === 8).descrizione, 'Riso');
 assert.equal(menuPubblicati.find((m) => m.id === 9).descrizione, 'Minestra');
 assert.equal(elemento('menu-descrizione').value, 'Pasta aggiornata');
-assert.equal(elemento('menu-submit').textContent, 'Aggiorna menu');
+assert.equal(elemento('menu-submit').textContent, 'Salva modifica');
 console.log('OK: menu precompilati, creazione, aggiornamento isolato, conferma e foto conservata.');
 
 /* Pubblicare testo multilinea non deve collassare i ritorni a capo.
@@ -364,7 +380,7 @@ await new Promise((resolve) => setImmediate(resolve));
 assert.equal(elemento('menu-descrizione').value, 'Pesce');
 assert.equal(fotoWidget['menu-foto-widget'].salvata, null,
     'La foto del pesce non deve essere preselezionata per il giornaliero');
-assert.match(elemento('menu-selezione-stato').textContent, /foto del modello non verrà copiata/i);
+assert.match(elemento('menu-selezione-stato').textContent, /senza copiare automaticamente la foto del modello/i);
 assert.match(elemento('menu-lista').innerHTML, /menu\/settimane\/pesce\.jpg/,
     'Il modello settimanale mantiene la sua foto nell\'elenco');
 elemento('menu-descrizione').value = 'Pollo';
@@ -378,6 +394,7 @@ console.log('OK: pollo senza foto non eredita la foto del pesce settimanale.');
 
 /* Il ripristino e' disponibile soltanto per un giornaliero che copre un
    modello settimanale: dopo la conferma tornano testo e foto del modello. */
+assert.equal(elemento('menu-data').value, '2026-10-14');
 assert.equal(elemento('menu-ripristina').hidden, false);
 assert.equal(elemento('menu-ripristina').disabled, false);
 await elemento('menu-ripristina').handlers.click();
@@ -385,7 +402,7 @@ assert.equal(ripristini.length, 1);
 assert.equal(ripristini[0].plesso_id, 2);
 assert.equal(ripristini[0].tipologia_menu_id, 1);
 assert.equal(ripristini[0].data, '2026-10-14');
-assert.match(conferme.at(-1)[1], /altre giornate e gli altri plessi non cambieranno/);
+assert.match(conferme.at(-1)[1], /altri giorni non cambieranno/);
 assert.equal(menuPubblicati.find(m => m.id === 'modello-11').descrizione, 'Pesce');
 assert.equal(menuPubblicati.find(m => m.id === 'modello-11').foto_path, 'menu/settimane/pesce.jpg');
 assert.equal(elemento('menu-ripristina').hidden, true);
