@@ -144,28 +144,75 @@ try {
         throw new RuntimeException('La foto del settimanale e stata unita al giornaliero senza foto');
     }
 
-    // Pubblicazione tramite servizio (non direttamente tramite Repository):
-    // anche se il modello ha una foto, l'override deve creare Pollo senza foto.
-    $oggi = date('Y-m-d');
-    $numeroGiorno = (string) (new DateTimeImmutable($oggi))->format('N');
-    $giorniOggi = [$numeroGiorno => 'Pesce'];
-    $modelloOggi = $repo->crea('Pesce fotografato', $standard, $giorniOggi,
-        $oggi, 0, [$numeroGiorno => $fotoStorica]);
-    $repo->assegna([$secondaria], $standard, $modelloOggi, $oggi, 0);
+    // Giorno di servizio futuro (o oggi) per i test del servizio Catering.
+    // Il calendario della secondaria prevede lunedi e giovedi dal 19/10/2026.
+    $giornoTest = new DateTimeImmutable(max('2026-10-19', date('Y-m-d')));
+    $calendario = (new App\Core\Container())->calendario();
+    while (!$calendario->previsto($secondaria, $giornoTest->format('Y-m-d'))['attivo']) {
+        $giornoTest = $giornoTest->modify('+1 day');
+    }
+    $dataTest = $giornoTest->format('Y-m-d');
+    $numeroGiorno = (string) $giornoTest->format('N');
+    $giorniTest = [$numeroGiorno => 'Pesce'];
+    $modelloTest = $repo->crea('Pesce fotografato', $standard, $giorniTest,
+        $dataTest, 0, [$numeroGiorno => $fotoStorica]);
+    $repo->assegna([$secondaria], $standard, $modelloTest, $dataTest, 0);
     $pdo->exec("INSERT INTO utenti (ruolo, username, password_hash)
         VALUES ('catering', 'catering.foto.ci', 'hash-test')");
     $autoreTest = (int) $pdo->lastInsertId();
-    $idGiornaliero = $service->pubblicaMenu($secondaria, $standard, $oggi, 'Pollo', null, $autoreTest);
-    $rigaGiornaliera = $giornaliero->trovaPerChiave($secondaria, $standard, $oggi);
-    if ((int) $rigaGiornaliera['id'] !== $idGiornaliero ||
-        $rigaGiornaliera['descrizione'] !== 'Pollo' ||
-        $rigaGiornaliera['foto_path'] !== null ||
-        $repo->modello($modelloOggi, $oggi)['foto_giorni'][$numeroGiorno] !== $fotoStorica) {
-        throw new RuntimeException('La pubblicazione giornaliera ha ereditato la foto settimanale');
+
+    $previsto = $service->menuDelGiorno($dataTest, $secondaria);
+    if (count($previsto) !== 1 || $previsto[0]['foto_path'] !== $fotoStorica) {
+        throw new RuntimeException('Il modello settimanale valido non viene mostrato');
     }
-    $service->pubblicaMenu($secondaria, $standard, $oggi, 'Pollo arrosto', null, $autoreTest);
-    if ($giornaliero->trovaPerChiave($secondaria, $standard, $oggi)['foto_path'] !== null) {
-        throw new RuntimeException('La modifica di un giornaliero senza foto ne ha aggiunta una');
+    $idGiornaliero = $service->pubblicaMenu($secondaria, $standard, $dataTest, 'Pollo', null, $autoreTest);
+    $rigaGiornaliera = $giornaliero->trovaPerChiave($secondaria, $standard, $dataTest);
+    $override = $service->menuDelGiorno($dataTest, $secondaria);
+    if ((int) $rigaGiornaliera['id'] !== $idGiornaliero ||
+        $rigaGiornaliera['foto_path'] !== null ||
+        $override[0]['descrizione'] !== 'Pollo' ||
+        $override[0]['ha_modello_settimanale'] !== true ||
+        $override[0]['foto_path'] !== null) {
+        throw new RuntimeException('La pubblicazione giornaliera non ha sostituito tutto il modello');
+    }
+    $service->pubblicaMenu($secondaria, $standard, $dataTest, 'Pollo arrosto', null, $autoreTest);
+    if ($giornaliero->trovaPerChiave($secondaria, $standard, $dataTest)['foto_path'] !== null) {
+        throw new RuntimeException('La modifica del giornaliero ha aggiunto la foto del modello');
+    }
+
+    // Ripristino: elimina solo l'override per una giornata non consolidata.
+    $service->ripristinaMenuSettimanale($secondaria, $standard, $dataTest);
+    $ripristinato = $service->menuDelGiorno($dataTest, $secondaria);
+    if ($giornaliero->trovaPerChiave($secondaria, $standard, $dataTest) !== null ||
+        count($ripristinato) !== 1 ||
+        $ripristinato[0]['descrizione'] !== 'Pesce' ||
+        $ripristinato[0]['foto_path'] !== $fotoStorica ||
+        $ripristinato[0]['origine'] !== 'settimanale') {
+        throw new RuntimeException('Ripristino giornaliero non ha recuperato il modello e la sua foto');
+    }
+
+    try {
+        $service->ripristinaMenuSettimanale($secondaria, $standard, $dataTest);
+        throw new RuntimeException('Ripristino ripetuto senza eccezione accettato');
+    } catch (App\Core\HttpException $e) {
+        if ($e->getCode() !== 422) throw $e;
+    }
+
+    // In una giornata non prevista non si crea un giornaliero, e le vecchie
+    // pubblicazioni non vengono proposte come menu attivi.
+    $senzaServizio = $giornoTest->modify('next tuesday')->format('Y-m-d');
+    if ($calendario->previsto($secondaria, $senzaServizio)['attivo']) {
+        throw new RuntimeException('La giornata di test senza mensa risulta attiva');
+    }
+    try {
+        $service->pubblicaMenu($secondaria, $standard, $senzaServizio, 'Menu non previsto', null, $autoreTest);
+        throw new RuntimeException('Pubblicazione consentita in giornata senza servizio');
+    } catch (App\Core\HttpException $e) {
+        if ($e->getCode() !== 422) throw $e;
+    }
+    $giornaliero->salva($secondaria, $standard, $senzaServizio, 'Vecchia pubblicazione', null, $autoreTest);
+    if ($service->menuDelGiorno($senzaServizio, $secondaria) !== []) {
+        throw new RuntimeException('Il giornaliero non attivo risulta proposto come menu futuro');
     }
 
     // Blocca aggiornamenti manuali di giorni già trascorsi.
