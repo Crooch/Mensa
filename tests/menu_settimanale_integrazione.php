@@ -152,7 +152,10 @@ try {
     $modelloOggi = $repo->crea('Pesce fotografato', $standard, $giorniOggi,
         $oggi, 0, [$numeroGiorno => $fotoStorica]);
     $repo->assegna([$secondaria], $standard, $modelloOggi, $oggi, 0);
-    $idGiornaliero = $service->pubblicaMenu($secondaria, $standard, $oggi, 'Pollo', null, 0);
+    $pdo->exec("INSERT INTO utenti (ruolo, username, password_hash)
+        VALUES ('catering', 'catering.foto.ci', 'hash-test')");
+    $autoreTest = (int) $pdo->lastInsertId();
+    $idGiornaliero = $service->pubblicaMenu($secondaria, $standard, $oggi, 'Pollo', null, $autoreTest);
     $rigaGiornaliera = $giornaliero->trovaPerChiave($secondaria, $standard, $oggi);
     if ((int) $rigaGiornaliera['id'] !== $idGiornaliero ||
         $rigaGiornaliera['descrizione'] !== 'Pollo' ||
@@ -160,7 +163,7 @@ try {
         $repo->modello($modelloOggi, $oggi)['foto_giorni'][$numeroGiorno] !== $fotoStorica) {
         throw new RuntimeException('La pubblicazione giornaliera ha ereditato la foto settimanale');
     }
-    $service->pubblicaMenu($secondaria, $standard, $oggi, 'Pollo arrosto', null, 0);
+    $service->pubblicaMenu($secondaria, $standard, $oggi, 'Pollo arrosto', null, $autoreTest);
     if ($giornaliero->trovaPerChiave($secondaria, $standard, $oggi)['foto_path'] !== null) {
         throw new RuntimeException('La modifica di un giornaliero senza foto ne ha aggiunta una');
     }
