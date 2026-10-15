@@ -6,6 +6,7 @@ Esecuzione sul runner:
 Richiede: playwright e Chromium. Base consentita solo localhost.
 """
 import base64
+import json
 import os
 from pathlib import Path
 from urllib.parse import urlparse
@@ -76,6 +77,64 @@ def controlla_foto(page):
     assert preview.is_hidden(), "La X deve agire sulla bozza, senza inviare il form"
     print("OK: Catering: anteprima 280×180, X geometrica e rimozione in bozza")
 
+def controlla_report_distribuzione(page, larghezza):
+    # Una risposta sintetica con 4 classi e 12 varianti alimentari:
+    # nessuna tabella a 12 colonne, nessun overflow, somme coerenti.
+    sezioni = []
+    for indice in range(4):
+        tipi = []
+        for menu in range(12):
+            speciale = int(menu == 0)
+            tipi.append({
+                "tipologia_id": menu + 1,
+                "tipologia_nome": "Dieta scolastica speciale con descrizione lunga " + str(menu + 1),
+                "pasti": 2, "pasti_ordinari": 2 - speciale,
+                "pasta_in_bianco": speciale,
+                "richieste_pasta": [{
+                    "cognome": "CognomeDiTestMoltoLungo" + str(indice),
+                    "nome": "BambinoFittizio", "classe_id": indice + 1,
+                    "tipologia_id": menu + 1
+                }] if speciale else []
+            })
+        sezioni.append({
+            "classe_id": indice + 1, "classe_nome": "Sezione di prova " + str(indice + 1),
+            "pasti": 24, "pasti_ordinari": 23, "pasta_in_bianco": 1, "tipologie": tipi
+        })
+    tipi_totale = [{
+        "tipologia_id": i + 1,
+        "tipologia_nome": "Dieta scolastica speciale con descrizione lunga " + str(i + 1),
+        "pasti": 8, "pasti_ordinari": 4 if i == 0 else 8,
+        "pasta_in_bianco": 4 if i == 0 else 0
+    } for i in range(12)]
+    dati = {"data": "2099-10-19", "totale_pasti": 96, "plessi": [{
+        "plesso_id": 1, "plesso_nome": "Scuola di collaudo sintetico",
+        "totale_pasti": 96, "pasti_ordinari": 92, "totale_pasta_in_bianco": 4,
+        "cutoff_orario": "09:15", "definitivo": False,
+        "sezioni": sezioni, "tipologie": tipi_totale, "pasta_in_bianco": []
+    }]}
+    pagina_report = "**/api/catering/report?data=2099-10-19"
+    page.route(pagina_report, lambda route: route.fulfill(
+        status=200, content_type="application/json",
+        body=json.dumps({"ok": True, "dati": dati})
+    ))
+    page.locator('[data-vista="report"]').click()
+    page.locator('#report-data').fill('2099-10-19')
+    page.locator('#btn-report').click()
+    page.wait_for_function("""() =>
+        document.querySelectorAll('#report .catering-classe__tipo').length === 48
+    """, timeout=12000)
+    controlla_dimensioni(page, f"report esteso@{larghezza}")
+    assert page.locator("#report .catering-classe").count() == 4
+    assert page.locator("#report .catering-classe__bianco").count() == 4
+    assert page.locator("#report .catering-classe table").count() == 0
+    page.screenshot(path=str(OUTPUT / f"distribuzione-12-menu-{larghezza}.png"),
+                    full_page=True)
+    page.locator("#report-classe-cerca").fill("Sezione di prova 3")
+    assert page.locator("#report .catering-classe").count() == 1
+    assert "96" in page.locator("#report-riepilogo").inner_text()
+    controlla_dimensioni(page, f"report filtrato@{larghezza}")
+    print(f"OK: distribuzione@{larghezza}, 4 classi, 12 menu ciascuna, 4 paste in bianco, filtri e zero overflow")
+
 with sync_playwright() as engine:
     browser = engine.chromium.launch(headless=True, args=["--no-sandbox"])
     try:
@@ -106,10 +165,12 @@ with sync_playwright() as engine:
                         pagina.locator("#vista-" + vista).wait_for(state="visible")
                         pagina.wait_for_timeout(100)
                         controlla_dimensioni(pagina, descrizione + "/" + vista)
-                    if ruolo == "catering" and larghezza == 1366:
-                        controlla_foto(pagina)
-                        pagina.screenshot(path=str(OUTPUT / "catering-foto-1366.png"),
-                                         full_page=True)
+                    if ruolo == "catering":
+                        controlla_report_distribuzione(pagina, larghezza)
+                        if larghezza == 1366:
+                            controlla_foto(pagina)
+                            pagina.screenshot(path=str(OUTPUT / "catering-foto-1366.png"),
+                                             full_page=True)
                     assert not errori, f"Errori JavaScript {descrizione}: {errori}"
                     print(f"OK: {descrizione}, accesso, schede, overflow assente, errori JS assenti")
                 except Exception:
