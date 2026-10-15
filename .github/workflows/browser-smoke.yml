@@ -1,0 +1,47 @@
+name: Staging Browser 5 ruoli
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'staging/browser_smoke.py'
+      - 'staging/**'
+      - 'compose.staging.yml'
+      - 'src/**'
+      - 'public/**'
+      - 'routes/**'
+      - 'database/**'
+      - '.github/workflows/browser-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Installa browser per collaudo
+        run: |
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Avvia staging Docker isolato
+        run: docker compose -f compose.staging.yml up --build -d --wait
+      - name: Verifica cinque ruoli su desktop, tablet e mobile
+        run: python staging/browser_smoke.py
+      - name: Salva screenshot sintetici per revisione
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mensa-browser-screenshot-sintetici
+          path: staging/browser-artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Log Docker in caso di errore
+        if: failure()
+        run: docker compose -f compose.staging.yml logs --tail=100
+      - name: Arresta lo staging
+        if: always()
+        run: docker compose -f compose.staging.yml down -v
