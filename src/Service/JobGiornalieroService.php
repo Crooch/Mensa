@@ -58,6 +58,18 @@ final class JobGiornalieroService
                 $risultati[] = ['plesso_id' => $plessoId, 'plesso' => $plesso['nome'], 'stato' => 'gia_eseguito'];
                 continue;
             }
+            // Mai ritentare automaticamente una chiusura fallita: potrebbe aver
+            // gia' congelato presenze o registrato alcuni consumi/solleciti.
+            // Il recupero richiede riconciliazione e intervento manuale autorizzato.
+            if ($esecuzione !== null && $esecuzione['esito'] === 'errore') {
+                $risultati[] = [
+                    'plesso_id' => $plessoId,
+                    'plesso' => $plesso['nome'],
+                    'stato' => 'errore_precedente',
+                    'motivo' => 'Verificare i movimenti e i log prima del recupero manuale',
+                ];
+                continue;
+            }
             if (!$this->presenzaService->oltreCutoff($plesso, $data, $adesso)) {
                 $risultati[] = ['plesso_id' => $plessoId, 'plesso' => $plesso['nome'], 'stato' => 'cutoff_non_raggiunto',
                     'cutoff' => substr((string) $plesso['cutoff_orario'], 0, 5)];
