@@ -43,6 +43,55 @@ def controlla_dimensioni(page, contesto):
         f"{contesto}: overflow orizzontale {reale}px / viewport {dimensioni['viewport']}px"
     )
 
+def controlla_etichette(page, contesto):
+    """Verifica l'associazione reale DOM label.control, non solo il markup."""
+    difetti = page.evaluate("""() => Array.from(document.querySelectorAll('label'))
+        .filter(label => {
+            const controllo = label.control;
+            return !controllo ||
+                !['INPUT', 'SELECT', 'TEXTAREA'].includes(controllo.tagName) ||
+                (label.htmlFor && controllo.id !== label.htmlFor);
+        })
+        .map(label => ({
+            testo: label.textContent.trim().slice(0, 80),
+            destinazione: label.htmlFor || '(assente)'
+        }))
+    """)
+    assert not difetti, f"{contesto}: etichette senza campo associato: {difetti}"
+
+
+def controlla_modali_operatore(page):
+    """Tutti i moduli sono aperti ma mai inviati: nessuna mutazione DB."""
+    page.locator('[data-vista="famiglie"]').click()
+    page.locator('#btn-nuovo-genitore').click()
+    page.locator('[data-testid="genitore-form"]').wait_for(state="visible")
+    controlla_etichette(page, 'Operatore / nuova famiglia')
+    page.locator('#modale-chiudi').click()
+
+    # Il seed contiene famiglie fittizie; apriamo solo una scheda.
+    page.locator('#ricerca-famiglie').fill('Fittizio')
+    page.locator('#btn-cerca').click()
+    page.locator('#famiglie-corpo [data-apri]').first.wait_for(state="visible")
+    page.locator('#famiglie-corpo [data-apri]').first.click()
+    page.locator('#btn-acquisto').wait_for(state="visible")
+
+    moduli = [
+        ('#btn-acquisto', 'acquisto-form'),
+        ('#btn-override', 'override-form'),
+        ('#btn-rettifica', 'rettifica-form'),
+        ('#btn-modifica-genitore', 'modifica-genitore-form'),
+        ('#btn-nuovo-figlio', 'bambino-form'),
+        ('[data-cambio-classe]', 'cambio-classe-form'),
+        ('[data-dieta]', 'dieta-form'),
+    ]
+    for pulsante, form in moduli:
+        page.locator('#scheda-famiglia ' + pulsante).first.click()
+        page.locator(f'#modale [data-testid="{form}"]').wait_for(state="visible")
+        controlla_etichette(page, 'Operatore / ' + form)
+        page.locator('#modale-chiudi').click()
+    print("OK: 8 moduli Operatore senza label orfane (nessun salvataggio).")
+
+
 def controlla_foto(page):
     # Il test non salva file: utilizza la bozza locale della foto nel form.
     page.locator('[data-vista="menu"]').click()
@@ -185,6 +234,7 @@ with sync_playwright() as engine:
                     pagina.wait_for_url(BASE + "/" + ruolo, timeout=15000)
                     pagina.locator("main h1:visible").first.wait_for(timeout=15000)
                     pagina.wait_for_timeout(250)
+                    controlla_etichette(pagina, descrizione + " schermata iniziale")
                     controlla_dimensioni(pagina, descrizione + " schermata iniziale")
                     pagina.screenshot(path=str(OUTPUT / f"{ruolo}-{larghezza}.png"),
                                      full_page=True)
@@ -195,7 +245,10 @@ with sync_playwright() as engine:
                         pagina.locator(f'nav.schede [data-vista="{vista}"]').click()
                         pagina.locator("#vista-" + vista).wait_for(state="visible")
                         pagina.wait_for_timeout(100)
+                        controlla_etichette(pagina, descrizione + "/" + vista)
                         controlla_dimensioni(pagina, descrizione + "/" + vista)
+                    if ruolo == "operatore" and larghezza == 1366:
+                        controlla_modali_operatore(pagina)
                     if ruolo == "catering":
                         controlla_report_distribuzione(pagina, larghezza)
                         if larghezza == 1366:
