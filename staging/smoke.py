@@ -529,4 +529,42 @@ senza = next(m for m in modelli_senza if int(m["id"]) == modello_id)
 assert not senza["foto_giorni"]
 assert next(m for m in modelli_senza
     if int(m["id"]) == int(copiato_foto["id"]))["foto_giorni"]["1"] == foto_settimanale
+# Una variazione programmata per un giorno futuro e per una tipologia
+# senza modello deve essere leggibile, modificabile e annullabile via API.
+tipo_senza_modello = int(riferimenti["tipologie"][1]["id"])
+campi_futuri = {
+    "plesso_id": plesso_menu, "tipologia_menu_id": tipo_senza_modello,
+    "data": giorno, "descrizione": "Menu senza glutine programmato",
+    "rimuovi_foto": "0"
+}
+nuovo_programmato = invia_menu_multipart(campi_futuri)
+programmate = call("/api/catering/menu/variazioni", token=catering)
+futura = next(m for m in programmate
+    if int(m["id"]) == int(nuovo_programmato["id"]))
+assert futura["data"] == giorno
+assert futura["descrizione"] == "Menu senza glutine programmato"
+assert futura["modificabile"] is True
+assert futura["ha_modello_settimanale"] is False
+assert any(m["descrizione"] == campi_futuri["descrizione"] for m in
+           call("/api/catering/menu?data=" + giorno, token=catering))
+campi_futuri["descrizione"] = "Menu senza glutine modificato"
+invia_menu_multipart(campi_futuri)
+assert next(m for m in call("/api/catering/menu/variazioni", token=catering)
+    if int(m["id"]) == int(nuovo_programmato["id"]))["descrizione"] == campi_futuri["descrizione"]
+call("/api/catering/menu/annulla", {
+    "plesso_id": plesso_menu, "tipologia_menu_id": tipo_senza_modello, "data": giorno
+}, token=catering)
+assert not any(int(m["id"]) == int(nuovo_programmato["id"])
+               for m in call("/api/catering/menu/variazioni", token=catering))
+assert any(m["descrizione"] == "Menu senza glutine modificato" for m in
+           call("/api/catering/menu?data=2026-10-19", token=catering)) is False
+try:
+    call("/api/catering/menu/annulla", {
+        "plesso_id": plesso_menu, "tipologia_menu_id": tipo_senza_modello, "data": giorno
+    }, token=catering)
+    raise AssertionError("Annullamento ripetuto di menu inesistente accettato")
+except urllib.error.HTTPError as exc:
+    assert exc.code == 422
+print("OK: programmazione futura, elenco, aggiornamento e annullamento senza modello.")
+
 print("OK: foto settimanale aggiunta, condivisa, duplicata e rimossa via multipart; copia preservata.")
