@@ -11,15 +11,39 @@ abilitaSchede((vista) => {
 });
 
 const modale = document.getElementById('modale');
-document.getElementById('modale-chiudi').addEventListener('click', () => { modale.hidden = true; });
+let attivatoreModale = null;
+function chiudiModale() {
+    modale.hidden = true;
+    if (attivatoreModale?.isConnected) attivatoreModale.focus();
+}
+document.getElementById('modale-chiudi').addEventListener('click', chiudiModale);
+modale.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Escape') {
+        evento.preventDefault();
+        chiudiModale();
+    }
+});
 
 function apriModale(titolo, html, alSalva) {
+    attivatoreModale = document.activeElement;
     document.getElementById('modale-titolo').textContent = titolo;
     document.getElementById('modale-corpo').innerHTML = html;
     raggruppaCampi(document.getElementById('modale-corpo'));
     modale.hidden = false;
     const form = modale.querySelector('form');
     if (form) {
+        // Affianca i campi sui desktop, senza cambiare name, id e FormData.
+        Array.from(form.children).forEach((etichetta) => {
+            if (etichetta.tagName !== 'LABEL' || etichetta.querySelector('input, select, textarea')) return;
+            const controllo = etichetta.nextElementSibling;
+            if (!controllo || !['INPUT', 'SELECT', 'TEXTAREA'].includes(controllo.tagName)) return;
+            if (etichetta.htmlFor && controllo.id !== etichetta.htmlFor) return;
+            const gruppo = document.createElement('div');
+            gruppo.className = 'campo-filtro';
+            form.insertBefore(gruppo, etichetta);
+            gruppo.append(etichetta, controllo);
+        });
+        form.querySelector('input:not([type="hidden"]), select, textarea')?.focus();
         form.insertAdjacentHTML('beforeend', '<p id="modale-stato" class="stato-operazione" role="status" hidden></p>');
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -32,7 +56,7 @@ function apriModale(titolo, html, alSalva) {
                         UI.stato('modale-stato', '', 'info');
                         return;
                     }
-                    modale.hidden = true;
+                    chiudiModale();
                 });
             } catch (err) {
                 UI.stato('modale-stato', 'Non è stato possibile salvare: ' + err.message, 'errore');
