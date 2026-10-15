@@ -53,6 +53,7 @@ function sincronizzaMenuSelezionato() {
             ? 'Seleziona un plesso e una tipologia.'
             : 'Caricamento dei menu della data selezionata…';
         fotoMenuGiorno.imposta(null);
+        fotoMenuGiorno.abilita(false);
         return;
     }
     const esistente = menuSelezionato();
@@ -60,6 +61,7 @@ function sincronizzaMenuSelezionato() {
     descrizione.value = esistente?.descrizione || '';
     // La foto del modello non viene mai ereditata nella nuova variazione.
     fotoMenuGiorno.imposta(esistente?.origine === 'settimanale' ? null : esistente?.foto_path || null);
+    fotoMenuGiorno.abilita(modificabile);
     descrizione.disabled = !modificabile;
     pulsante.disabled = !modificabile;
     pulsante.textContent = esistente?.origine === 'giornaliero'
