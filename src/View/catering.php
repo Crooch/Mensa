@@ -47,17 +47,8 @@ require __DIR__ . '/partials/testa.php';
             <textarea id="menu-descrizione" rows="3" placeholder="Es. Pasta al pomodoro, pollo e verdure" data-testid="menu-descrizione-input"></textarea>
         </div>
         <div class="catering-campo">
-            <label for="menu-foto">Foto del menu (facoltativa)</label>
-            <input type="file" id="menu-foto" accept="image/*" data-testid="menu-foto-input">
-            <p id="menu-foto-stato" class="nota catering-foto-nota" data-testid="menu-foto-stato">Puoi aggiungere una foto al menu.</p>
-            <div id="menu-foto-anteprima" class="catering-foto-anteprima" hidden data-testid="menu-foto-anteprima">
-                <img id="menu-foto-immagine" alt="Foto attuale del menu selezionato">
-                <button id="menu-foto-elimina" class="catering-foto-anteprima__elimina" type="button"
-                        aria-label="Rimuovi la foto da questo menu al salvataggio" title="Rimuovi foto"
-                        data-testid="menu-foto-elimina">&times;</button>
-            </div>
-            <button id="menu-foto-annulla" class="btn btn-link catering-foto-annulla" type="button" hidden
-                    data-testid="menu-foto-annulla">Annulla rimozione</button>
+            <label>Foto del menu (facoltativa)</label>
+            <div id="menu-foto-widget" class="menu-foto" data-testid="menu-foto-widget"></div>
         </div>
         <button type="submit" id="menu-submit" class="btn btn-primary catering-menu-submit" disabled data-testid="menu-submit-button">Pubblica menu</button>
     </form>
@@ -84,19 +75,26 @@ require __DIR__ . '/partials/testa.php';
             </div>
             <div class="catering-giorni">
                 <div class="catering-campo"><label for="settimana-giorno-1">Lunedì</label>
-                    <textarea id="settimana-giorno-1" rows="3" data-testid="settimana-giorno-1" placeholder="Descrizione del menu"></textarea></div>
+                    <textarea id="settimana-giorno-1" rows="3" data-testid="settimana-giorno-1" placeholder="Descrizione del menu"></textarea>
+                    <div id="settimana-foto-widget-1" class="menu-foto" data-testid="settimana-foto-1"></div></div>
                 <div class="catering-campo"><label for="settimana-giorno-2">Martedì</label>
-                    <textarea id="settimana-giorno-2" rows="3" data-testid="settimana-giorno-2" placeholder="Descrizione del menu"></textarea></div>
+                    <textarea id="settimana-giorno-2" rows="3" data-testid="settimana-giorno-2" placeholder="Descrizione del menu"></textarea>
+                    <div id="settimana-foto-widget-2" class="menu-foto" data-testid="settimana-foto-2"></div></div>
                 <div class="catering-campo"><label for="settimana-giorno-3">Mercoledì</label>
-                    <textarea id="settimana-giorno-3" rows="3" data-testid="settimana-giorno-3" placeholder="Descrizione del menu"></textarea></div>
+                    <textarea id="settimana-giorno-3" rows="3" data-testid="settimana-giorno-3" placeholder="Descrizione del menu"></textarea>
+                    <div id="settimana-foto-widget-3" class="menu-foto" data-testid="settimana-foto-3"></div></div>
                 <div class="catering-campo"><label for="settimana-giorno-4">Giovedì</label>
-                    <textarea id="settimana-giorno-4" rows="3" data-testid="settimana-giorno-4" placeholder="Descrizione del menu"></textarea></div>
+                    <textarea id="settimana-giorno-4" rows="3" data-testid="settimana-giorno-4" placeholder="Descrizione del menu"></textarea>
+                    <div id="settimana-foto-widget-4" class="menu-foto" data-testid="settimana-foto-4"></div></div>
                 <div class="catering-campo"><label for="settimana-giorno-5">Venerdì</label>
-                    <textarea id="settimana-giorno-5" rows="3" data-testid="settimana-giorno-5" placeholder="Descrizione del menu"></textarea></div>
+                    <textarea id="settimana-giorno-5" rows="3" data-testid="settimana-giorno-5" placeholder="Descrizione del menu"></textarea>
+                    <div id="settimana-foto-widget-5" class="menu-foto" data-testid="settimana-foto-5"></div></div>
                 <div class="catering-campo"><label for="settimana-giorno-6">Sabato</label>
-                    <textarea id="settimana-giorno-6" rows="3" data-testid="settimana-giorno-6" placeholder="Descrizione del menu"></textarea></div>
+                    <textarea id="settimana-giorno-6" rows="3" data-testid="settimana-giorno-6" placeholder="Descrizione del menu"></textarea>
+                    <div id="settimana-foto-widget-6" class="menu-foto" data-testid="settimana-foto-6"></div></div>
                 <div class="catering-campo"><label for="settimana-giorno-7">Domenica</label>
-                    <textarea id="settimana-giorno-7" rows="3" data-testid="settimana-giorno-7" placeholder="Descrizione del menu"></textarea></div>
+                    <textarea id="settimana-giorno-7" rows="3" data-testid="settimana-giorno-7" placeholder="Descrizione del menu"></textarea>
+                    <div id="settimana-foto-widget-7" class="menu-foto" data-testid="settimana-foto-7"></div></div>
             </div>
             <p class="nota">Puoi lasciare vuoti i giorni senza menu.</p>
             <div class="catering-settimane-azioni">
