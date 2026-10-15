@@ -52,8 +52,18 @@ async function caricaPlessi() {
     }));
 
     const opzioni = plessi.map((p) => `<option value="${p.id}">${esc(p.nome)}</option>`).join('');
-    ['classe-plesso', 'modello-plesso', 'job-plesso', 'calendario-plesso'].forEach((id) => { document.getElementById(id).innerHTML = opzioni; });
-    document.getElementById('ut-plesso').innerHTML = '<option value="">—</option>' + opzioni;
+    ['classe-plesso', 'modello-plesso', 'job-plesso', 'calendario-plesso'].forEach((id) => {
+        const campo = document.getElementById(id);
+        const precedente = campo.value;
+        campo.innerHTML = opzioni;
+        if (plessi.some(p => String(p.id) === precedente)) campo.value = precedente;
+    });
+    const utenza = document.getElementById('ut-plesso');
+    const utPlesso = utenza.value;
+    utenza.innerHTML = '<option value="">—</option>' + opzioni;
+    if (plessi.some(p => String(p.id) === utPlesso)) utenza.value = utPlesso;
+    // La scelta della scuola guida immediatamente la lista delle classi.
+    aggiornaSceltaClasse();
 }
 
 document.getElementById('form-plesso').addEventListener('submit', async (e) => {
@@ -83,6 +93,7 @@ document.getElementById('plesso-annulla').addEventListener('click', () => {
 
 /* ---------------- calendario mensa ---------------- */
 const giorniCalendario = ['lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi'];
+document.getElementById('classe-anno').value = annoScolasticoCorrente();
 
 async function caricaCalendario() {
     const id = document.getElementById('calendario-plesso').value;
@@ -172,32 +183,110 @@ document.getElementById('calendario-verifica').addEventListener('click', async (
 });
 
 /* ---------------- classi ---------------- */
-async function caricaClassi() {
-    const elenco = await API.get('/api/admin/classi');
-    document.getElementById('classi-corpo').innerHTML = elenco.map((c) => `
+// Le classi disponibili dipendono dalla scuola selezionata. Si digita il nome
+// soltanto se si sta creando una tipologia non presente nell'elenco comune.
+let classiDisponibili = [];
+let numeroRichiestaClassi = 0;
+function annoScolasticoCorrente() {
+    const adesso = new Date();
+    const inizio = adesso.getMonth() >= 8 ? adesso.getFullYear() : adesso.getFullYear() - 1;
+    return inizio + '/' + (inizio + 1);
+}
+function suggerimentiClassi() {
+    const lettere = ['A', 'B', 'C', 'D', 'E', 'F'];
+    return [
+        ...lettere.map(lettera => 'Sezione ' + lettera),
+        ...Array.from({ length: 5 }, (_, anno) =>
+            lettere.map(lettera => (anno + 1) + 'ª ' + lettera)).flat()
+    ];
+}
+function aggiornaSceltaClasse() {
+    const plessoId = Number(document.getElementById('classe-plesso').value);
+    const scuola = classiDisponibili.filter(c => Number(c.plesso_id) === plessoId);
+    const scelta = document.getElementById('classe-esistente');
+    const precedente = scelta.value;
+    scelta.innerHTML = '<option value="">Seleziona una classe già registrata</option>' +
+        scuola.map(c => `<option value="${Number(c.id)}">${esc(c.nome)} · ${esc(c.anno_scolastico)}</option>`).join('');
+    if (scuola.some(c => String(c.id) === precedente)) scelta.value = precedente;
+    scelta.disabled = scuola.length === 0;
+    if (!scuola.length) scelta.options[0].textContent = 'Nessuna classe registrata per questa scuola';
+    mostraClasseEsistente();
+
+    const nomi = document.getElementById('classe-nome');
+    const nomePrecedente = nomi.value;
+    nomi.innerHTML = '<option value="">Scegli una classe o sezione</option>' +
+        suggerimentiClassi().map(nome => `<option value="${esc(nome)}">${esc(nome)}</option>`).join('') +
+        '<option value="altro">Un altro nome…</option>';
+    if ([...nomi.options].some(o => o.value === nomePrecedente)) nomi.value = nomePrecedente;
+    mostraCampoAltraClasse();
+
+    // La tabella serve esclusivamente la scuola scelta, senza ripetere il nome
+    // del plesso in ogni riga e senza modificare il suo storico.
+    const corpo = document.getElementById('classi-corpo');
+    corpo.innerHTML = scuola.map(c => `
         <tr><td>${esc(c.plesso_nome)}</td><td>${esc(c.nome)}</td><td>${esc(c.anno_scolastico)}</td>
-        <td><button class="btn-azione" data-cancella-classe="${c.id}" data-testid="classe-cancella-${c.id}">Disattiva classe</button></td></tr>`).join('');
-    document.querySelectorAll('[data-cancella-classe]').forEach((b) => b.addEventListener('click', async () => {
+        <td><button type="button" class="btn-azione" data-cancella-classe="${Number(c.id)}"
+            data-testid="classe-cancella-${Number(c.id)}">Disattiva classe</button></td></tr>`).join('')
+        || '<tr><td colspan="4" class="vuoto">Non ci sono classi registrate per questa scuola.</td></tr>';
+    corpo.querySelectorAll('[data-cancella-classe]').forEach(b => b.addEventListener('click', async () => {
         if (!confirm('Vuoi disattivare questa classe? Le assegnazioni precedenti rimarranno nello storico.')) return;
         try {
             await API.del('/api/admin/classi/' + b.dataset.cancellaClasse);
             avviso('Classe disattivata. Lo storico resta disponibile.');
-            caricaClassi();
+            await caricaClassi();
         } catch (err) { avviso(err.message, 'errore'); }
     }));
 }
+function mostraClasseEsistente() {
+    const scelta = document.getElementById('classe-esistente');
+    const classe = classiDisponibili.find(c => String(c.id) === scelta.value);
+    document.getElementById('classe-esistente-dettaglio').textContent = classe
+        ? 'Anno scolastico ' + classe.anno_scolastico + '. Puoi gestirla nell’elenco qui sotto.'
+        : '';
+}
+function mostraCampoAltraClasse() {
+    const altro = document.getElementById('classe-nome').value === 'altro';
+    document.getElementById('classe-altro-gruppo').hidden = !altro;
+    document.getElementById('classe-altro').required = altro;
+    if (!altro) document.getElementById('classe-altro').value = '';
+}
+document.getElementById('classe-plesso').addEventListener('change', aggiornaSceltaClasse);
+document.getElementById('classe-esistente').addEventListener('change', mostraClasseEsistente);
+document.getElementById('classe-nome').addEventListener('change', mostraCampoAltraClasse);
 
+async function caricaClassi() {
+    const richiesta = ++numeroRichiestaClassi;
+    const elenco = await API.get('/api/admin/classi');
+    if (richiesta !== numeroRichiestaClassi) return;
+    classiDisponibili = elenco;
+    aggiornaSceltaClasse();
+}
 document.getElementById('form-classe').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const id = document.getElementById('classe-plesso').value;
+    const scelta = document.getElementById('classe-nome').value;
+    const nome = (scelta === 'altro'
+        ? document.getElementById('classe-altro').value : scelta).trim();
+    const anno = document.getElementById('classe-anno').value.trim();
+    if (!id || !nome || !anno) {
+        avviso('Seleziona scuola e classe, poi indica l’anno scolastico.', 'errore');
+        return;
+    }
+    if (classiDisponibili.some(c => Number(c.plesso_id) === Number(id) &&
+        c.nome.toLocaleLowerCase('it') === nome.toLocaleLowerCase('it') &&
+        c.anno_scolastico === anno)) {
+        avviso('Questa classe è già registrata per la scuola e l’anno scelti.', 'errore');
+        return;
+    }
     try {
         await API.post('/api/admin/classi', {
-            plesso_id: Number(document.getElementById('classe-plesso').value),
-            nome: document.getElementById('classe-nome').value,
-            anno_scolastico: document.getElementById('classe-anno').value
+            plesso_id: Number(id), nome, anno_scolastico: anno
         });
         avviso('Classe creata.');
         document.getElementById('classe-nome').value = '';
-        caricaClassi();
+        document.getElementById('classe-altro').value = '';
+        mostraCampoAltraClasse();
+        await caricaClassi();
     } catch (err) { avviso(err.message, 'errore'); }
 });
 
