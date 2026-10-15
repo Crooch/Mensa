@@ -81,7 +81,13 @@ const context = {
             m.plesso_id === dati.plesso_id && m.tipologia_menu_id === dati.tipologia_menu_id);
         if (riga) {
             riga.descrizione = dati.descrizione;
-            if (dati.rimuovi_foto === '1') riga.foto_path = null;
+            if (riga.origine === 'settimanale') {
+                // Simula la pubblicazione reale di una nuova eccezione completa.
+                riga.foto_path = fd.has('foto') ? 'menu/2_1/2026-10-14.png' : null;
+                riga.origine = 'giornaliero';
+            } else if (dati.rimuovi_foto === '1') {
+                riga.foto_path = null;
+            }
         }
         else menuPubblicati.push({
             id: 10, plesso_id: dati.plesso_id, tipologia_menu_id: dati.tipologia_menu_id,
@@ -232,3 +238,29 @@ assert.equal(menuPubblicati.find((m) => m.id === 8).descrizione, 'Riso');
 assert.equal(menuPubblicati.find((m) => m.id === 9).descrizione, 'Minestra');
 assert.match(conferme.at(-1)[1], /La foto verrà rimossa/);
 console.log('OK: descrizione multilinea visibile e rimozione immagine isolata e confermata.');
+
+/* Una foto sul modello settimanale non viene preselezionata nell'override.
+   Pesce con foto sul modello -> Pollo senza foto sul giornaliero. */
+menuPubblicati.push({
+    id: 'modello-11', plesso_id: 2, tipologia_menu_id: 1,
+    plesso_nome: 'Secondaria', tipologia_nome: 'Standard', descrizione: 'Pesce',
+    foto_path: 'menu/settimane/pesce.jpg', origine: 'settimanale', modello_nome: 'Settimana base'
+});
+elemento('menu-plesso').value = '2';
+elemento('menu-tipologia').value = '1';
+callbackSchede[0]('menu');
+await new Promise((resolve) => setImmediate(resolve));
+assert.equal(elemento('menu-descrizione').value, 'Pesce');
+assert.equal(fotoWidget['menu-foto-widget'].salvata, null,
+    'La foto del pesce non deve essere preselezionata per il giornaliero');
+assert.match(elemento('menu-selezione-stato').textContent, /foto del modello non verrà copiata/i);
+assert.match(elemento('menu-lista').innerHTML, /menu\/settimane\/pesce\.jpg/,
+    'Il modello settimanale mantiene la sua foto nell\'elenco');
+elemento('menu-descrizione').value = 'Pollo';
+await elemento('form-menu').handlers.submit({ preventDefault() {} });
+assert.equal(salvataggi.at(-1).descrizione, 'Pollo');
+assert.equal(salvataggi.at(-1).rimuovi_foto, '0',
+    'Una nuova eccezione senza foto non richiede di cancellare il file settimanale');
+assert.equal(menuPubblicati.find(m => m.id === 'modello-11').foto_path, null);
+assert.match(conferme.at(-1)[1], /foto del modello settimanale non verrà copiata/);
+console.log('OK: pollo senza foto non eredita la foto del pesce settimanale.');
