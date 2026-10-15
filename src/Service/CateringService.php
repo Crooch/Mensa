@@ -317,27 +317,21 @@ final class CateringService
         }
         $fotoNuova = $file !== null && ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK;
         $esistente = $this->menu->trovaPerChiave($plessoId, $tipologiaId, $data);
-        $fotoModello = null;
-        if ($esistente === null) {
-            foreach ($this->settimanali->giorniDiSettimana($data, $plessoId) as $modello) {
-                if ((int) $modello['tipologia_menu_id'] === $tipologiaId) {
-                    $fotoModello = $modello['foto_path'];
-                    break;
-                }
-            }
-        }
         if ($rimuoviFoto && $fotoNuova) {
             throw HttpException::nonValido('Non puoi rimuovere e sostituire la foto insieme');
         }
-        if ($rimuoviFoto && empty($esistente['foto_path']) && !$fotoModello) {
-            throw HttpException::nonValido('Non esiste una foto pubblicata da rimuovere');
+        if ($rimuoviFoto && empty($esistente['foto_path'])) {
+            throw HttpException::nonValido('Non esiste una foto giornaliera da rimuovere');
         }
-        $fotoDisponibile = !$rimuoviFoto && (!empty($esistente['foto_path']) || $fotoModello !== null);
+        // Il menu giornaliero e' un override completo: la foto del modello
+        // settimanale non va mai ereditata automaticamente.
+        // In una modifica successiva conserviamo invece la foto del giornaliero.
+        $fotoDisponibile = !$rimuoviFoto && !empty($esistente['foto_path']);
         if (($descrizione === null || trim($descrizione) === '') && !$fotoNuova && !$fotoDisponibile) {
             throw HttpException::nonValido('Indicare almeno una descrizione o una foto');
         }
 
-        $fotoPath = !$rimuoviFoto && !$fotoNuova && $esistente === null ? $fotoModello : null;
+        $fotoPath = null;
         if ($fotoNuova) {
             $fotoPath = $this->salvaFoto($plessoId, $tipologiaId, $data, $file);
         }
