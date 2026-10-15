@@ -22,6 +22,18 @@ jobs:
         run: |
           curl --fail --retry 15 --retry-delay 2 --retry-connrefused --retry-all-errors http://127.0.0.1:18080/login >/dev/null
           python3 staging/smoke.py
+      - name: Verify staging menu cleanup (isolated synthetic database)
+        run: |
+          docker compose -f compose.staging.yml exec -T app php staging/pulisci_menu.php --preview
+          if docker compose -f compose.staging.yml exec -T app php staging/pulisci_menu.php --apply; then
+            echo "La pulizia non deve essere consentita senza conferma" >&2
+            exit 1
+          fi
+          docker compose -f compose.staging.yml exec -T app php staging/pulisci_menu.php --apply --confirm=mensa_staging
+          totale=$(docker compose -f compose.staging.yml exec -T database sh -c 'mariadb -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" -N -s "$MARIADB_DATABASE" -e "SELECT (SELECT COUNT(*) FROM menu_giornalieri) + (SELECT COUNT(*) FROM menu_settimanali) + (SELECT COUNT(*) FROM menu_settimanali_revisioni) + (SELECT COUNT(*) FROM menu_settimanali_assegnazioni)"')
+          test "$totale" = "0"
+          utenti=$(docker compose -f compose.staging.yml exec -T database sh -c 'mariadb -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" -N -s "$MARIADB_DATABASE" -e "SELECT COUNT(*) FROM utenti"')
+          test "$utenti" -ge 6
       - name: Show logs on failure
         if: failure()
         run: docker compose -f compose.staging.yml logs --tail=100
