@@ -11,7 +11,7 @@ require __DIR__ . '/partials/testa.php';
     <button class="scheda" data-vista="tipologie" data-testid="tab-tipologie">Tipologie menu</button>
     <button class="scheda" data-vista="email" data-testid="tab-email">Email e solleciti</button>
     <button class="scheda" data-vista="utenti" data-testid="tab-utenti">Utenze</button>
-    <button class="scheda" data-vista="job" data-testid="tab-job">Job giornaliero</button>
+    <button class="scheda" data-vista="job" data-testid="tab-job">Chiusura pasti</button>
 </nav>
 
 <section id="vista-plessi" class="vista">
@@ -289,23 +289,47 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-job" class="vista" hidden>
-    <header class="area-intro"><h1>Conferma dei pasti e addebito dei buoni</h1></header>
-    <p class="banner banner--rosso"><strong>Attenzione:</strong> questa funzione non è una semplice verifica. Se è il giorno di mensa ed è passato l'orario limite, l'esecuzione può confermare i pasti e scalare i buoni alle famiglie. Usala solo se sai che il conteggio è pronto. L'esecuzione automatica può essere programmata ogni 5 minuti.</p>
-    <div class="riga-filtri admin-job-azioni">
-        <button class="btn btn-primary btn-sm" id="btn-scheduler" data-testid="job-scheduler-button">Conferma pasti di tutte le scuole</button>
-        <div class="campo-filtro">
-            <label for="job-plesso">Scuola</label>
-            <select id="job-plesso" data-testid="job-plesso-select"></select>
-        </div>
-        <button class="btn btn-outline-primary btn-sm" id="btn-job-plesso" data-testid="job-plesso-button">Conferma pasti della scuola scelta</button>
+    <header class="area-intro">
+        <h1>Chiusura giornaliera dei pasti</h1>
+        <p>Controlla quali scuole hanno concluso la giornata e verifica eventuali problemi.</p>
+    </header>
+    <div class="admin-job-intro">
+        <p>La conferma dei pasti e il consumo dei buoni avvengono automaticamente
+            dopo l'orario limite di ogni scuola, <strong>se la pianificazione sul server è attiva</strong>.
+            Da questa pagina puoi vedere gli esiti registrati, ma non verificare se il servizio automatico è acceso.</p>
     </div>
-    <div id="job-esito" class="pannello" aria-live="polite" data-testid="job-esito"><p class="nota">Qui vedrai l’esito dell’ultima operazione eseguita manualmente.</p></div>
-    <div class="area-sezione-testa"><h2>Ultime esecuzioni</h2></div>
-    <div class="tabella-scroll">
+    <div class="area-sezione-testa">
+        <h2>Situazione di oggi <span id="job-data-oggi"></span></h2>
+        <button type="button" class="btn btn-outline-primary btn-sm" id="job-aggiorna" data-testid="job-aggiorna-button">Aggiorna</button>
+    </div>
+    <p id="job-stato-caricamento" class="nota" role="status" aria-live="polite"></p>
+    <div id="job-scuole" class="admin-job-scuole" data-testid="job-scuole"></div>
+
+    <div class="area-sezione-testa"><h2>Ultime elaborazioni</h2></div>
+    <div class="tabella-scroll admin-job-storico">
         <table class="table" data-testid="job-esecuzioni-tabella">
-            <thead><tr><th>Data</th><th>Plesso</th><th>Esito</th><th>Dettaglio</th></tr></thead>
+            <thead><tr><th>Data</th><th>Scuola</th><th>Risultato</th><th>Pasti confermati</th><th>Buoni addebitati</th><th>Solleciti inviati</th><th>Note</th></tr></thead>
             <tbody id="job-corpo"></tbody>
         </table>
     </div>
+
+    <details class="admin-job-manuale" id="job-manuale">
+        <summary>Interventi manuali</summary>
+        <div class="admin-job-manuale__contenuto">
+            <p>Da usare soltanto se è necessario intervenire su una giornata non ancora elaborata.
+                <strong>Non è una simulazione:</strong> può confermare i pasti, sottrarre buoni e
+                inviare solleciti. Il sistema rispetta comunque l'orario limite e impedisce
+                che una giornata completata sia addebitata nuovamente.</p>
+            <div class="admin-job-manuale__azioni">
+                <div class="campo-filtro">
+                    <label for="job-plesso">Scuola</label>
+                    <select id="job-plesso" data-testid="job-plesso-select"></select>
+                </div>
+                <button type="button" class="btn btn-outline-primary" id="btn-job-plesso" data-testid="job-plesso-button">Avvia per la scuola scelta</button>
+                <button type="button" class="btn btn-outline-primary" id="btn-scheduler" data-testid="job-scheduler-button">Controlla tutte le scuole ora</button>
+            </div>
+            <div id="job-esito" class="admin-job-esito" aria-live="polite" data-testid="job-esito" hidden></div>
+        </div>
+    </details>
 </section>
 <?php require __DIR__ . '/partials/piede.php'; ?>
