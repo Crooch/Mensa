@@ -2406,3 +2406,84 @@ body[data-ruolo="admin"] .admin-job-risultato p {
         width: 100%;
     }
 }
+
+/* Calendario Admin — periodo ordinario e aperture/chiusure straordinarie. */
+body[data-ruolo="admin"] .admin-calendario-nota {
+    margin: -.5rem 0 .15rem;
+    line-height: 1.5;
+    max-width: 85ch;
+}
+body[data-ruolo="admin"] .admin-periodo-campi {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .85rem 1rem;
+    align-items: start;
+}
+body[data-ruolo="admin"] .admin-periodo-campi > .campo-filtro {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+}
+body[data-ruolo="admin"] .admin-periodo-campi .campo-filtro > label {
+    align-self: stretch !important;
+    text-align: left !important;
+    width: 100%;
+    margin: 0 0 .35rem !important;
+}
+body[data-ruolo="admin"] .admin-periodo-campi input,
+body[data-ruolo="admin"] .admin-periodo-campi select {
+    min-width: 0;
+    width: 100% !important;
+    max-width: 100%;
+    min-height: 44px;
+}
+body[data-ruolo="admin"] .admin-periodo-campi small.nota {
+    font-size: .79rem;
+    margin-top: .35rem;
+}
+body[data-ruolo="admin"] .admin-periodo-campi .admin-periodo-motivazione {
+    grid-column: 1 / -1;
+}
+body[data-ruolo="admin"] .admin-periodo-messaggio {
+    border: 1px solid #bdd4e8;
+    border-radius: 8px;
+    padding: .75rem .9rem;
+    background: #f1f7fd;
+    color: #174b76;
+    margin: .85rem 0;
+    font-size: .9rem;
+}
+body[data-ruolo="admin"] .admin-periodo-messaggio[hidden] {
+    display: none;
+}
+body[data-ruolo="admin"] .admin-periodo-messaggio--errore {
+    border-color: #e6b2a9;
+    background: #fff1ef;
+    color: #8f2e1a;
+}
+body[data-ruolo="admin"] .admin-periodo-azioni {
+    white-space: nowrap;
+}
+body[data-ruolo="admin"] .admin-periodo-azioni .btn-azione {
+    margin: 0 .35rem .25rem 0;
+}
+body[data-ruolo="admin"] #eccezione-annulla[hidden] {
+    display: none;
+}
+@media (max-width: 900px) {
+    body[data-ruolo="admin"] .admin-periodo-campi {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 600px) {
+    body[data-ruolo="admin"] .admin-periodo-campi {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="admin"] .admin-periodo-campi .admin-periodo-motivazione {
+        grid-column: auto;
+    }
+    body[data-ruolo="admin"] .admin-periodo-azioni {
+        white-space: normal;
+    }
+}
