@@ -1,0 +1,30 @@
+# Configurazione locale: puo' contenere credenziali e chiavi
+/config/config.local.php
+.env
+.env.*
+!.env.example
+
+# Dati generati dall'app e immagini utenti (non versionare)
+/storage/menu/*
+!/storage/menu/LEGGIMI.txt
+/storage/*.log
+/storage/logs/
+/storage/cache/
+/storage/tmp/
+
+# Dump, backup e copie locali di database
+*.sql.gz
+*.sql.gpg
+*.sql.age
+*.sql.zip
+*.dump
+*.bak
+/backups/
+/database/backups/
+/database/dumps/
+
+# File locali di prova
+/staging/.env
+/staging/*.log
+.DS_Store
+Thumbs.db
