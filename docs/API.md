@@ -321,6 +321,7 @@ una fine, la configurazione ordinaria rimane valida anche negli anni successivi.
 
 | Metodo | Endpoint | Ruoli | Descrizione |
 |---|---|---|---|
+| GET | `/api/admin/calendari/riepilogo?data=YYYY-MM-DD` | admin | Situazione di tutte le scuole attive e classi dell'anno scolastico, **sola lettura** |
 | GET | `/api/admin/calendari/{id}` | admin | Configurazione e periodi per la scuola |
 | PUT | `/api/admin/calendari/{id}` | admin | Salva il calendario ordinario |
 | GET | `/api/admin/calendari/{id}/verifica?data=YYYY-MM-DD` | admin | Verifica il servizio nella data, senza addebiti |
@@ -343,6 +344,22 @@ Per una data singola è sufficiente omettere `data_fine` o valorizzarla
 con la stessa data iniziale. In tabella i record storici a giorno singolo
 rimangono validi con `giorno_fine = NULL`; è richiesta la migrazione
 `database/migrations/009_intervalli_calendario.sql`.
+
+**Verifica complessiva:** `GET /api/admin/calendari/riepilogo?data=2026-10-19`
+restituisce `data`, `anno_scolastico`, `totali` (scuole e classi
+con e senza servizio) e `scuole[]`. Ogni scuola comprende `plesso_id`,
+`plesso_nome`, `attivo`, `motivo`, `totale_classi` e `classi[]`
+(con soli ID e nomi). Non sono restituiti dati personali degli alunni,
+né sono creati movimenti o esecuzioni del job.
+
+**Il calendario è per scuola:** tutte le classi della medesima scuola
+ereditano l'esito, non esiste una configurazione autonoma per classe.
+Sono mostrate esclusivamente le classi attive con `anno_scolastico`
+corrispondente alla data richiesta (settembre–agosto). Una scuola può
+essere aperta anche se non ha classi registrate per quell'anno;
+l'assenza di classi non equivale alla chiusura del servizio.
+La pagina Amministratore applica filtri e paginazione lato browser,
+con otto scuole per pagina e classi espandibili.
 
 **Precedenza:** ogni chiusura o apertura straordinaria esplicita prevale
 sul calendario ordinario, anche su fine settimana, festività nazionali e
