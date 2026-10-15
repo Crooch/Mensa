@@ -172,50 +172,60 @@ const dati19 = {
 richieste[2].resolve(dati19);
 await new Promise((resolve) => setImmediate(resolve));
 await new Promise((resolve) => setImmediate(resolve));
-assert.match(elemento('report-stato').textContent, /^Distribuzione pasti del 19\/10\/2026/, 'Stato report: ' + elemento('report-stato').textContent + '; errori=' + errori.join(';'));
-assert.match(elemento('report').innerHTML, /Sezione D/, 'Report mancante: ' + elemento('report-stato').textContent + '; errori=' + errori.join(';'));
+assert.match(elemento('report-stato').textContent, /^Pasti per il 19\/10\/2026/,
+    'Stato report: ' + elemento('report-stato').textContent + '; errori=' + errori.join(';'));
 assert.equal(elemento('btn-report').disabled, false);
-const primoReportHtml = elemento('report').innerHTML;
-assert.match(primoReportHtml, /Sezione A/);
-assert.match(primoReportHtml, /Standard/);
-assert.match(primoReportHtml, /Senza glutine/);
-assert.match(primoReportHtml, /2 pasta in bianco/);
-assert.match(primoReportHtml, /Rossi Mario/);
-assert.match(primoReportHtml, /Verdi Gianni/);
-assert.match(primoReportHtml, /Nessun pasto da distribuire/);
-assert.match(elemento('report-riepilogo').innerHTML, /Pasti complessivi/);
-assert.match(elemento('report-riepilogo').innerHTML, /Pasti da menu/);
+const html = elemento('report').innerHTML;
+assert.match(html, /report-plesso-1/);
+assert.match(html, /Pasti per tipo di menu/);
+assert.match(html, /Pasti per classe o sezione/);
+assert.match(html, /Sezione A/);
+assert.match(html, /Sezione D/);
+assert.match(html, /Standard/);
+assert.match(html, /Senza glutine/);
+assert.match(html, /2 pasta in bianco/);
+assert.match(html, /Rossi Mario/);
+assert.match(html, /Verdi Gianni/);
+assert.match(html, /Nessun pasto previsto/);
+assert.match(elemento('report-riepilogo').innerHTML, /Pasti da preparare/);
+assert.match(elemento('report-riepilogo').innerHTML, /Scuole con mensa/);
 assert.match(elemento('report-riepilogo').innerHTML, /Pasta in bianco/);
-const cercaClasse = elemento('report-classe-cerca');
-cercaClasse.value = 'D';
-cercaClasse.handlers.input();
-assert.match(elemento('report').innerHTML, /Sezione D/);
-assert.doesNotMatch(elemento('report').innerHTML, /Sezione A/);
-assert.match(elemento('report-riepilogo').innerHTML, /Pasti complessivi/,
-    'I filtri non devono cambiare i totali generali');
-cercaClasse.value = '';
-cercaClasse.handlers.input();
-const filtroScuola = elemento('report-plesso');
-filtroScuola.value = '999';
-filtroScuola.handlers.change();
-assert.match(elemento('report').innerHTML, /Nessuna classe corrisponde/);
-filtroScuola.value = '';
-filtroScuola.handlers.change();
-assert.match(elemento('report').innerHTML, /Sezione A/);
+assert.match(elemento('report-riepilogo').innerHTML, /Conteggi confermati/);
+assert.ok(!html.includes('report-plesso-filtro'), 'Non devono comparire filtri per scuola');
+assert.ok(!html.includes('report-classe-ricerca'), 'Non deve servire digitare una classe');
+const vistaReport = readFileSync('src/View/catering.php', 'utf8');
+assert.doesNotMatch(vistaReport, /report-classe-cerca|report-plesso" data-testid="report-plesso-filtro/,
+    'Nessun campo di ricerca nella schermata operativa');
 
-const creaScheda = vm.runInContext('schedaDistribuzioneClasse', context);
+const renderClasse = vm.runInContext('rigaDistribuzioneClasse', context);
 const moltiTipi = Array.from({length: 25}, (_, i) => ({
     tipologia_id: i + 1, tipologia_nome: 'Dieta speciale ' + (i + 1),
     pasti: 1, pasti_ordinari: 1, pasta_in_bianco: 0, richieste_pasta: []
 }));
-const lungaScheda = creaScheda({
+const classeLunga = renderClasse({
     classe_id: 44, classe_nome: 'Sezione con 25 menu',
     pasti: 25, pasti_ordinari: 25, pasta_in_bianco: 0, tipologie: moltiTipi
 });
-assert.equal((lungaScheda.match(/class="catering-classe__tipo"/g) || []).length, 25);
-assert.match(lungaScheda, /Dieta speciale 25/);
-assert.ok(!lungaScheda.includes('<table'), 'La scheda non deve creare tabelle larghe');
-console.log('OK: report per classe/menu/pasta in bianco, filtri, sezioni vuote e 25 tipologie.');
+assert.match(classeLunga, /Altri 22 tipi \(22 pasti\)/);
+assert.equal((classeLunga.match(/<details /g) || []).length, 1,
+    'Le tipologie oltre le prime 3 devono essere accessibili espandendo');
+assert.equal((classeLunga.match(/class="catering-quantita"/g) || []).length, 25);
+assert.ok(!classeLunga.includes('<table'), 'Il riepilogo non usa tabelle larghe');
+const classeSoloBianco = renderClasse({
+    classe_id: 45, classe_nome: 'Sezione dieta speciale',
+    pasti: 1, pasti_ordinari: 0, pasta_in_bianco: 1,
+    tipologie: [{
+        tipologia_id: 3, tipologia_nome: 'Senza lattosio',
+        pasti: 1, pasti_ordinari: 0, pasta_in_bianco: 1,
+        richieste_pasta: [{cognome: 'Blu', nome: 'Sofia'}]
+    }]
+});
+assert.match(classeSoloBianco, /1 pasta in bianco/);
+assert.match(classeSoloBianco, /Senza lattosio/);
+assert.match(classeSoloBianco, /Blu Sofia/);
+assert.ok(!classeSoloBianco.includes('catering-quantita'),
+    'La sola pasta in bianco non deve conteggiare anche un pasto ordinario');
+console.log('OK: schede scuola compatte, nessuna ricerca, 25 menu espandibili e paste in bianco visibili.');
 
 // Vecchio 20/10 completato DOPO 19/10: non deve aggiornare la UI.
 richieste[1].resolve({ data: '2026-10-20', totale_pasti: 0, plessi: [] });
