@@ -116,10 +116,21 @@ const context = {
                 const data = new URL('http://localhost' + url).searchParams.get('data');
                 return Promise.resolve(menuPubblicati.filter(m => m.data === data).map(m => ({ ...m })));
             }
-            if (url === '/api/catering/menu/variazioni') {
-                return Promise.resolve(menuPubblicati.filter(m =>
+            if (url.startsWith('/api/catering/menu/variazioni?pagina=')) {
+                const richiesta = Number(new URL('http://localhost' + url).searchParams.get('pagina'));
+                const righe = menuPubblicati.filter(m =>
                     m.origine === 'giornaliero' && m.data >= '2026-10-14'
-                ).map(m => ({ ...m, modificabile: true })));
+                ).map(m => ({ ...m, modificabile: true }))
+                    .sort((a, b) => b.data.localeCompare(a.data) ||
+                        a.plesso_nome.localeCompare(b.plesso_nome) ||
+                        a.tipologia_nome.localeCompare(b.tipologia_nome) ||
+                        Number(b.id) - Number(a.id));
+                const pagine = Math.max(1, Math.ceil(righe.length / 10));
+                const pagina = Math.max(1, Math.min(richiesta, pagine));
+                return Promise.resolve({
+                    righe: righe.slice((pagina - 1) * 10, pagina * 10),
+                    pagina, per_pagina: 10, totale: righe.length, pagine
+                });
             }
             if (url.startsWith('/api/catering/report?data=')) {
                 return new Promise((resolve, reject) => richieste.push({ url, resolve, reject }));
@@ -481,3 +492,49 @@ await elemento('menu-data').handlers.change();
 await new Promise((resolve) => setImmediate(resolve));
 assert.equal(fotoWidget['menu-foto-widget'].attiva, true);
 console.log('OK: cutoff blocca salvataggio e foto, ma consente giorni futuri.');
+
+/* Pagine delle variazioni: dall'ultima data futura a quella piu vicina.
+   Ogni pagina contiene al massimo dieci voci, anche dopo annullamenti. */
+for (let i = 1; i <= 23; i++) {
+    const giorno = String(i).padStart(2, '0');
+    const data = i <= 12 ? '2026-11-' + giorno :
+        '2026-12-' + String(i - 12).padStart(2, '0');
+    menuPubblicati.push({
+        id: 100 + i, plesso_id: 1, tipologia_menu_id: 2, data,
+        plesso_nome: 'Infanzia', tipologia_nome: 'Senza glutine',
+        descrizione: 'Variazione fittizia ' + i, foto_path: null, origine: 'giornaliero'
+    });
+}
+const ricaricaPagine = vm.runInContext('caricaVariazioniProgrammate', context);
+await ricaricaPagine(1);
+const primaPagina = elemento('menu-variazioni-lista').innerHTML;
+assert.equal((primaPagina.match(/class="catering-variazione"/g) || []).length, 10);
+assert.match(primaPagina, /Variazione fittizia 23/);
+assert.ok(!primaPagina.includes('Variazione fittizia 1'));
+assert.equal(elemento('menu-variazioni-pagine').hidden, false);
+assert.equal(elemento('menu-variazioni-indicatore').textContent, 'Pagina 1 di 3');
+assert.equal(elemento('menu-variazioni-precedenti').disabled, true);
+assert.equal(elemento('menu-variazioni-successive').disabled, false);
+await elemento('menu-variazioni-successive').handlers.click();
+await new Promise(resolve => setImmediate(resolve));
+assert.equal(elemento('menu-variazioni-indicatore').textContent, 'Pagina 2 di 3');
+const secondaPagina = elemento('menu-variazioni-lista').innerHTML;
+assert.equal((secondaPagina.match(/class="catering-variazione"/g) || []).length, 10);
+assert.notEqual(primaPagina, secondaPagina);
+await elemento('menu-variazioni-successive').handlers.click();
+await new Promise(resolve => setImmediate(resolve));
+assert.equal(elemento('menu-variazioni-indicatore').textContent, 'Pagina 3 di 3');
+assert.equal((elemento('menu-variazioni-lista').innerHTML.match(/class="catering-variazione"/g) || []).length, 3);
+assert.equal(elemento('menu-variazioni-successive').disabled, true);
+await elemento('menu-variazioni-precedenti').handlers.click();
+await new Promise(resolve => setImmediate(resolve));
+assert.equal(elemento('menu-variazioni-indicatore').textContent, 'Pagina 2 di 3');
+await ricaricaPagine(9999);
+assert.equal(elemento('menu-variazioni-indicatore').textContent, 'Pagina 3 di 3');
+menuPubblicati.splice(menuPubblicati.findIndex(m => m.id === 101), 1);
+menuPubblicati.splice(menuPubblicati.findIndex(m => m.id === 102), 1);
+menuPubblicati.splice(menuPubblicati.findIndex(m => m.id === 103), 1);
+await ricaricaPagine(3);
+assert.equal(elemento('menu-variazioni-indicatore').textContent, 'Pagina 2 di 2');
+assert.equal(elemento('menu-variazioni-successive').disabled, true);
+console.log('OK: paginazione da 10, date decrescenti, navigazione e pagina corretta dopo cancellazione.');
