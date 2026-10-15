@@ -854,6 +854,23 @@ input[type="datetime-local"]:focus-visible {
 .catering-variazione__info > small { color: #725221; }
 .catering-variazione__azioni { display: flex; flex-wrap: wrap; gap: .4rem; }
 .catering-variazione__azioni .btn { min-height: 40px; margin: 0; }
+.catering-variazioni-pagine {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: .55rem 1rem;
+    margin: .5rem 0 1.2rem;
+    text-align: center;
+}
+.catering-variazioni-pagine[hidden] { display: none; }
+.catering-variazioni-pagine .btn { min-height: 42px; margin: 0; }
+#menu-variazioni-indicatore { font-size: .9rem; font-weight: 600; }
+@media (max-width: 500px) {
+    .catering-variazioni-pagine { gap: .55rem; }
+    .catering-variazioni-pagine .btn { flex: 1; }
+    #menu-variazioni-indicatore { width: 100%; order: -1; }
+}
 @media (max-width: 780px) {
     .catering-filtri--menu { grid-template-columns: minmax(0, 1fr); }
 }
