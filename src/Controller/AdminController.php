@@ -69,6 +69,30 @@ final class AdminController
         );
     }
 
+    /** Nuove aperture/chiusure per giorno singolo o intervallo di date. */
+    public function creaPeriodoCalendario(Request $r, array $utente): array
+    {
+        return ['id' => $this->c->calendario()->salvaPeriodo(
+            (int) $r->parametro('id'), $r->corpo()
+        )];
+    }
+
+    public function modificaPeriodoCalendario(Request $r, array $utente): array
+    {
+        $this->c->calendario()->salvaPeriodo(
+            (int) $r->parametro('id'), $r->corpo(), (int) $r->parametro('periodo_id')
+        );
+        return ['aggiornato' => true];
+    }
+
+    public function cancellaPeriodoCalendario(Request $r, array $utente): array
+    {
+        $this->c->calendario()->cancellaPeriodo(
+            (int) $r->parametro('id'), (int) $r->parametro('periodo_id')
+        );
+        return ['cancellato' => true];
+    }
+
     public function salvaEccezioneCalendario(Request $r, array $utente): array
     {
         $this->c->calendario()->salvaEccezione(
