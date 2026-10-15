@@ -27,7 +27,8 @@ const fotoWidget = {};
 const FotoMenuStub = {
     crea(id) {
         const campo = {
-            salvata: null, rimossa: false, nuova: null,
+            salvata: null, rimossa: false, nuova: null, attiva: true,
+            abilita(attiva) { this.attiva = attiva; },
             imposta(path) { this.salvata = path || null; this.rimossa = false; this.nuova = null; },
             file() { return this.nuova; },
             rimuovere() { return this.rimossa; },
@@ -438,3 +439,19 @@ assert.equal(menuPubblicati.some(m => m.data === '2026-10-19'), false);
 assert.match(elemento('menu-variazioni-lista').innerHTML, /Nessuna variazione|14\/10\/2026/);
 assert.equal(elemento('menu-submit').textContent, 'Pubblica menu');
 console.log('OK: data futura, elenco programmati e annullamento anche senza modello.');
+
+/* Cutoff dell'interfaccia: data trascorsa o oggi oltre l'orario blocca anche
+   il controllo fotografico. La regola definitiva e' comunque nel server. */
+const verificaCutoff = vm.runInContext('menuModificabile', context);
+assert.equal(verificaCutoff({ cutoff_orario: '00:00:00' }, '2026-10-14'), false);
+assert.equal(verificaCutoff({ cutoff_orario: '00:00:00' }, '2026-10-19'), true);
+elemento('menu-data').value = '2026-10-13';
+await elemento('menu-data').handlers.change();
+await new Promise((resolve) => setImmediate(resolve));
+assert.equal(elemento('menu-submit').disabled, true);
+assert.equal(fotoWidget['menu-foto-widget'].attiva, false);
+elemento('menu-data').value = '2026-10-19';
+await elemento('menu-data').handlers.change();
+await new Promise((resolve) => setImmediate(resolve));
+assert.equal(fotoWidget['menu-foto-widget'].attiva, true);
+console.log('OK: cutoff blocca salvataggio e foto, ma consente giorni futuri.');
