@@ -74,7 +74,7 @@ final class CalendarioRepository extends Repository
     /** Restituisce gli intervalli candidati a sovrapporsi, senza bloccare o scrivere. */
     public function periodiIntersecanti(int $plessoId, string $inizio, string $fine, ?int $escludiId = null): array
     {
-        $sql = 'SELECT id, giorno, COALESCE(giorno_fine, giorno) AS giorno_fine
+        $sql = 'SELECT id, giorno, COALESCE(giorno_fine, giorno) AS giorno_fine, servizio_attivo
                 FROM eccezioni_calendario
                 WHERE plesso_id = :plesso AND giorno <= :fine
                   AND COALESCE(giorno_fine, giorno) >= :inizio';
