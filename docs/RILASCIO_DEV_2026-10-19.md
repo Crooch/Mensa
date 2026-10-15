@@ -2,6 +2,16 @@
 
 Data preparazione: 14 ottobre 2026. **Non eseguire i passi di rilascio senza collaudo.**
 
+> **Avviso del 15/10/2026:** questo piano è precedente alle migration
+> `005_idempotenza_acquisti.sql`, `006_menu_settimanali.sql`,
+> `007_storico_nomi_modelli.sql`, `008_foto_menu_settimanali.sql` e alle
+> ultime modifiche del Catering. Non applicarlo alla produzione così com'è:
+> prima del rilascio occorre riscrivere e collaudare la sequenza completa delle
+> migration additive contro una copia isolata del DB, verificare manualmente
+> i cinque ruoli e ottenere l'autorizzazione al deploy. La suite CI sullo staging
+> sintetico è stata superata; dettagli in `docs/COLLAUDO_DEV_2026-10-15.md`.
+
+
 ## Situazione conosciuta
 
 - Repository sorgente Comune: `ComuneDiCaltavuturo/Mensa`, branch `main` (non modificato).
@@ -73,7 +83,7 @@ Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non 
 
 ## Ambiti da verificare con attenzione
 
-- La CI esegue test su MariaDB sintetico, inclusi i tentativi di modifica tardiva e il pasto eccezionale. Non è ancora stato effettuato un collaudo end-to-end su staging via browser.
+- La CI esegue test su MariaDB sintetico, inclusi i tentativi di modifica tardiva e il pasto eccezionale. Il collaudo browser automatizzato su staging Docker con i cinque ruoli è stato superato il 15/10/2026; rimangono da completare i collaudi manuali funzionali, di accessibilità e su dispositivi fisici.
 - Le impostazioni settimanali oggi sono per plesso, non versionate per anno scolastico; evitare modifiche retroattive dopo le prime esecuzioni finché non si introduce una storia delle configurazioni.
 - Se un processo crasha lasciando il job in stato `in_corso`, la protezione blocca ulteriori tentativi automatici per lo stesso giorno: accertare manualmente l'esito prima di gestire un recupero, senza reinviare addebiti.
 
