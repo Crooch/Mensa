@@ -140,6 +140,59 @@ final class JobGiornalieroService
         }
     }
 
+    /**
+     * Stato attuale (sola lettura). Non attiva il job, non registra consumi e
+     * non pretende di conoscere se il cron esterno sia effettivamente attivo.
+     * Ogni scuola viene valutata rispetto al suo calendario e orario limite.
+     */
+    public function statoGiornata(): array
+    {
+        $data = date('Y-m-d');
+        $scuole = [];
+        foreach ($this->plessi->elenco() as $plesso) {
+            $plessoId = (int) $plesso['id'];
+            $calendario = $this->calendario->verifica($plessoId, $data);
+            $esecuzione = $this->job->esecuzione($plessoId, $data);
+            $stato = 'da_eseguire';
+            if (!$calendario['attivo']) {
+                $stato = 'non_prevista';
+            } elseif ($esecuzione !== null) {
+                $stato = match ($esecuzione['esito']) {
+                    'ok' => 'completata',
+                    'in_corso' => 'in_corso',
+                    'errore' => 'errore',
+                    default => 'da_eseguire',
+                };
+            } elseif (!$this->presenzaService->oltreCutoff($plesso, $data)) {
+                $stato = 'in_attesa';
+            }
+            $dettaglio = [];
+            if ($esecuzione !== null) {
+                $dati = json_decode((string) ($esecuzione['dettaglio'] ?? ''), true);
+                if (is_array($dati)) {
+                    $dettaglio = $dati;
+                }
+            }
+            $scuole[] = [
+                'plesso_id' => $plessoId,
+                'plesso_nome' => $plesso['nome'],
+                'orario_limite' => substr((string) $plesso['cutoff_orario'], 0, 5),
+                'stato' => $stato,
+                'motivo' => $stato === 'non_prevista' ? $calendario['motivo'] : null,
+                'pasti_confermati' => $stato === 'completata'
+                    ? (int) ($dettaglio['pasti_report'] ?? 0) : null,
+                'buoni_utilizzati' => $stato === 'completata'
+                    ? (int) ($dettaglio['consumi'] ?? 0) : null,
+                'solleciti_inviati' => $stato === 'completata'
+                    ? (int) ($dettaglio['solleciti']['inviati'] ?? 0) : null,
+                'errori_comunicazioni' => $stato === 'completata'
+                    ? (int) ($dettaglio['solleciti']['errori'] ?? 0) : null,
+                'concluso_il' => $esecuzione['concluso_il'] ?? null,
+            ];
+        }
+        return ['data' => $data, 'scuole' => $scuole];
+    }
+
     public function ultimeEsecuzioni(): array
     {
         return $this->job->ultimeEsecuzioni();
