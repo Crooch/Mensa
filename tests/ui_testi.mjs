@@ -254,23 +254,24 @@ assert.match(cssCatering, /@media \(max-width: 600px\)/);
 assert.match(cssCatering, /@media \(max-width: 600px\)[\s\S]*\.catering-filtri--report,[\s\S]*\.catering-filtri--menu,[\s\S]*\.catering-filtri--feedback\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\);/);
 console.log('OK: Catering allineato desktop/mobile; pubblicazione e modifica distinguibili.');
 
-/* Le descrizioni del menu possono contenere ritorni a capo: non vanno persi
-   né nella vista Catering né nella vista Genitore. L'eliminazione di foto
-   deve essere esplicita e disponibile solo per un menu con foto esistente. */
-const menuCss = css.slice(css.indexOf('/* Formattazione testuale del menu condivisa'));
-assert.ok(menuCss.startsWith('/* Formattazione testuale del menu condivisa'));
-assert.ok(menuCss.includes('white-space: pre-wrap'));
-assert.ok(menuCss.includes('.catering-foto-anteprima'));
-assert.ok(menuCss.includes('.catering-foto-anteprima__elimina'));
-assert.ok(cateringJs.includes('class="menu-descrizione"'));
-assert.ok(genitore.includes('class="menu-descrizione"'));
-assert.ok(cateringHtml.includes('id="menu-foto-anteprima"'));
-assert.ok(cateringHtml.includes('id="menu-foto-elimina"'));
-assert.ok(cateringHtml.includes('id="menu-foto-annulla"'));
-assert.ok(!cateringHtml.includes('id="menu-rimuovi-foto"'));
-assert.ok(cateringJs.includes('fotoDaRimuovere = true'));
+/* Foto unica per menu giornaliero e ciascun giorno di menu settimanale. */
+const menuCss = css.slice(css.indexOf('/* Stesso controllo fotografico'));
+assert.ok(menuCss.startsWith('/* Stesso controllo fotografico'));
+assert.ok(css.includes('white-space: pre-wrap'));
+const photoJs = readFileSync('public/assets/js/menu_foto.js', 'utf8');
+assert.ok(photoJs.includes("Aggiungi foto"));
+assert.ok(photoJs.includes("Sostituisci foto"));
+assert.ok(photoJs.includes("Annulla rimozione"));
+assert.ok(photoJs.includes("inRimozione = true"));
+assert.ok(cateringHtml.includes('id="menu-foto-widget"'));
+assert.ok(cateringJs.includes("FotoMenu.crea('menu-foto-widget')"));
 assert.ok(cateringJs.includes("fd.append('rimuovi_foto', rimuoviFoto ? '1' : '0')"));
-console.log('OK: multilinea, anteprima con X in modifica e conferma al salvataggio.');
+assert.ok(cateringHtml.includes('Puoi lasciare vuoti i giorni senza menu.'));
+assert.ok(!cateringHtml.includes('Gli a capo saranno mantenuti.'));
+for (let g = 1; g <= 7; g++) {
+    assert.ok(cateringHtml.includes('id="settimana-foto-widget-' + g + '"'));
+}
+console.log('OK: foto uguali nei due moduli e testo richiesto semplificato.');
 
 /* Settimane tipo: catalogo, duplicazione, assegnazione e modifica responsive. */
 const settimanePagina = cateringHtml;
