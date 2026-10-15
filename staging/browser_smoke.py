@@ -46,6 +46,12 @@ def controlla_foto(page):
     # Il test non salva file: utilizza la bozza locale della foto nel form.
     page.locator('[data-vista="menu"]').click()
     page.locator('#vista-menu').wait_for(state="visible")
+    # Aspettare il completamento della richiesta /api/catering/menu:
+    # altrimenti il caricamento asincrono azzera la foto appena selezionata.
+    page.wait_for_function("""() => {
+        const bottone = document.querySelector('#menu-submit');
+        return bottone && !bottone.disabled;
+    }""", timeout=10000)
     elemento = page.locator('#menu-foto-widget .menu-foto__input')
     elemento.set_input_files({
         "name": "immagine-test.png", "mimeType": "image/png", "buffer": PNG_PICCOLO
