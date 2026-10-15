@@ -186,9 +186,19 @@ L'importo non è accettato in input: viene sempre calcolato come `numero_buoni �
 
 | Metodo | Endpoint | Ruoli | Descrizione |
 |---|---|---|---|
-| GET | `/api/catering/report?data&plesso_id` | catering, admin, operatore | Pasti da preparare per plesso e tipologia |
-| GET | `/api/catering/menu?data&plesso_id` | catering, admin, operatore, scuola | Menu pubblicati |
-| POST | `/api/catering/menu` | catering, admin | Pubblicazione menu (`multipart/form-data`) |
+| GET | `/api/catering/report?data&plesso_id` | catering, admin, operatore | Pasti da preparare per plesso, classe, tipologia e richiesta di pasta in bianco |
+| GET | `/api/catering/menu?data&plesso_id` | catering, admin, operatore, scuola | Menù effettivi per il giorno: variazione giornaliera, altrimenti modello settimanale |
+| POST | `/api/catering/menu` | catering, admin | Crea o modifica la variazione di una singola data (`multipart/form-data`) |
+| GET | `/api/catering/menu/variazioni?pagina=1` | catering, admin | Variazioni programmate, ordinate dalla data più lontana; 10 per pagina |
+| POST | `/api/catering/menu/annulla` | catering, admin | Annulla una variazione; se presente, torna il modello settimanale |
+| POST | `/api/catering/menu/ripristina` | catering, admin | Ripristina il modello settimanale del giorno, se esistente |
+| GET | `/api/catering/menu-settimanali` | catering, admin | Catalogo dei modelli settimanali |
+| POST | `/api/catering/menu-settimanali` | catering, admin | Nuovo modello settimanale, inclusi allegati fotografici |
+| PUT | `/api/catering/menu-settimanali/{id}` | catering, admin | Modifica un modello (crea revisione) |
+| POST | `/api/catering/menu-settimanali/{id}/aggiorna` | catering, admin | Modifica tramite invio multipart, inclusi allegati fotografici |
+| POST | `/api/catering/menu-settimanali/{id}/duplica` | catering, admin | Duplica un modello settimanale |
+| GET | `/api/catering/menu-settimanali/assegnazioni` | catering, admin | Assegnazioni attive per plesso e tipologia |
+| POST | `/api/catering/menu-settimanali/assegnazioni` | catering, admin | Assegna un modello a uno o più plessi |
 | GET | `/api/catering/feedback?data_da&data_a&plesso_id&classe_id&tipologia_id` | catering, admin, operatore | Feedback in sola lettura |
 
 **GET /api/catering/report**
@@ -203,6 +213,13 @@ L'importo non è accettato in input: viene sempre calcolato come `numero_buoni �
 Il report non contiene alcuna informazione economica o di credito: un alunno presente genera
 sempre un pasto, qualunque sia il saldo della famiglia.
 
+Il risultato completo comprende anche `sezioni`, quantità `pasti_ordinari` e
+`pasta_in_bianco`, richieste con nominativo indispensabile alla distribuzione,
+oltre a `menu_nome`, `menu_descrizione` e `menu_origine` per le tipologie.
+**La pasta in bianco è già inclusa nel totale:** non deve essere aggiunta una
+seconda volta. Il nome di riserva «Menù standard» è una dicitura
+dell'interfaccia, non una pietanza registrata automaticamente nel database.
+
 **POST /api/catering/menu** (`multipart/form-data`)
 
 | Campo | Tipo | Note |
@@ -212,11 +229,46 @@ sempre un pasto, qualunque sia il saldo della famiglia.
 | `data` | date | default oggi |
 | `descrizione` | string | almeno uno tra descrizione e foto |
 | `foto` | file | jpg/png/webp, max 4 MB |
+| `rimuovi_foto` | `0` o `1` | consente la rimozione esplicita della foto; l'assenza del campo non elimina la foto salvata |
 
-La foto è salvata in `storage/menu/{plesso_id}_{tipologia_id}/{data}.jpg` ed è servita da
-`GET /storage/menu/{plesso_id}_{tipologia_id}/{data}.jpg` (richiede utente autenticato).
+L'archivio immagini è gestito dal servizio applicativo. Le immagini vengono
+consultate con percorsi `/storage/menu/...` **solo dopo autenticazione**:
+non costruire il percorso assumendo che tutti i file siano JPEG.
 
-Il feedback per il catering è anonimizzato: solo iniziali dell'alunno, classe, plesso, tipologia.
+Le operazioni di pubblicazione e annullamento sono valide esclusivamente
+per una data futura o per oggi **prima dell'orario limite del plesso**;
+non possono alterare giornate senza servizio o già consolidate.
+
+**GET /api/catering/menu/variazioni?pagina=1** — esempio di struttura:
+```json
+{
+  "ok": true,
+  "dati": {
+    "righe": [{ "id": 12, "data": "2026-11-09", "plesso_id": 1,
+      "tipologia_menu_id": 1, "descrizione": "Piatto del giorno",
+      "modificabile": true, "ha_modello_settimanale": true }],
+    "pagina": 1, "per_pagina": 10, "totale": 1, "pagine": 1
+  }
+}
+```
+I campi di ciascuna riga includono anche il nome del plesso, della tipologia
+e l'eventuale riferimento alla fotografia.
+
+**POST /api/catering/menu/annulla**
+```json
+{ "plesso_id": 1, "tipologia_menu_id": 1, "data": "2026-11-09" }
+```
+
+**Modelli settimanali:** `giorni` indica le descrizioni dei giorni da 1
+(lunedì) a 7 (domenica), in JSON o come stringa JSON nel multipart;
+`foto_giorno_1` … `foto_giorno_7` sono file facoltativi.
+`rimuovi_foto` elenca i giorni per cui viene chiesta esplicitamente la
+rimozione. L'assegnazione usa `menu_id`, `tipologia_menu_id` e
+`plesso_ids`. Le revisioni e le date di decorrenza preservano lo storico
+dei giorni già serviti.
+
+Il feedback restituito al catering usa dati sintetici/aggregati o nominativi
+ridotti alle iniziali secondo le regole applicative: non include saldi e crediti.
 
 ---
 
