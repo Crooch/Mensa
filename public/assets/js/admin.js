@@ -9,7 +9,7 @@ abilitaSchede((vista) => {
     if (vista === 'tipologie') caricaTipologie();
     if (vista === 'email') caricaEmail();
     if (vista === 'utenti') caricaUtenti();
-    if (vista === 'job') caricaEsecuzioni();
+    if (vista === 'job') aggiornaMonitoraggioJob();
 });
 
 /* ---------------- plessi ---------------- */
@@ -446,69 +446,185 @@ document.getElementById('form-utente').addEventListener('submit', async (e) => {
     } catch (err) { avviso(err.message, 'errore'); }
 });
 
-/* ---------------- job ---------------- */
-async function caricaEsecuzioni() {
-    const elenco = await API.get('/api/job/esecuzioni');
-    document.getElementById('job-corpo').innerHTML = elenco.map((e) => `
-        <tr><td>${dataIt(e.data)}</td><td>${esc(e.plesso_nome)}</td>
-        <td><span class="badge-stato badge-${e.esito === 'ok' ? 'verde' : e.esito === 'errore' ? 'rosso' : 'giallo'}">${esc(esitoOperazione(e.esito))}</span></td>
-        <td class="nota">${esc(e.dettaglio || '')}</td></tr>`).join('')
-        || '<tr><td colspan="4" class="vuoto">Nessuna esecuzione registrata.</td></tr>';
+/* ---------------- chiusura giornaliera dei pasti ----------------
+ * Il monitoraggio consulta solo GET: non chiama scheduler né addebita buoni.
+ * L'esecuzione manuale è riservata al pannello richiudibile e confermata.
+ */
+let richiestaMonitoraggioJob = 0;
+const statoChiusura = {
+    completata: ['Completata', 'verde'],
+    in_attesa: ['In attesa dell’orario limite', 'giallo'],
+    da_eseguire: ['Da completare', 'giallo'],
+    non_prevista: ['Mensa non prevista', 'neutro'],
+    in_corso: ['Elaborazione in corso', 'giallo'],
+    errore: ['Da verificare', 'rosso']
+};
+
+function leggiDettaglioEsecuzione(valore) {
+    if (valore && typeof valore === 'object') return valore;
+    try {
+        const dati = JSON.parse(String(valore || ''));
+        return dati && typeof dati === 'object' && !Array.isArray(dati) ? dati : {};
+    } catch (_) { return {}; }
+}
+function numeroJob(n) {
+    const numero = Number(n);
+    return Number.isFinite(numero) && numero >= 0 ? numero : 0;
+}
+function oraEsecuzione(valore) {
+    if (!valore) return '';
+    const testo = String(valore);
+    return testo.length >= 16 ? testo.slice(11, 16) : '';
+}
+function riepilogoComunicazioni(dettaglio) {
+    const solleciti = dettaglio.solleciti || {};
+    const errori = numeroJob(solleciti.errori);
+    if (errori) return '<span class="admin-job-errore">' + errori + ' errori di invio</span>';
+    return numeroJob(solleciti.inviati).toString();
 }
 
-
+async function caricaStatoJob() {
+    const richiesta = ++richiestaMonitoraggioJob;
+    const stato = document.getElementById('job-stato-caricamento');
+    stato.textContent = 'Caricamento della situazione…';
+    try {
+        const risposta = await API.get('/api/job/stato');
+        if (richiesta !== richiestaMonitoraggioJob) return;
+        document.getElementById('job-data-oggi').textContent = '· ' + dataIt(risposta.data);
+        const scuole = Array.isArray(risposta.scuole) ? risposta.scuole : [];
+        document.getElementById('job-scuole').innerHTML = scuole.map(p => {
+            const statoBase = statoChiusura[p.stato] || ['Da verificare', 'rosso'];
+            const erroriEmail = numeroJob(p.errori_comunicazioni);
+            const completataConErrori = p.stato === 'completata' && erroriEmail > 0;
+            const colore = completataConErrori ? 'giallo' : statoBase[1];
+            const etichetta = completataConErrori
+                ? 'Pasti confermati, email da verificare' : statoBase[0];
+            const dati = p.stato === 'completata'
+                ? `<div class="admin-job-scuola__numeri">
+                    <span><strong>${numeroJob(p.pasti_confermati)}</strong> pasti confermati</span>
+                    <span><strong>${numeroJob(p.buoni_utilizzati)}</strong> buoni addebitati</span>
+                    <span><strong>${numeroJob(p.solleciti_inviati)}</strong> solleciti inviati</span>
+                    ${erroriEmail ? `<span class="admin-job-errore">${erroriEmail} invii non riusciti</span>` : ''}
+                </div>` : '';
+            const chiarimento = p.stato === 'da_eseguire'
+                ? 'L’orario limite è passato, ma non risulta una chiusura completata.'
+                : p.stato === 'errore'
+                    ? 'Un tentativo non è riuscito. Controlla lo storico prima di intervenire.'
+                    : p.stato === 'in_corso'
+                        ? 'Elaborazione avviata. Se rimane così a lungo, contatta l’assistenza.'
+                        : p.stato === 'non_prevista'
+                            ? 'Nessuna elaborazione richiesta per oggi.'
+                            : '';
+            const ora = oraEsecuzione(p.concluso_il);
+            return `<article class="admin-job-scuola" data-testid="job-scuola-${Number(p.plesso_id)}">
+                <div class="admin-job-scuola__testa">
+                    <div><h3>${esc(p.plesso_nome)}</h3>
+                    <p class="nota">Orario limite: ${esc(p.orario_limite)}${ora ? ' · Chiusura alle ' + esc(ora) : ''}</p></div>
+                    <span class="badge-stato badge-${colore}">${esc(etichetta)}</span>
+                </div>
+                ${dati}
+                ${chiarimento ? '<p class="nota admin-job-scuola__nota">' + esc(chiarimento) + '</p>' : ''}
+            </article>`;
+        }).join('') || '<p class="nota">Non ci sono scuole da controllare.</p>';
+        stato.textContent = '';
+    } catch (err) {
+        if (richiesta !== richiestaMonitoraggioJob) return;
+        stato.textContent = 'Non è stato possibile caricare la situazione: ' + err.message;
+        document.getElementById('job-scuole').innerHTML = '';
+    }
+}
+async function caricaEsecuzioni() {
+    try {
+        const elenco = await API.get('/api/job/esecuzioni');
+        document.getElementById('job-corpo').innerHTML = elenco.map(e => {
+            const dettaglio = leggiDettaglioEsecuzione(e.dettaglio);
+            const completata = e.esito === 'ok';
+            const inErrore = e.esito === 'errore';
+            const erroriEmail = numeroJob(dettaglio.solleciti?.errori);
+            const segnale = completata && erroriEmail ? 'giallo' : inErrore ? 'rosso' :
+                completata ? 'verde' : 'giallo';
+            const esito = inErrore ? 'Non riuscita' : e.esito === 'in_corso'
+                ? 'In corso' : completata && erroriEmail
+                    ? 'Completata, email da verificare' : completata ? 'Completata' : 'Da verificare';
+            const nota = inErrore ? 'Controllare le cause prima di un nuovo tentativo.'
+                : e.esito === 'in_corso' ? 'Verificare se l’elaborazione è ancora attiva.'
+                : erroriEmail ? erroriEmail + ' invii email non riusciti'
+                : '';
+            // I dettagli possono contenere identificativi familiari o messaggi
+            // tecnici. La tabella espone solo aggregati non personali.
+            return `<tr><td>${esc(dataIt(e.data))}</td>
+                <td>${esc(e.plesso_nome)}</td>
+                <td><span class="badge-stato badge-${segnale}">${esc(esito)}</span></td>
+                <td>${completata ? numeroJob(dettaglio.pasti_report) : '—'}</td>
+                <td>${completata ? numeroJob(dettaglio.consumi) : '—'}</td>
+                <td>${completata ? riepilogoComunicazioni(dettaglio) : '—'}</td>
+                <td class="nota">${esc(nota || '—')}</td>
+            </tr>`;
+        }).join('') || '<tr><td colspan="7" class="vuoto">Nessuna elaborazione registrata.</td></tr>';
+    } catch (err) {
+        document.getElementById('job-corpo').innerHTML =
+            '<tr><td colspan="7" class="vuoto">Non è stato possibile caricare lo storico.</td></tr>';
+        avviso('Impossibile caricare lo storico delle elaborazioni: ' + err.message, 'errore');
+    }
+}
+async function aggiornaMonitoraggioJob() {
+    await Promise.all([caricaStatoJob(), caricaEsecuzioni()]);
+}
 function mostraEsitoJob(esito) {
     const righe = Array.isArray(esito) ? esito : [esito];
     const traduci = (stato) => ({
-        eseguito: 'Conteggio completato',
-        gia_eseguito: 'Conteggio già completato in precedenza',
+        eseguito: 'Chiusura completata',
+        gia_eseguito: 'Giornata già completata: nessun nuovo addebito',
         fuori_calendario: 'Mensa non prevista oggi',
         cutoff_non_raggiunto: 'Orario limite non ancora raggiunto',
-        in_corso: 'Elaborazione già in corso',
-        errore: 'Errore nel conteggio'
-    }[stato] || esitoOperazione(stato));
-    const html = righe.map((r) => {
+        in_corso: 'Elaborazione già avviata',
+        errore: 'Operazione non riuscita: verificare lo storico'
+    }[stato] || 'Da verificare');
+    const html = righe.map(r => {
         const colore = r.stato === 'errore' ? 'rosso' :
             r.stato === 'eseguito' || r.stato === 'gia_eseguito' ? 'verde' : 'giallo';
-        return '<article class="card-mensa"><h3>' + esc(r.plesso || 'Scuola') + '</h3>' +
-            '<p><span class="badge-stato badge-' + colore + '">' + esc(traduci(r.stato)) + '</span></p>' +
-            (r.consumi !== undefined ? '<p>Buoni utilizzati: <strong>' + Number(r.consumi) + '</strong></p>' : '') +
-            (r.pasti_report !== undefined ? '<p>Pasti nel report: <strong>' + Number(r.pasti_report) + '</strong></p>' : '') +
-            (r.messaggio ? '<p class="nota">' + esc(r.messaggio) + '</p>' : '') +
-            '</article>';
+        const email = r.solleciti;
+        return `<article class="admin-job-risultato">
+            <h3>${esc(r.plesso || 'Scuola')}</h3>
+            <span class="badge-stato badge-${colore}">${esc(traduci(r.stato))}</span>
+            ${r.pasti_report !== undefined ? `<p>Pasti confermati: <strong>${numeroJob(r.pasti_report)}</strong>
+                · Buoni addebitati: <strong>${numeroJob(r.consumi)}</strong></p>` : ''}
+            ${email ? `<p>Solleciti inviati: <strong>${numeroJob(email.inviati)}</strong>
+                ${numeroJob(email.errori) ? ' · Invii non riusciti: ' + numeroJob(email.errori) : ''}</p>` : ''}
+            ${r.stato === 'errore' ? '<p class="nota">Controlla le cause prima di ripetere l’operazione.</p>' : ''}
+        </article>`;
     }).join('');
-    document.getElementById('job-esito').className = 'griglia-cards';
-    document.getElementById('job-esito').innerHTML = html || '<p>Nessun nuovo conteggio.</p>';
+    const contenitore = document.getElementById('job-esito');
+    contenitore.hidden = false;
+    contenitore.innerHTML = html;
 }
-
-document.getElementById('btn-scheduler').addEventListener('click', async (e) => {
-    if (!await UI.conferma('Conferma conteggio dei pasti',
-        'Questa operazione non è una simulazione: dove il servizio è attivo e l’orario limite è passato, può scalare i buoni alle famiglie.',
-        'Esegui il conteggio')) return;
+document.getElementById('job-aggiorna').addEventListener('click', () => aggiornaMonitoraggioJob());
+document.getElementById('btn-scheduler').addEventListener('click', async e => {
+    if (!await UI.conferma('Controllo manuale di tutte le scuole',
+        'Questa operazione è reale: per le scuole con mensa prevista e orario limite trascorso può confermare i pasti, scalare i buoni e inviare solleciti. Le giornate già completate non vengono addebitate di nuovo.',
+        'Avvia controllo')) return;
     try {
         await UI.esegui(e.currentTarget, async () => {
             const esito = await API.post('/api/job/scheduler', {});
             mostraEsitoJob(esito);
-            await caricaEsecuzioni();
-            avviso('Controllo concluso. Consulta l’esito per ciascuna scuola.');
+            await aggiornaMonitoraggioJob();
         }, 'Elaborazione…');
-    } catch (err) { UI.stato('job-esito', 'Conteggio non completato: ' + err.message, 'errore'); }
+    } catch (err) { avviso('Operazione non completata: ' + err.message, 'errore'); }
 });
-
-document.getElementById('btn-job-plesso').addEventListener('click', async (e) => {
+document.getElementById('btn-job-plesso').addEventListener('click', async e => {
     const scelta = document.getElementById('job-plesso');
+    if (!scelta.value) return;
     const nomeScuola = scelta.options[scelta.selectedIndex]?.text || 'la scuola selezionata';
-    if (!await UI.conferma('Conferma conteggio di ' + nomeScuola,
-        'L’operazione può confermare i pasti e scalare i buoni. Non è una simulazione.',
-        'Conferma conteggio')) return;
+    if (!await UI.conferma('Chiusura manuale: ' + nomeScuola,
+        'Questa operazione è reale: può confermare i pasti, scalare i buoni e inviare solleciti. Se la giornata risulta già conclusa non ripete gli addebiti. In caso di errore precedente, controlla prima lo storico.',
+        'Avvia chiusura')) return;
     try {
         await UI.esegui(e.currentTarget, async () => {
             const esito = await API.post('/api/job/plessi/' + scelta.value, {});
             mostraEsitoJob(esito);
-            await caricaEsecuzioni();
-            avviso('Controllo terminato. Consulta l’esito qui sotto.');
+            await aggiornaMonitoraggioJob();
         }, 'Elaborazione…');
-    } catch (err) { UI.stato('job-esito', 'Conteggio non completato: ' + err.message, 'errore'); }
+    } catch (err) { avviso('Operazione non completata: ' + err.message, 'errore'); }
 });
 
-caricaPlessi().catch((e) => avviso(e.message, 'errore'));
+caricaPlessi().catch(e => avviso(e.message, 'errore'));
