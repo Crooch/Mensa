@@ -543,3 +543,10 @@ await ricaricaPagine(3);
 assert.equal(elemento('menu-variazioni-indicatore').textContent, 'Pagina 2 di 2');
 assert.equal(elemento('menu-variazioni-successive').disabled, true);
 console.log('OK: paginazione da 10, date decrescenti, navigazione e pagina corretta dopo cancellazione.');
+menuPubblicati.splice(0, menuPubblicati.length);
+await ricaricaPagine(1);
+assert.equal(elemento('menu-variazioni-lista').innerHTML, '',
+    'Se non ci sono variazioni, sotto il titolo non deve apparire alcun testo');
+assert.equal(elemento('menu-variazioni-pagine').hidden, true);
+assert.doesNotMatch(elemento('menu-variazioni-lista').innerHTML, /undefined|Nessuna variazione/);
+console.log('OK: nessun messaggio aggiuntivo quando l’elenco variazioni è vuoto.');
