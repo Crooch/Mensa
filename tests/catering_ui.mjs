@@ -150,19 +150,26 @@ const dati19 = {
         totale_pasti: 4, pasti_ordinari: 2, cutoff_orario: '09:15',
         definitivo: false, tipologie: [
             { tipologia_id: 1, tipologia_nome: 'Standard', pasti: 3,
-              pasti_ordinari: 1, pasta_in_bianco: 2 },
+              pasti_ordinari: 1, pasta_in_bianco: 2,
+              menu_nome: 'Settimana Autunno', menu_descrizione: 'Primo: pasta\\nSecondo: pesce',
+              menu_origine: 'settimanale' },
             { tipologia_id: 2, tipologia_nome: 'Senza glutine', pasti: 1,
-              pasti_ordinari: 1, pasta_in_bianco: 0 }
+              pasti_ordinari: 1, pasta_in_bianco: 0,
+              menu_nome: 'Menu del giorno', menu_descrizione: 'Riso',
+              menu_origine: 'giornaliero' }
         ], sezioni: [
             { classe_id: 1, classe_nome: 'Sezione A', pasti: 4,
               pasti_ordinari: 2, pasta_in_bianco: 2, tipologie: [
                 { tipologia_id: 1, tipologia_nome: 'Standard', pasti: 3,
                   pasti_ordinari: 1, pasta_in_bianco: 2,
+                  menu_nome: 'Settimana Autunno', menu_descrizione: 'Primo: pasta\\nSecondo: pesce',
                   richieste_pasta: [
                     { cognome: 'Rossi', nome: 'Mario' }, { cognome: 'Verdi', nome: 'Gianni' }
                   ] },
                 { tipologia_id: 2, tipologia_nome: 'Senza glutine', pasti: 1,
-                  pasti_ordinari: 1, pasta_in_bianco: 0, richieste_pasta: [] }
+                  pasti_ordinari: 1, pasta_in_bianco: 0,
+                  menu_nome: 'Menu del giorno', menu_descrizione: 'Riso',
+                  richieste_pasta: [] }
               ] },
             { classe_id: 2, classe_nome: 'Sezione D', pasti: 0,
               pasti_ordinari: 0, pasta_in_bianco: 0, tipologie: [] }
@@ -177,7 +184,12 @@ assert.match(elemento('report-stato').textContent, /^Pasti per il 19\/10\/2026/,
 assert.equal(elemento('btn-report').disabled, false);
 const html = elemento('report').innerHTML;
 assert.match(html, /report-plesso-1/);
-assert.match(html, /Pasti per tipo di menu/);
+assert.match(html, /Tipologie e menu assegnati/);
+assert.match(html, /Settimana Autunno/);
+assert.match(html, /Menu del giorno/);
+assert.match(html, /Piatti previsti per questa data/);
+assert.match(html, /Primo: pasta/);
+assert.match(html, /Secondo: pesce/);
 assert.match(html, /Pasti per classe o sezione/);
 assert.match(html, /Sezione A/);
 assert.match(html, /Sezione D/);
@@ -225,6 +237,25 @@ assert.match(classeSoloBianco, /Senza lattosio/);
 assert.match(classeSoloBianco, /Blu Sofia/);
 assert.ok(!classeSoloBianco.includes('catering-quantita'),
     'La sola pasta in bianco non deve conteggiare anche un pasto ordinario');
+const senzaMenu = renderClasse({
+    classe_id: 88, classe_nome: 'Classe senza menu',
+    pasti: 2, pasti_ordinari: 2, pasta_in_bianco: 0,
+    tipologie: [{ tipologia_id: 1, tipologia_nome: 'Standard',
+        pasti: 2, pasti_ordinari: 2, pasta_in_bianco: 0,
+        menu_nome: null, menu_descrizione: null }]
+});
+assert.match(senzaMenu, /Menu non disponibile/,
+    'Il sistema non deve inventare nomi per le tipologie senza un menu assegnato');
+const classificaVariazione = renderClasse({
+    classe_id: 89, classe_nome: 'Classe con variazione',
+    pasti: 1, pasti_ordinari: 1, pasta_in_bianco: 0,
+    tipologie: [{ tipologia_id: 1, tipologia_nome: 'Standard',
+        pasti: 1, pasti_ordinari: 1, pasta_in_bianco: 0,
+        menu_nome: 'Menu del giorno', menu_descrizione: 'Pollo' }]
+});
+assert.match(classificaVariazione, /Menu del giorno/);
+assert.doesNotMatch(classificaVariazione, /Settimana Autunno/);
+
 console.log('OK: schede scuola compatte, nessuna ricerca, 25 menu espandibili e paste in bianco visibili.');
 
 // Vecchio 20/10 completato DOPO 19/10: non deve aggiornare la UI.
