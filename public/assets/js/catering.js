@@ -379,6 +379,9 @@ async function caricaFeedback() {
 
 document.getElementById('menu-plesso').addEventListener('change', sincronizzaMenuSelezionato);
 document.getElementById('menu-tipologia').addEventListener('change', sincronizzaMenuSelezionato);
+document.getElementById('menu-data').addEventListener('change', () =>
+    caricaMenu().catch(e => avviso('Impossibile mostrare i menu: ' + e.message, 'errore')));
+
 
 document.getElementById('form-menu').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -394,6 +397,11 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
         avviso('Seleziona plesso e tipologia prima di pubblicare.', 'errore');
         return;
     }
+    const data = menuDataSelezionata();
+    if (!menuModificabile(plesso, data)) {
+        avviso('Cutoff superato o data non modificabile.', 'errore');
+        return;
+    }
     const esistente = menuSelezionato();
     const rimuoviFoto = fotoMenuGiorno.rimuovere();
     const nuovaFoto = fotoMenuGiorno.file();
@@ -407,12 +415,13 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
     if (esistente && !await UI.conferma(
         'Aggiorna solo questo menu',
         'Stai per aggiornare il menu ' + tipologia.nome + ' del plesso ' + plesso.nome +
-            ' per oggi. Gli altri menu resteranno invariati. ' + messaggioFoto,
+            ' per il ' + dataIt(data) + '. Gli altri giorni resteranno invariati. ' + messaggioFoto,
         'Aggiorna menu'
     )) return;
     // Ripristina il blocco in caso di selezione cambiata durante il dialogo.
     if (document.getElementById('menu-plesso').value !== plessoId ||
         document.getElementById('menu-tipologia').value !== tipologiaId ||
+        menuDataSelezionata() !== data ||
         menuSelezionato()?.id !== esistente?.id ||
         fotoMenuGiorno.rimuovere() !== rimuoviFoto) {
         avviso('La selezione è cambiata: controlla il menu prima di salvare.', 'errore');
@@ -428,7 +437,7 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
     const fd = new FormData();
     fd.append('plesso_id', plessoId);
     fd.append('tipologia_menu_id', tipologiaId);
-    fd.append('data', oggi());
+    fd.append('data', data);
     fd.append('descrizione', descrizione);
     fd.append('rimuovi_foto', rimuoviFoto ? '1' : '0');
     if (foto) fd.append('foto', foto);
@@ -446,7 +455,7 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
         avviso(esistente
             ? 'Menu ' + tipologia.nome + ' aggiornato. Gli altri menu sono invariati.'
             : 'Menu ' + tipologia.nome + ' pubblicato.', 'ok');
-        await caricaMenu();
+        await Promise.all([caricaMenu(), caricaVariazioniProgrammate()]);
     } catch (err) {
         avviso('Non è stato possibile completare il salvataggio: ' + err.message, 'errore');
     }
@@ -455,33 +464,13 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
 document.getElementById('menu-ripristina').addEventListener('click', async () => {
     if (!menuDisponibili) return;
     const esistente = menuSelezionato();
-    if (!esistente || esistente.origine !== 'giornaliero' || !esistente.ha_modello_settimanale) return;
-    const plessoId = String(esistente.plesso_id);
-    const tipologiaId = String(esistente.tipologia_menu_id);
-    const confermato = await UI.conferma(
-        'Ripristina menu settimanale',
-        'Vuoi eliminare la variazione giornaliera per ' + esistente.plesso_nome +
-            ' · ' + esistente.tipologia_nome + '? Torneranno la descrizione e la foto del menu settimanale. ' +
-            'Le altre giornate e gli altri plessi non cambieranno.',
-        'Ripristina menu'
-    );
-    if (!confermato) return;
-    if (document.getElementById('menu-plesso').value !== plessoId ||
-        document.getElementById('menu-tipologia').value !== tipologiaId ||
-        menuSelezionato()?.id !== esistente.id) {
-        avviso('La selezione è cambiata: ricontrolla il menu prima di ripristinarlo.', 'errore');
-        return;
-    }
-    const pulsante = document.getElementById('menu-ripristina');
-    try {
-        await UI.esegui(pulsante, () => API.post('/api/catering/menu/ripristina', {
-            plesso_id: Number(plessoId), tipologia_menu_id: Number(tipologiaId), data: oggi()
-        }), 'Ripristino…');
-        avviso('Variazione giornaliera rimossa. È di nuovo attivo il menu settimanale.', 'ok');
-        await caricaMenu();
-    } catch (errore) {
-        avviso('Ripristino non riuscito: ' + errore.message, 'errore');
-    }
+    const plesso = riferimenti.plessi.find(p => Number(p.id) === Number(esistente?.plesso_id));
+    if (!esistente || esistente.origine !== 'giornaliero' ||
+        !menuModificabile(plesso, menuDataSelezionata())) return;
+    await annullaVariazione({
+        ...esistente, data: menuDataSelezionata(),
+        ha_modello_settimanale: !!esistente.ha_modello_settimanale
+    });
 });
 
 document.getElementById('btn-report').addEventListener('click', caricaReport);
@@ -490,6 +479,9 @@ document.getElementById('report-data').addEventListener('change', caricaReport);
 document.getElementById('btn-feedback').addEventListener('click', () => caricaFeedback().catch((e) => UI.stato('feedback-stato', e.message, 'errore')));
 
 (async () => {
+    const campoDataMenu = document.getElementById('menu-data');
+    if (!campoDataMenu.value) campoDataMenu.value = oggi();
+    campoDataMenu.min = oggi();
     // Imposta subito la data, prima della richiesta iniziale dei riferimenti:
     // una scelta manuale dell'utente non deve essere sovrascritta all'avvio.
     const campoDataReport = document.getElementById('report-data');
