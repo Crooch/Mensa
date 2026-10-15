@@ -98,6 +98,9 @@ $router->post('/api/catering/menu-settimanali/assegnazioni', [$catering, 'assegn
 $router->get('/api/admin/calendari/{id}', [$admin, 'dettaglioCalendario'], ['admin']);
 $router->put('/api/admin/calendari/{id}', [$admin, 'salvaCalendario'], ['admin']);
 $router->get('/api/admin/calendari/{id}/verifica', [$admin, 'verificaCalendario'], ['admin']);
+$router->post('/api/admin/calendari/{id}/periodi', [$admin, 'creaPeriodoCalendario'], ['admin']);
+$router->put('/api/admin/calendari/{id}/periodi/{periodo_id}', [$admin, 'modificaPeriodoCalendario'], ['admin']);
+$router->delete('/api/admin/calendari/{id}/periodi/{periodo_id}', [$admin, 'cancellaPeriodoCalendario'], ['admin']);
 $router->put('/api/admin/calendari/{id}/eccezioni/{data}', [$admin, 'salvaEccezioneCalendario'], ['admin']);
 $router->delete('/api/admin/calendari/{id}/eccezioni/{data}', [$admin, 'cancellaEccezioneCalendario'], ['admin']);
 $router->get('/api/admin/plessi', [$admin, 'plessi'], ['admin']);
