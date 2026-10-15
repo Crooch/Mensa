@@ -856,27 +856,194 @@ input[type="datetime-local"]:focus-visible {
     margin: 0 0 .7rem;
     line-height: 1.4;
 }
-#vista-report #report-riepilogo { margin: 0 0 .85rem; gap: .65rem; }
+#vista-report #report-riepilogo { margin: 0 0 .9rem; gap: .65rem; }
 #vista-report #report-riepilogo .riepilogo-mensa__dato { padding: .65rem .8rem; }
 #vista-report > .nota { margin: 0 0 .85rem; }
-#vista-report #report { width: 100%; gap: .9rem; }
-#vista-report #report .card-mensa {
+.catering-report-filtri {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 280px));
+    gap: .75rem;
+    margin-bottom: .55rem;
+}
+.catering-report-filtri input,
+.catering-report-filtri select { width: 100%; min-width: 0; }
+#report-filtri-stato { margin: 0 0 .6rem; font-size: .85rem; }
+.catering-distribuzione {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.1rem;
+    min-width: 0;
+}
+.catering-plesso {
+    min-width: 0;
+    padding: 1.1rem;
+    border: 1px solid #cddae6;
+    border-radius: 12px;
+    background: #fff;
+}
+.catering-plesso__testa {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+    min-width: 0;
+}
+.catering-plesso__testa h3 {
+    margin: 0 0 .5rem;
+    overflow-wrap: anywhere;
+}
+.catering-plesso__testa .badge-stato { display: inline-block; margin-bottom: .45rem; }
+.catering-plesso__testa .nota { margin: 0; }
+.catering-plesso__numeri {
     display: flex;
     flex-direction: column;
-    gap: .3rem;
+    align-items: flex-end;
+    text-align: right;
+    gap: .12rem;
     min-width: 0;
-    padding: 1rem 1.15rem;
 }
-#vista-report #report .card-mensa h3,
-#vista-report #report .card-mensa h4,
-#vista-report #report .card-mensa p { margin-top: 0; }
-#vista-report #report .card-mensa h4 { margin: .9rem 0 .2rem; }
-#vista-report #report .card-mensa dl {
+.catering-plesso__numeri strong { font-size: 1.9rem; line-height: 1.2; }
+.catering-plesso__numeri strong small { font-size: .85rem; font-weight: 600; }
+.catering-plesso__numeri > span { font-size: .87rem; color: #425b70; }
+.catering-plesso__tipi {
+    margin: .8rem 0 1rem;
+    padding: .55rem .75rem;
+    border: 1px solid #d5e2ed;
+    border-radius: 8px;
+    background: #f6f9fc;
+}
+.catering-plesso__tipi summary {
+    font-size: .95rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: .15rem 0;
+}
+.catering-plesso__tipi summary:focus-visible {
+    outline: 3px solid var(--blu-italia);
+    outline-offset: 2px;
+}
+.catering-plesso__tipi ul {
+    list-style: none;
+    padding: 0;
+    margin: .75rem 0 0;
+    display: grid;
+    gap: .4rem;
+}
+.catering-plesso__tipi li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: .5rem 1rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #e2eaf2;
+    padding-bottom: .35rem;
+    overflow-wrap: anywhere;
+}
+.catering-plesso__tipi li > span:last-child { font-weight: 700; }
+.catering-plesso__classi {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr));
+    align-items: start;
+    gap: .85rem;
+}
+.catering-classe {
+    min-width: 0;
+    height: 100%;
+    border: 1px solid #c9d9e6;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fcfdff;
+}
+.catering-classe__testa {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem .8rem;
+    padding: .75rem .85rem;
+    background: #eef4fa;
+}
+.catering-classe__testa h4 {
+    margin: 0;
+    font-size: 1.12rem;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+.catering-classe__totale {
+    flex-shrink: 0;
+    font-size: 1.45rem;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+.catering-classe__totale span { font-size: .78rem; font-weight: 500; }
+.catering-classe__sintesi {
+    margin: .6rem .85rem .4rem;
+    color: #3d5264;
+    font-size: .87rem;
+}
+.catering-classe__sintesi strong { color: #6d3b00; }
+.catering-classe__menu {
+    display: grid;
+    gap: .5rem;
+    margin: 0;
+    padding: .45rem .75rem .85rem;
+    list-style: none;
+}
+.catering-classe__tipo {
+    padding: .65rem .7rem;
+    border: 1px solid #d8e3ed;
+    border-radius: 8px;
+    min-width: 0;
+    background: #fff;
+}
+.catering-classe__tipo-testa {
+    display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: .35rem .8rem;
+    gap: .55rem;
+    align-items: center;
 }
-#vista-report #report .card-mensa dl dd { text-align: right; }
-#vista-report #report .card-mensa > .badge-stato { align-self: flex-start; }
+.catering-classe__tipo-nome {
+    font-size: .95rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+}
+.catering-classe__numero {
+    white-space: nowrap;
+    font-size: 1.3rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+.catering-classe__numero small {
+    font-size: .75rem;
+    font-weight: 500;
+}
+.catering-classe__bianco {
+    display: grid;
+    gap: .25rem;
+    margin-top: .55rem;
+    padding: .6rem .7rem;
+    background: #fff3d9;
+    border-left: 4px solid #b47619;
+    border-radius: 5px;
+    font-size: .9rem;
+}
+.catering-classe__bianco strong { color: #6d3b00; }
+.catering-classe__nomi {
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+.catering-classe__vuoto {
+    margin: .7rem .85rem .85rem;
+    color: #566a7c;
+}
+@media (max-width: 600px) {
+    .catering-report-filtri { grid-template-columns: minmax(0, 1fr); }
+    .catering-plesso { padding: .8rem; }
+    .catering-plesso__numeri { align-items: flex-start; text-align: left; }
+    .catering-plesso__classi { grid-template-columns: minmax(0, 1fr); }
+}
 #vista-menu .catering-introduzione { margin: 0 0 .9rem; }
 .catering-form-menu {
     display: flex;
