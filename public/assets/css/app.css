@@ -963,15 +963,88 @@ input[type="datetime-local"]:focus-visible {
     min-width: 0;
 }
 
-/* Anteprima della foto modificabile anche da smartphone. */
-.catering-foto-anteprima { position: relative; display: inline-block; align-self: flex-start; max-width: min(100%, 380px); margin-top: .3rem; }
-.catering-foto-anteprima[hidden], .catering-foto-annulla[hidden] { display: none !important; }
-.catering-foto-anteprima img { display: block; max-width: 100%; max-height: 240px; object-fit: contain; border-radius: 8px; border: 1px solid #d4e0eb; }
-.catering-foto-anteprima__elimina { position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; border: 2px solid white; border-radius: 50%; background: #ac271e; color: white; font-size: 1.5rem; font-weight: 700; cursor: pointer; }
-.catering-foto-anteprima__elimina:hover { background: #841e17; }
-.catering-foto-anteprima__elimina:focus-visible { outline: 3px solid var(--blu-italia); outline-offset: 2px; }
-.catering-foto-annulla { align-self: flex-start; min-height: 40px; margin: 0; }
-@media (max-width: 600px) { .catering-foto-anteprima { max-width: 100%; } }
+/* Stesso controllo fotografico per un menu giornaliero o un singolo giorno
+   della settimana: anteprima, sostituzione e rimozione in attesa del salvataggio. */
+.menu-foto {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    gap: .5rem;
+    padding: .75rem;
+    border: 1px solid #d3e1eb;
+    border-radius: 10px;
+    background: #fafcfe;
+}
+.menu-foto__preview {
+    position: relative;
+    max-width: 100%;
+    width: min(100%, 300px);
+}
+.menu-foto__preview[hidden],
+.menu-foto__vuoto[hidden],
+.menu-foto__annulla[hidden],
+.menu-foto__input[hidden] { display: none !important; }
+.menu-foto__preview img {
+    display: block;
+    max-width: 100%;
+    width: 100%;
+    max-height: 190px;
+    object-fit: contain;
+    background: #eef2f6;
+    border-radius: 8px;
+}
+.menu-foto__x {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 2px solid white;
+    border-radius: 50%;
+    background: #a82c21;
+    color: white;
+    font-size: 1.5rem;
+    line-height: 1;
+    font-weight: 700;
+    cursor: pointer;
+}
+.menu-foto__x:hover { background: #832117; }
+.menu-foto__x:focus-visible {
+    outline: 3px solid var(--blu-italia);
+    outline-offset: 2px;
+}
+.menu-foto__vuoto {
+    color: #52677a;
+    font-size: .87rem;
+}
+.menu-foto__comandi { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.menu-foto__comandi .btn { min-height: 44px; margin: 0; }
+.menu-foto__messaggio {
+    margin: 0;
+    font-size: .83rem;
+    color: #495c6d;
+    line-height: 1.4;
+}
+.menu-foto__messaggio:empty { display: none; }
+.catering-settimana-foto {
+    display: block;
+    width: 110px;
+    max-width: 100%;
+    max-height: 78px;
+    object-fit: contain;
+    border-radius: 6px;
+    margin-top: .4rem;
+}
+@media (max-width: 600px) {
+    .menu-foto { width: 100%; }
+    .menu-foto__comandi { width: 100%; }
+    .menu-foto__comandi .btn { flex: 1 1 auto; }
+}
 
 /* Catalogo di settimane tipo: due colonne su desktop, sequenziale su mobile. */
 .catering-settimane-layout {
