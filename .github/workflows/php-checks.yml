@@ -89,6 +89,9 @@ jobs:
           $DB < database/migrations/007_storico_nomi_modelli.sql
           $DB < database/migrations/008_foto_menu_settimanali.sql
           $DB < database/migrations/008_foto_menu_settimanali.sql
+          $DB < database/migrations/009_intervalli_calendario.sql
+          $DB < database/migrations/009_intervalli_calendario.sql
+          test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name="eccezioni_calendario" AND column_name="giorno_fine"')" = "1"
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM calendari_servizio')" = "2"
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name = "richieste_pasta_bianco"')" = "1"
           # Nessuna modifica dei record precedenti, anche eseguendo le migration due volte.
