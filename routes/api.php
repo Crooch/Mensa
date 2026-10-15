@@ -78,6 +78,8 @@ $router->post('/api/scuola/presenze/override', [$scuola, 'override'], ['scuola',
 // ---------------- area catering ----------------
 $router->get('/api/catering/report', [$catering, 'report'], ['catering', 'admin', 'operatore']);
 $router->get('/api/catering/menu', [$catering, 'menu'], ['catering', 'admin', 'operatore', 'scuola']);
+$router->get('/api/catering/menu/variazioni', [$catering, 'variazioniProgrammate'], ['catering', 'admin']);
+$router->post('/api/catering/menu/annulla', [$catering, 'annullaMenuGiornaliero'], ['catering', 'admin']);
 $router->post('/api/catering/menu', [$catering, 'pubblicaMenu'], ['catering', 'admin']);
 $router->post('/api/catering/menu/ripristina', [$catering, 'ripristinaMenuSettimanale'], ['catering', 'admin']);
 $router->get('/api/catering/feedback', [$catering, 'feedback'], ['catering', 'admin', 'operatore']);
