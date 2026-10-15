@@ -144,6 +144,27 @@ try {
         throw new RuntimeException('La foto del settimanale e stata unita al giornaliero senza foto');
     }
 
+    // Pubblicazione tramite servizio (non direttamente tramite Repository):
+    // anche se il modello ha una foto, l'override deve creare Pollo senza foto.
+    $oggi = date('Y-m-d');
+    $numeroGiorno = (string) (new DateTimeImmutable($oggi))->format('N');
+    $giorniOggi = [$numeroGiorno => 'Pesce'];
+    $modelloOggi = $repo->crea('Pesce fotografato', $standard, $giorniOggi,
+        $oggi, 0, [$numeroGiorno => $fotoStorica]);
+    $repo->assegna([$secondaria], $standard, $modelloOggi, $oggi, 0);
+    $idGiornaliero = $service->pubblicaMenu($secondaria, $standard, $oggi, 'Pollo', null, 0);
+    $rigaGiornaliera = $giornaliero->trovaPerChiave($secondaria, $standard, $oggi);
+    if ((int) $rigaGiornaliera['id'] !== $idGiornaliero ||
+        $rigaGiornaliera['descrizione'] !== 'Pollo' ||
+        $rigaGiornaliera['foto_path'] !== null ||
+        $repo->modello($modelloOggi, $oggi)['foto_giorni'][$numeroGiorno] !== $fotoStorica) {
+        throw new RuntimeException('La pubblicazione giornaliera ha ereditato la foto settimanale');
+    }
+    $service->pubblicaMenu($secondaria, $standard, $oggi, 'Pollo arrosto', null, 0);
+    if ($giornaliero->trovaPerChiave($secondaria, $standard, $oggi)['foto_path'] !== null) {
+        throw new RuntimeException('La modifica di un giornaliero senza foto ne ha aggiunta una');
+    }
+
     // Blocca aggiornamenti manuali di giorni già trascorsi.
     try {
         $service->pubblicaMenu($infanzia, $standard, '2020-10-19', 'Cambio storico', null, 0);
