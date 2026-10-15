@@ -48,6 +48,20 @@ storico_dopo = call("/api/job/esecuzioni", token=admin)
 assert stato_uno == stato_due, "Il monitoraggio deve essere ripetibile"
 assert storico_prima == storico_dopo, "La consultazione non deve aprire esecuzioni"
 assert stato_uno["data"] == dt.date.today().isoformat()
+assert stato_uno["scheduler_abilitato"] is False, (
+    "Lo staging non deve avviare job automaticamente")
+# Anche un Admin non deve eseguire un job senza attivazione esplicita.
+for percorso in ("/api/job/scheduler", "/api/job/plessi/1"):
+    try:
+        call(percorso, payload={}, token=admin)
+        raise AssertionError("Job eseguibile con scheduler disabilitato")
+    except urllib.error.HTTPError as exc:
+        assert exc.code == 503, (percorso, exc.code)
+try:
+    call("/scheduler?key=cambiami-scheduler-key")
+    raise AssertionError("Endpoint HTTP scheduler accessibile senza attivazione")
+except urllib.error.HTTPError as exc:
+    assert exc.code == 503, exc.code
 scuole_attive = call("/api/admin/plessi", token=admin)
 assert len(stato_uno["scuole"]) == len(scuole_attive), (
     f"Lo stato deve coprire tutte le scuole attive: {len(stato_uno['scuole'])}/"
