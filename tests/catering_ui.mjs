@@ -409,6 +409,32 @@ assert.equal(elemento('menu-ripristina').hidden, true);
 assert.equal(elemento('menu-descrizione').value, 'Pesce');
 elemento('menu-plesso').value = '1';
 elemento('menu-plesso').handlers.change();
-assert.equal(elemento('menu-ripristina').hidden, true,
-    'Il ripristino non va proposto ai giornalieri senza modello');
+assert.equal(elemento('menu-ripristina').hidden, false,
+    'Anche una variazione senza modello può essere annullata');
 console.log('OK: ripristino del solo menu giornaliero con modello settimanale e foto originali.');
+
+/* Programmazione singola per data futura: non deve sovrascrivere il giorno
+   odierno, e deve essere recuperabile dalla lista senza ulteriori filtri. */
+elemento('menu-data').value = '2026-10-19';
+await elemento('menu-data').handlers.change();
+await new Promise((resolve) => setImmediate(resolve));
+assert.equal(elemento('menu-descrizione').value, '',
+    'La data futura non deve ereditare la descrizione del giorno precedente');
+elemento('menu-tipologia').value = '2';
+elemento('menu-tipologia').handlers.change();
+elemento('menu-descrizione').value = 'Lasagne di lunedì';
+await elemento('form-menu').handlers.submit({ preventDefault() {} });
+assert.equal(salvataggi.at(-1).data, '2026-10-19');
+assert.equal(salvataggi.at(-1).descrizione, 'Lasagne di lunedì');
+assert.equal(menuPubblicati.find(m => m.data === '2026-10-14' && m.id === 8).descrizione, 'Riso');
+assert.match(elemento('menu-variazioni-lista').innerHTML, /Lasagne di lunedì/);
+assert.match(elemento('menu-variazioni-lista').innerHTML, /19\/10\/2026/);
+assert.equal(elemento('menu-ripristina').hidden, false,
+    'La variazione giornaliera futura deve essere annullabile senza modello');
+
+await elemento('menu-ripristina').handlers.click();
+assert.equal(ripristini.at(-1).data, '2026-10-19');
+assert.equal(menuPubblicati.some(m => m.data === '2026-10-19'), false);
+assert.match(elemento('menu-variazioni-lista').innerHTML, /Nessuna variazione|14\/10\/2026/);
+assert.equal(elemento('menu-submit').textContent, 'Pubblica menu');
+console.log('OK: data futura, elenco programmati e annullamento anche senza modello.');
