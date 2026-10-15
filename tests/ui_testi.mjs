@@ -329,3 +329,19 @@ assert.match(css, /\.admin-calendario-giorno input\[type="checkbox"\]\s*\{[^}]*w
 assert.match(css, /\.admin-calendario-giorni__griglia\s*\{[^}]*grid-template-columns:\s*repeat\(5,/s);
 assert.match(css, /\.riga-filtri > \.campo-filtro > label,[\s\S]*align-self:\s*stretch\s*!important/);
 console.log('OK: Admin calendario, checkbox, allineamento etichette e classi filtrate per scuola.');
+
+/* Chiusura giornaliera: monitoraggio informativo separato dagli addebiti. */
+assert.match(adminPaginaRivista, /<h1>Chiusura giornaliera dei pasti<\/h1>/);
+assert.match(adminPaginaRivista, /id="job-scuole"/);
+assert.match(adminPaginaRivista, /id="job-aggiorna"/);
+assert.match(adminPaginaRivista, /<details class="admin-job-manuale"/);
+assert.match(adminPaginaRivista, /pianificazione sul server è attiva/);
+assert.ok(adminPaginaRivista.indexOf('id="job-scuole"') <
+          adminPaginaRivista.indexOf('id="btn-scheduler"'),
+    'Lo stato deve precedere le azioni manuali');
+assert.match(adminJsRivisto, /API\.get\('\/api\/job\/stato'\)/);
+assert.match(adminJsRivisto, /API\.post\('\/api\/job\/scheduler'/);
+assert.match(adminJsRivisto, /leggiDettaglioEsecuzione\(e\.dettaglio\)/);
+assert.doesNotMatch(adminJsRivisto, /esc\(e\.dettaglio\s*\|\|/);
+assert.match(css, /\.admin-job-scuole\s*\{[^}]*display:\s*grid/s);
+console.log('OK: job in sola lettura, cron dichiarato esterno, manuale separato e storico comprensibile.');
