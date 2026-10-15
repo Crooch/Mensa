@@ -549,6 +549,10 @@ def collaudo_completo_famiglia_scuola_cucina(browser):
         controlla_dimensioni(famiglia, "Genitore: pasta in bianco richiesta")
 
         scuola = apri("scuola", "scuola.infanzia.staging")
+        scuola.wait_for_function("""() =>
+            [...document.querySelectorAll('#classe option')]
+                .some(o => o.textContent.includes('Sezione A'))
+        """, timeout=15000)
         scuola.locator('#classe').select_option(label=next(
             x for x in scuola.locator('#classe option').all_text_contents() if 'Sezione A' in x
         ))
