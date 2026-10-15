@@ -192,13 +192,18 @@ function annoScolasticoCorrente() {
     const inizio = adesso.getMonth() >= 8 ? adesso.getFullYear() : adesso.getFullYear() - 1;
     return inizio + '/' + (inizio + 1);
 }
-function suggerimentiClassi() {
+function suggerimentiClassi(plessoId) {
     const lettere = ['A', 'B', 'C', 'D', 'E', 'F'];
-    return [
-        ...lettere.map(lettera => 'Sezione ' + lettera),
-        ...Array.from({ length: 5 }, (_, anno) =>
-            lettere.map(lettera => (anno + 1) + 'ª ' + lettera)).flat()
-    ];
+    const nomeScuola = String(plessi.find(p => Number(p.id) === plessoId)?.nome || '')
+        .toLocaleLowerCase('it');
+    const sezioni = lettere.map(lettera => 'Sezione ' + lettera);
+    const classi = Array.from({ length: 5 }, (_, anno) =>
+        lettere.map(lettera => (anno + 1) + 'ª ' + lettera)).flat();
+    // Proposte pertinenti alla scuola: infanzia = sezioni; primaria e
+    // secondaria = classi. Un nome particolare resta sempre possibile.
+    if (nomeScuola.includes('infanzia')) return sezioni;
+    if (nomeScuola.includes('primaria') || nomeScuola.includes('secondaria')) return classi;
+    return [...sezioni, ...classi];
 }
 function aggiornaSceltaClasse() {
     const plessoId = Number(document.getElementById('classe-plesso').value);
@@ -215,7 +220,7 @@ function aggiornaSceltaClasse() {
     const nomi = document.getElementById('classe-nome');
     const nomePrecedente = nomi.value;
     nomi.innerHTML = '<option value="">Scegli una classe o sezione</option>' +
-        suggerimentiClassi().map(nome => `<option value="${esc(nome)}">${esc(nome)}</option>`).join('') +
+        suggerimentiClassi(plessoId).map(nome => `<option value="${esc(nome)}">${esc(nome)}</option>`).join('') +
         '<option value="altro">Un altro nome…</option>';
     if ([...nomi.options].some(o => o.value === nomePrecedente)) nomi.value = nomePrecedente;
     mostraCampoAltraClasse();
