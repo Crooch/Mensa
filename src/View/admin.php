@@ -178,7 +178,7 @@ require __DIR__ . '/partials/testa.php';
     <div class="area-sezione-testa"><h2>Classi registrate nella scuola</h2></div>
     <div class="tabella-scroll">
         <table class="table" data-testid="classi-tabella">
-            <thead><tr><th>Plesso</th><th>Classe</th><th>Anno</th><th></th></tr></thead>
+            <thead><tr><th>Classe o sezione</th><th>Anno scolastico</th><th>Azioni</th></tr></thead>
             <tbody id="classi-corpo"></tbody>
         </table>
     </div>
