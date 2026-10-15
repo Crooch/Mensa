@@ -29,7 +29,7 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-menu" class="vista" hidden>
     <h1>Menu del giorno</h1>
-    <p class="nota catering-introduzione">Scegli la data, il plesso e la tipologia. Puoi programmare un solo giorno, modificare una variazione o annullarla.</p>
+    <p class="nota catering-introduzione">Scegli la data, il plesso e la tipologia per programmare, modificare o annullare un menù. Se presente, il menù del giorno prevale su quello settimanale.</p>
     <form id="form-menu" class="pannello catering-form-menu" enctype="multipart/form-data" data-testid="menu-form">
         <div class="catering-filtri catering-filtri--menu">
             <div class="catering-campo">
@@ -71,7 +71,7 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-settimane" class="vista" hidden>
     <h1>Menu settimanali</h1>
-    <p class="nota catering-introduzione">Crea una settimana tipo per una tipologia alimentare, duplicala per creare varianti e assegnala a uno o più plessi. Resta in uso finché non ne scegli un'altra. Le modifiche valgono dal giorno successivo; lo storico dei pasti già somministrati non viene riscritto.</p>
+    <p class="nota catering-introduzione">Crea una settimana tipo, duplicala e assegnala a uno o più plessi. Resta in uso finché non ne scegli un'altra. Le modifiche valgono dal giorno successivo. Se presente, il menù del giorno prevale su quello settimanale.</p>
     <div class="catering-settimane-layout">
         <form id="form-settimana" class="pannello catering-form-menu">
             <h2 id="settimana-form-titolo">Nuovo menu settimanale</h2>
