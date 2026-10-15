@@ -98,7 +98,7 @@ require __DIR__ . '/partials/testa.php';
                 <div class="catering-campo"><label for="settimana-giorno-7">Domenica</label>
                     <textarea id="settimana-giorno-7" rows="3" data-testid="settimana-giorno-7" placeholder="Descrizione del menu"></textarea></div>
             </div>
-            <p class="nota">Puoi lasciare vuoti i giorni senza menu. Gli a capo saranno mantenuti.</p>
+            <p class="nota">Puoi lasciare vuoti i giorni senza menu.</p>
             <div class="catering-settimane-azioni">
                 <button type="submit" class="btn btn-primary" id="settimana-salva">Salva menu settimanale</button>
                 <button type="button" class="btn btn-outline-primary" id="settimana-nuovo">Nuovo menu</button>
