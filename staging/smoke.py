@@ -355,3 +355,71 @@ menu_genitore = call("/api/genitore/menu?data=2026-10-19", token=genitore)
 assert any(m.get("origine") == "settimanale" for m in menu_genitore)
 assert call("/api/catering/menu?data=2026-10-15", token=catering) == []
 print("OK: modello duplicato e assegnato a piu' plessi, visibile al genitore senza modifiche retroattive.")
+
+# Foto per singolo giorno del modello: una stessa immagine deve arrivare
+# a tutti i plessi assegnati e al profilo Genitore. Salvataggio multipart reale.
+def aggiorna_settimana_multipart(modello, campi, file_png=None):
+    boundary = "----StagingFotoSettimana"
+    body = bytearray()
+    for nome, valore in campi.items():
+        body.extend(("--" + boundary + "\r\n"
+            'Content-Disposition: form-data; name="' + nome + '"\r\n\r\n' +
+            str(valore) + "\r\n").encode("utf-8"))
+    if file_png is not None:
+        body.extend(("--" + boundary + "\r\n"
+            'Content-Disposition: form-data; name="foto_giorno_1"; filename="lunedi.png"\r\n'
+            "Content-Type: image/png\r\n\r\n").encode("utf-8"))
+        body.extend(file_png)
+        body.extend(b"\r\n")
+    body.extend(("--" + boundary + "--\r\n").encode("utf-8"))
+    richiesta = urllib.request.Request(
+        base + "/api/catering/menu-settimanali/" + str(modello) + "/aggiorna",
+        data=bytes(body), headers={
+            "Authorization": "Bearer " + catering,
+            "Content-Type": "multipart/form-data; boundary=" + boundary
+        })
+    with urllib.request.urlopen(richiesta, timeout=20) as risposta:
+        return json.load(risposta)["dati"]
+
+giorni_foto = {
+    "1": "Primo: pasta\nSecondo: verdure",
+    "2": "Riso", "3": "Pollo", "4": "Pesce",
+    "5": "Minestrone", "6": "", "7": ""
+}
+campi_settimana = {
+    "nome": "Settimana base - collaudo",
+    "tipologia_menu_id": tipologia_menu,
+    "giorni": json.dumps(giorni_foto, ensure_ascii=False),
+    "rimuovi_foto": "[]"
+}
+aggiornato = aggiorna_settimana_multipart(modello_id, campi_settimana, png_1x1)
+assert int(aggiornato["id"]) == modello_id
+dopo_foto = call("/api/catering/menu-settimanali", token=catering)
+modello_foto = next(m for m in dopo_foto if int(m["id"]) == modello_id)
+foto_settimanale = modello_foto["foto_giorni"]["1"]
+assert foto_settimanale.startswith("menu/settimane/")
+assert foto_settimanale.endswith(".png")
+menus_foto = call("/api/catering/menu?data=2026-10-19", token=catering)
+assert len([m for m in menus_foto if
+    int(m["tipologia_menu_id"]) == tipologia_menu and
+    m.get("origine") == "settimanale" and
+    m["foto_path"] == foto_settimanale]) == 2
+famiglia_foto = call("/api/genitore/menu?data=2026-10-19", token=genitore)
+assert any(m["foto_path"] == foto_settimanale for m in famiglia_foto)
+# Duplicando il modello, la foto viene ripresa per riferimento immutabile.
+copiato_foto = call("/api/catering/menu-settimanali/" + str(modello_id) + "/duplica", {
+    "nome": "Copia con foto",
+    "tipologia_menu_id": tipologia_menu
+}, token=catering)
+modelli_finali = call("/api/catering/menu-settimanali", token=catering)
+assert next(m for m in modelli_finali
+    if int(m["id"]) == int(copiato_foto["id"]))["foto_giorni"]["1"] == foto_settimanale
+# Rimozione senza upload: l'aggiornamento non elimina gli altri menu.
+campi_settimana["rimuovi_foto"] = '["1"]'
+aggiorna_settimana_multipart(modello_id, campi_settimana)
+modelli_senza = call("/api/catering/menu-settimanali", token=catering)
+senza = next(m for m in modelli_senza if int(m["id"]) == modello_id)
+assert not senza["foto_giorni"].get("1")
+assert next(m for m in modelli_senza
+    if int(m["id"]) == int(copiato_foto["id"]))["foto_giorni"]["1"] == foto_settimanale
+print("OK: foto settimanale aggiunta, condivisa, duplicata e rimossa via multipart; copia preservata.")
