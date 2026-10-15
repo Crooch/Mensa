@@ -345,3 +345,17 @@ assert.match(adminJsRivisto, /leggiDettaglioEsecuzione\(e\.dettaglio\)/);
 assert.doesNotMatch(adminJsRivisto, /esc\(e\.dettaglio\s*\|\|/);
 assert.match(css, /\.admin-job-scuole\s*\{[^}]*display:\s*grid/s);
 console.log('OK: job in sola lettura, cron dichiarato esterno, manuale separato e storico comprensibile.');
+
+/* Eccezioni del calendario: giorno singolo/range e anno scolastico in UI. */
+assert.match(adminPaginaRivista, /Chiusure e aperture straordinarie/);
+assert.doesNotMatch(adminPaginaRivista, /Un giorno diverso dal solito/);
+assert.match(adminPaginaRivista, /id="calendario-anno-scolastico"/);
+assert.match(adminPaginaRivista, /id="eccezione-fine"/);
+assert.match(adminPaginaRivista, /id="eccezione-messaggio"/);
+assert.match(adminPaginaRivista, /data-testid="calendario-periodi-tabella"/);
+assert.match(adminJsRivisto, /annoScolasticoCalendario\(data\)/);
+assert.match(adminJsRivisto, /API\.post\(percorso, dati\)/);
+assert.match(adminJsRivisto, /API\.put\(percorso \+ '\/' \+ periodoId, dati\)/);
+assert.match(adminJsRivisto, /data-modifica-periodo/);
+assert.match(adminJsRivisto, /data-cancella-periodo/);
+console.log('OK: calendario annuale, range con modifica/eliminazione ed errori nel modulo.');
