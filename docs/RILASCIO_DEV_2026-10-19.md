@@ -30,26 +30,30 @@ sintetici, non una migrazione già provata sui dati di produzione.
 4. Catering: conteggi per plesso, tipologia e classe/sezione (anche sezioni con zero pasti), prima/dopo job, elenco nominativo delle sole richieste pasta in bianco per bambini presenti.
 5. Report giorni fuori calendario: non presentare consumi del periodo preliminare come pasti da preparare.
 
-## Migrazioni necessarie, da eseguire nell'ordine soltanto dopo approvazione
+## Aggiornamento strutturale necessario: **solo DDL**, dopo approvazione
 
 **Non eseguire `001_schema.sql` sul database comunale esistente.**
-Lo script di installazione generico non sostituisce la procedura incrementale
-per la produzione. Le modifiche da prevedere sono le seguenti:
+Non eseguire neppure i file numerati `002`–`009` originali in produzione:
+`002` contiene **INSERT di configurazioni calendario** e `007` un
+**UPDATE di revisioni**. Per il rilascio usare soltanto
+[`database/deploy/upgrade_schema_only_2026_10.sql`](../database/deploy/upgrade_schema_only_2026_10.sql),
+che comprende esclusivamente `CREATE TABLE` e `ALTER TABLE`, senza seed,
+import, riscritture o cancellazioni. Le modifiche previste sono:
 
 | N. | File | Effetto sul database esistente |
 |---|---|---|
-| 002 | `002_calendario_mensa.sql` | Calendari per plesso ed eccezioni; inserimento iniziale limitato ai nomi previsti |
-| 003 | `003_richieste_pasta_bianco.sql` | Tabella richieste giornaliere indipendenti dalla presenza |
-| 004 | `004_audit_operazioni_presenze.sql` | Registro operazioni su presenze/richieste |
-| 005 | `005_idempotenza_acquisti.sql` | Colonna facoltativa e indice univoco per impedire doppi acquisti/rettifiche |
-| 006 | `006_menu_settimanali.sql` | Modelli, revisioni e assegnazioni settimanali |
-| 007 | `007_storico_nomi_modelli.sql` | Nome del modello conservato nelle revisioni |
-| 008 | `008_foto_menu_settimanali.sql` | Fotografie per giorno conservate nelle revisioni |
-| 009 | `009_intervalli_calendario.sql` | Estensione additiva delle eccezioni a intervalli di date (`giorno_fine` nullable); i record a giorno singolo restano invariati |
+| 002 | Script schema-only, sezione calendario | Nuove tabelle per calendari/eccezioni, **senza inserire configurazioni** |
+| 003 | Script schema-only, sezione pasta in bianco | Nuova tabella, vuota |
+| 004 | Script schema-only, sezione audit | Nuova tabella, vuota |
+| 005 | Script schema-only, sezione crediti | Nuova colonna nullable e indice univoco, senza cambiare importi, saldi o movimenti esistenti |
+| 006 | Script schema-only, sezione modelli | Nuove tabelle, vuote: nessun menù fittizio importato |
+| 007 | Script schema-only, sezione revisioni | Nuova colonna nullable, **senza UPDATE** |
+| 008 | Script schema-only, sezione fotografie | Nuova colonna nullable |
+| 009 | Script schema-only, sezione intervalli | Nuova colonna nullable; dati precedenti invariati |
 
-Le migrazioni 002–009 vengono eseguite **due volte** sulla base sintetica
-di GitHub CI, per verificarne la ripetibilità. La CI controlla anche che
-movimenti e saldi fittizi *preesistenti* non cambino. Ciò non sostituisce
+Lo script **solo DDL** viene eseguito due volte su un database sintetico
+che include utenti, famiglie, alunni, presenze, saldi e movimenti preesistenti.
+La CI verifica che nessuna riga venga importata o modificata. Ciò non sostituisce
 la prova su una copia controllata del database comunale: prima di approvare,
 verificare struttura reale, collazioni, nomi plessi, dati preesistenti e
 compatibilità MariaDB. Le operazioni DDL non vanno considerate reversibili
@@ -57,7 +61,10 @@ con un semplice `ROLLBACK` SQL: occorre un backup ripristinabile.
 
 ### Controllo di configurazione obbligatorio
 
-Dopo la migration 002, verificare su STAGING che esistano due righe in `calendari_servizio`:
+Dopo l'upgrade **solo schema**, la tabella `calendari_servizio` deve
+essere **vuota se era inesistente**. Prima di abilitare qualsiasi job, far
+configurare attraverso l'Admin — dopo conferma delle regole da parte del Comune
+— almeno i due calendari previsti:
 
 - Infanzia Via Catania: lunedì–venerdì, inizio 19/10/2026.
 - Secondaria di I grado: lunedì e giovedì, inizio 19/10/2026.
@@ -72,16 +79,18 @@ Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non 
    Catering e Genitore, sia da desktop sia da dispositivo mobile. Per Catering
    includere il menù settimanale, la variazione giornaliera, le foto, l'annullamento
    e le pagine con oltre dieci variazioni.
-3. Verificare i nomi effettivi dei plessi e le regole settimanali sul sistema
-   comunale, **in sola lettura**: la migration 002 non crea calendari quando
-   i nomi non corrispondono esattamente.
+3. Verificare i nomi, gli ID e le regole settimanali sul sistema comunale,
+   **in sola lettura**; lo schema-only non crea alcuna configurazione calendario
+   anche quando i nomi coincidono.
 4. Preparare una **copia isolata e protetta** del database, senza caricarla
    su repository o CI pubbliche. Fare un backup della copia e verificare
    che sia ripristinabile.
-5. Su questa copia eseguire 002, 003, 004, 005, 006, 007, 008 e **009** in
-   ordine. Confrontare prima e dopo: numero e saldo dei pool, numero/tipo/
-   delta/importi dei movimenti, presenze, assegnazioni e utenti;
-   verificare struttura e indici creati, nonché la coerenza dei calendari.
+5. Sulla copia protetta applicare **solo**
+   `database/deploy/upgrade_schema_only_2026_10.sql`.
+   Confrontare prima e dopo ogni riga preesistente: utenti, genitori,
+   bambini, assegnazioni, saldi, movimenti, importi, presenze, menù e job.
+   Verificare che tutte le nuove tabelle siano vuote e che non ci siano
+   configurazioni automatiche; non usare alcun dump/seed di staging.
 6. Pubblicare sulla sola installazione di staging il codice candidato;
    verificare login, confini di accesso fra ruoli e plessi, menù di giornata,
    foto e tutte le operazioni sui dati fittizi. Tenere la posta esterna
@@ -92,10 +101,12 @@ Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non 
 8. Condividere checklist ed esiti con i referenti comunali e attendere
    l'autorizzazione esplicita prima di qualsiasi intervento su `main`,
    VPS, database o cron di produzione.
-9. Solo durante una futura finestra autorizzata: effettuare nuovi backup
-   verificati, applicare il piano testato e controllare inizialmente endpoint
-   non distruttivi. **Non riattivare il cron automaticamente**; farlo soltanto
-   dopo una decisione specifica sui conteggi e sulle condizioni di avvio.
+9. Solo durante una futura finestra autorizzata: backup reali verificati,
+   eventuale **upgrade dello schema con sole CREATE/ALTER** e codice candidato.
+   Verificare login e letture; configurare i calendari esplicitamente
+   dall'Admin con il Comune. **Non riattivare cron o comunicazioni** finché
+   non sono stati verificati calendario, cutoff e conteggi; il passaggio
+   al codice nuovo non importa né azzera dati.
 10. In caso di regressioni: mettere in sicurezza le elaborazioni, usare
     la procedura di ripristino collaudata e riconciliare contabilità/presenze
     prima di riprendere le attività.
@@ -131,7 +142,9 @@ Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non 
 ### Preflight di sola lettura
 
 - Identificare esattamente commit, ambiente e utente operativo; controllare stato cron **dall'host**, perché `GET /api/job/stato` non attesta che lo scheduler esterno sia acceso.
-- Verificare i nomi e gli ID dei plessi esistenti, gli anni scolastici delle classi e i cutoff applicati. La migration 002 usa **corrispondenze esatte dei nomi**: se divergono, fermarsi e concordare la configurazione, senza modifiche automatiche ai dati.
+- Verificare i nomi e gli ID dei plessi esistenti, gli anni scolastici
+  e i cutoff. Non saranno applicati seed automatici: i calendari eventualmente
+  mancanti vanno configurati e verificati esplicitamente con il Comune.
 - Registrare conteggi e checksum del dump protetto; confrontare `pool_crediti`, `movimenti_crediti`, `presenze_giornaliere`, `esecuzioni_job` e le assegnazioni prima/dopo la prova su copia isolata.
 - Verificare separatamente i file in `storage/menu`: il backup del solo DB non è sufficiente a ripristinare le fotografie.
 - Accertare che i test di sicurezza fra ruoli/plessi e i test di calendario sulle festività e sulle eccezioni abbiano esito positivo.
