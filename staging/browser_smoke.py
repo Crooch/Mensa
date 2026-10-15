@@ -119,6 +119,7 @@ def controlla_profili_riordinati(page, ruolo, larghezza):
         page.screenshot(path=str(OUTPUT / f"admin-plessi-nuovo-{larghezza}.png"),
                         full_page=True)
         controlla_tabelle_mobili(page, larghezza)
+        controlla_admin_calendario_classi(page, larghezza)
 
     controlla_etichette(page, ruolo + ' nuova interfaccia')
     controlla_dimensioni(page, f"{ruolo} nuova interfaccia @{larghezza}")
@@ -135,6 +136,85 @@ def controlla_tabelle_mobili(page, larghezza):
             return celle.length > 0 && celle.every(c => c.dataset.etichetta);
         }""", timeout=8000)
         assert celle.first.evaluate("(e) => getComputedStyle(e).display") in ('grid', 'block')
+
+
+def controlla_admin_calendario_classi(page, larghezza):
+    """Nessun salvataggio: misure reali checkbox, date, etichette e classi per scuola."""
+    page.locator('nav.schede [data-vista="calendario"]').click()
+    page.locator('#calendario-inizio').wait_for(state="visible")
+    page.wait_for_function("""() => document.querySelector('#calendario-inizio').value !== ''""")
+    misure = page.evaluate("""() => {
+        const inputs = [...document.querySelectorAll('#form-calendario input[type="checkbox"]')];
+        return inputs.map(x => {
+            const r = x.getBoundingClientRect();
+            const lab = x.closest('label');
+            const t = lab.querySelector('span').getBoundingClientRect();
+            return {
+                width: r.width, height: r.height, y: r.top+r.height/2,
+                textY: t.top+t.height/2, labelWidth: lab.getBoundingClientRect().width,
+                inputInsideLabel: lab.control === x,
+                text: lab.textContent.trim()
+            };
+        });
+    }""")
+    assert len(misure) == 5
+    for m in misure:
+        assert 16 <= m["width"] <= 24 and 16 <= m["height"] <= 24, (
+            f'Checkbox calendario fuori scala: {m}'
+        )
+        assert abs(m["y"] - m["textY"]) <= 7 and m["inputInsideLabel"], (
+            f'Giorno/checkbox disallineati: {m}'
+        )
+    n_date = page.locator('.admin-calendario-date').evaluate(
+        "(e) => getComputedStyle(e).gridTemplateColumns.split(' ').length")
+    assert n_date == (1 if larghezza <= 600 else 2)
+    giorni_per_riga = page.locator('.admin-calendario-giorni__griglia').evaluate(
+        "(e) => getComputedStyle(e).gridTemplateColumns.split(' ').length")
+    assert giorni_per_riga == (2 if larghezza <= 600 else 3 if larghezza <= 900 else 5)
+    controlla_dimensioni(page, f'Calendario Admin {larghezza}')
+    controlla_etichette(page, f'Calendario Admin {larghezza}')
+    page.screenshot(path=str(OUTPUT / f"admin-calendario-riprogettato-{larghezza}.png"),
+                    full_page=True)
+
+    page.locator('nav.schede [data-vista="classi"]').click()
+    scelta_scuola = page.locator('#classe-plesso')
+    scelta_scuola.locator('option').first.wait_for()
+    page.wait_for_function("""() => document.querySelector('#classe-nome option[value="altro"]')""")
+    plessi_opzioni = scelta_scuola.locator('option').count()
+    assert plessi_opzioni >= 2
+    scelta_scuola.select_option(index=0)
+    page.wait_for_function("""() => document.querySelector('#classe-esistente option')""")
+    tutte = page.locator('#classi-corpo tr')
+    # Nel select sono elencate solo classi della scuola attualmente scelta.
+    def valori_scelta():
+        return page.evaluate("""() => ({
+            scuola: document.querySelector('#classe-plesso').value,
+            ids: [...document.querySelectorAll('#classe-esistente option')]
+                .filter(o => o.value).map(o => o.value),
+            plessi: [...document.querySelectorAll('#classi-corpo tr td:first-child')]
+                .filter(td => td.parentElement.querySelector('button'))
+                .map(td => td.textContent.trim()),
+            nome: document.querySelector('#classe-plesso').selectedOptions[0].textContent.trim()
+        })""")
+    prima = valori_scelta()
+    assert all(nome == prima["nome"] for nome in prima["plessi"])
+    scelta_scuola.select_option(index=1)
+    seconda = valori_scelta()
+    assert prima["scuola"] != seconda["scuola"]
+    assert all(nome == seconda["nome"] for nome in seconda["plessi"])
+    assert not set(prima["ids"]).intersection(seconda["ids"])
+    page.locator('.admin-aggiungi-sezione summary').click()
+    page.locator('#classe-nome').select_option('altro')
+    assert page.locator('#classe-altro-gruppo').is_visible()
+    assert page.locator('#classe-altro').get_attribute('required') is not None
+    page.locator('#classe-nome').select_option('Sezione A')
+    assert page.locator('#classe-altro-gruppo').is_hidden()
+    assert page.locator('#classe-anno').input_value()
+    controlla_etichette(page, f'Classi Admin {larghezza}')
+    controlla_dimensioni(page, f'Classi Admin {larghezza}')
+    page.screenshot(path=str(OUTPUT / f"admin-classi-riprogettate-{larghezza}.png"),
+                    full_page=True)
+    print(f"OK: Admin @{larghezza}: checkbox 19px, etichette centrate, date e classi per scuola")
 
 
 def controlla_modali_operatore(page):
