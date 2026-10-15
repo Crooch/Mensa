@@ -15,10 +15,11 @@ require __DIR__ . '/partials/testa.php';
 </nav>
 
 <section id="vista-plessi" class="vista">
-    <h1>Scuole e impostazioni della mensa</h1>
+    <header class="area-intro"><h1>Scuole e impostazioni della mensa</h1></header>
     <div id="admin-riepilogo" class="riepilogo-mensa" aria-live="polite"></div>
     <p class="nota">Configura tariffe, orari e soglie di avviso.</p>
-    <form id="form-plesso" class="pannello" data-testid="plesso-form">
+    <h2 class="admin-form-titolo">Dati della scuola</h2>
+    <form id="form-plesso" class="pannello admin-config" data-testid="plesso-form">
         <input type="hidden" id="plesso-id">
         <div class="riga-filtri">
             <label for="plesso-nome">Nome</label><input type="text" id="plesso-nome" data-testid="plesso-nome-input">
@@ -33,6 +34,7 @@ require __DIR__ . '/partials/testa.php';
         <button type="submit" class="btn btn-primary" data-testid="plesso-submit-button">Salva plesso</button>
         <button type="button" class="btn btn-outline-primary" id="plesso-annulla" data-testid="plesso-annulla-button">Aggiungi un'altra scuola</button>
     </form>
+    <div class="area-sezione-testa"><h2>Scuole configurate</h2></div>
     <div class="tabella-scroll">
         <table class="table" data-testid="plessi-tabella">
             <thead><tr><th>Plesso</th><th>Tariffa</th><th>Fido concesso</th><th>Orario limite</th><th>Dirigente</th><th></th></tr></thead>
@@ -43,13 +45,13 @@ require __DIR__ . '/partials/testa.php';
 
 
 <section id="vista-calendario" class="vista" hidden>
-    <h1>Calendario del servizio mensa</h1>
+    <header class="area-intro"><h1>Calendario del servizio mensa</h1></header>
     <p class="nota">Imposta i giorni di mensa. Fine settimana e festività sono esclusi.</p>
     <div class="riga-filtri">
         <label for="calendario-plesso">Scegli la scuola</label>
         <select id="calendario-plesso" data-testid="calendario-plesso-select"></select>
     </div>
-    <form id="form-calendario" class="pannello" data-testid="calendario-form">
+    <form id="form-calendario" class="pannello admin-config" data-testid="calendario-form">
         <h2>Quando è prevista la mensa?</h2>
         <div class="riga-filtri">
             <label for="calendario-inizio">Primo giorno di mensa</label>
@@ -97,8 +99,9 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-classi" class="vista" hidden>
-    <h1>Classi e sezioni delle scuole</h1>
-    <form id="form-classe" class="pannello" data-testid="classe-form">
+    <header class="area-intro"><h1>Classi e sezioni delle scuole</h1></header>
+    <h2 class="admin-form-titolo">Aggiungi una classe</h2>
+    <form id="form-classe" class="pannello admin-config" data-testid="classe-form">
         <div class="riga-filtri">
             <label for="classe-plesso">Plesso</label><select id="classe-plesso" data-testid="classe-plesso-select"></select>
             <label for="classe-nome">Nome</label><input type="text" id="classe-nome" placeholder="Es. 3ª B" data-testid="classe-nome-input">
@@ -106,6 +109,7 @@ require __DIR__ . '/partials/testa.php';
         </div>
         <button type="submit" class="btn btn-primary" data-testid="classe-submit-button">Aggiungi classe</button>
     </form>
+    <div class="area-sezione-testa"><h2>Classi registrate</h2></div>
     <div class="tabella-scroll">
         <table class="table" data-testid="classi-tabella">
             <thead><tr><th>Plesso</th><th>Classe</th><th>Anno</th><th></th></tr></thead>
@@ -115,14 +119,16 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-tipologie" class="vista" hidden>
-    <h1>Tipi di menu</h1>
+    <header class="area-intro"><h1>Tipi di menu</h1></header>
     <p class="nota">Ogni bambino ha un menu assegnato.</p>
-    <form id="form-tipologia" class="pannello" data-testid="tipologia-form">
+    <h2 class="admin-form-titolo">Aggiungi una tipologia</h2>
+    <form id="form-tipologia" class="pannello admin-config" data-testid="tipologia-form">
         <div class="riga-filtri">
             <label for="tipologia-nome">Nome</label><input type="text" id="tipologia-nome" data-testid="tipologia-nome-input">
             <button type="submit" class="btn btn-primary" data-testid="tipologia-submit-button">Aggiungi</button>
         </div>
     </form>
+    <div class="area-sezione-testa"><h2>Tipologie registrate</h2></div>
     <div class="tabella-scroll">
         <table class="table" data-testid="tipologie-tabella">
             <thead><tr><th>Tipologia</th><th></th></tr></thead>
@@ -132,8 +138,9 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-email" class="vista" hidden>
-    <h1>Testi e destinatari dei solleciti</h1>
-    <form id="form-modello" class="pannello" data-testid="modello-form">
+    <header class="area-intro"><h1>Testi e destinatari dei solleciti</h1></header>
+    <h2 class="admin-form-titolo">Testo della comunicazione</h2>
+    <form id="form-modello" class="pannello admin-config" data-testid="modello-form">
         <div class="riga-filtri">
             <label for="modello-plesso">Plesso</label><select id="modello-plesso" data-testid="modello-plesso-select"></select>
             <label for="modello-oggetto">Oggetto</label><input type="text" id="modello-oggetto" data-testid="modello-oggetto-input">
@@ -145,7 +152,7 @@ require __DIR__ . '/partials/testa.php';
     </form>
 
     <h2>Altri indirizzi che ricevono una copia</h2>
-    <form id="form-destinatario" class="pannello" data-testid="destinatario-form">
+    <form id="form-destinatario" class="pannello admin-config" data-testid="destinatario-form">
         <div class="riga-filtri">
             <label for="dest-etichetta">Etichetta</label><input type="text" id="dest-etichetta" data-testid="destinatario-etichetta-input">
             <label for="dest-email">Email</label><input type="text" id="dest-email" data-testid="destinatario-email-input">
@@ -161,7 +168,7 @@ require __DIR__ . '/partials/testa.php';
 
     <h2>Impostazioni per l'invio delle email (SMTP)</h2>
     <p class="nota">Queste impostazioni sono riservate a chi gestisce la posta elettronica del Comune.</p>
-    <form id="form-smtp" class="pannello" data-testid="smtp-form">
+    <form id="form-smtp" class="pannello admin-config" data-testid="smtp-form">
         <div class="riga-filtri">
             <label for="smtp-host">Server</label><input type="text" id="smtp-host" data-testid="smtp-host-input">
             <label for="smtp-port">Porta</label><input type="number" id="smtp-port" data-testid="smtp-port-input">
@@ -182,9 +189,10 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-utenti" class="vista" hidden>
-    <h1>Persone che possono accedere</h1>
+    <header class="area-intro"><h1>Persone che possono accedere</h1></header>
     <p class="nota">Crea gli accessi e assegna il ruolo corretto.</p>
-    <form id="form-utente" class="pannello" data-testid="utente-form">
+    <h2 class="admin-form-titolo">Nuovo accesso</h2>
+    <form id="form-utente" class="pannello admin-config" data-testid="utente-form">
         <div class="riga-filtri">
             <label for="ut-ruolo">Ruolo</label>
             <select id="ut-ruolo" data-testid="utente-ruolo-select">
@@ -199,6 +207,7 @@ require __DIR__ . '/partials/testa.php';
         </div>
         <button type="submit" class="btn btn-primary" data-testid="utente-submit-button">Crea utenza</button>
     </form>
+    <div class="area-sezione-testa"><h2>Utenze registrate</h2></div>
     <div class="tabella-scroll">
         <table class="table" data-testid="utenti-tabella">
             <thead><tr><th>Username</th><th>Ruolo</th><th>Plesso</th><th>Attivo</th><th></th></tr></thead>
@@ -208,9 +217,9 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-job" class="vista" hidden>
-    <h1>Conferma dei pasti e addebito dei buoni</h1>
+    <header class="area-intro"><h1>Conferma dei pasti e addebito dei buoni</h1></header>
     <p class="banner banner--rosso"><strong>Attenzione:</strong> questa funzione non è una semplice verifica. Se è il giorno di mensa ed è passato l'orario limite, l'esecuzione può confermare i pasti e scalare i buoni alle famiglie. Usala solo se sai che il conteggio è pronto. L'esecuzione automatica può essere programmata ogni 5 minuti.</p>
-    <div class="riga-filtri">
+    <div class="riga-filtri admin-job-azioni">
         <button class="btn btn-primary btn-sm" id="btn-scheduler" data-testid="job-scheduler-button">Conferma pasti di tutte le scuole</button>
         <select id="job-plesso" data-testid="job-plesso-select"></select>
         <button class="btn btn-outline-primary btn-sm" id="btn-job-plesso" data-testid="job-plesso-button">Conferma pasti della scuola scelta</button>
