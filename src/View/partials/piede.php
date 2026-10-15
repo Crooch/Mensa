@@ -22,6 +22,12 @@ $paginaJsVersione = is_file($paginaJsPath) ? (int) filemtime($paginaJsPath) : 0;
 <script src="<?= $basePath ?>/assets/js/menu_foto.js?v=<?= $fotoVersione ?>"></script>
 <?php endif; ?>
 <script src="<?= $basePath ?>/assets/js/<?= htmlspecialchars($scriptPagina) ?>.js?v=<?= $paginaJsVersione ?>"></script>
+<?php if (in_array($ruoloPagina ?? '', ['genitore', 'operatore', 'admin'], true)):
+    $tabelleScript = APP_ROOT . '/public/assets/js/tabelle_compatte.js';
+    $tabelleVersione = is_file($tabelleScript) ? (int) filemtime($tabelleScript) : 0;
+?>
+<script src="<?= $basePath ?>/assets/js/tabelle_compatte.js?v=<?= $tabelleVersione ?>"></script>
+<?php endif; ?>
 <?php if (!empty($scriptExtraPagina)):
     $percorsoExtra = APP_ROOT . '/public/assets/js/' . $scriptExtraPagina . '.js';
     $versioneExtra = is_file($percorsoExtra) ? (int) filemtime($percorsoExtra) : 0;
