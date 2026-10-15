@@ -147,15 +147,53 @@ require __DIR__ . '/partials/testa.php';
             <tbody id="eccezioni-calendario-corpo"></tbody>
         </table>
     </div>
-    <div class="area-sezione-testa"><h2>Verifica una data</h2></div>
+    <div class="area-sezione-testa"><h2>Verifica il servizio per una data</h2></div>
+    <p class="nota">Controlla in quali scuole è prevista la mensa e consulta le rispettive classi.
+        Le classi seguono il calendario della propria scuola e non hanno orari di apertura autonomi.</p>
     <div class="admin-calendario-verifica">
         <div class="campo-filtro">
             <label for="calendario-verifica-data">Giorno da verificare</label>
             <input type="date" id="calendario-verifica-data">
         </div>
-        <button type="button" class="btn btn-outline-primary" id="calendario-verifica">Controlla</button>
-        <span id="calendario-verifica-esito" role="status" aria-live="polite"></span>
+        <button type="button" class="btn btn-outline-primary" id="calendario-verifica"
+                data-testid="calendario-verifica-button">Controlla tutte le scuole</button>
     </div>
+    <p id="calendario-verifica-esito" class="nota" role="status" aria-live="polite"></p>
+    <section id="calendario-verifica-pannello" class="admin-verifica-pannello"
+             data-testid="calendario-verifica-pannello" aria-label="Risultati della verifica" hidden>
+        <div class="admin-verifica-intestazione">
+            <h3 id="calendario-verifica-titolo">Situazione del servizio</h3>
+            <span id="calendario-verifica-anno" class="nota"></span>
+        </div>
+        <div id="calendario-verifica-sommario" class="admin-verifica-sommario"
+             data-testid="calendario-verifica-sommario"></div>
+        <div class="admin-verifica-filtri">
+            <div class="campo-filtro">
+                <label for="calendario-verifica-cerca">Cerca scuola o classe</label>
+                <input type="search" id="calendario-verifica-cerca" autocomplete="off"
+                       placeholder="Es. Infanzia, 2ª A">
+            </div>
+            <div class="campo-filtro">
+                <label for="calendario-verifica-filtro">Mostra</label>
+                <select id="calendario-verifica-filtro">
+                    <option value="tutte">Tutte le scuole</option>
+                    <option value="aperte">Solo con mensa prevista</option>
+                    <option value="chiuse">Solo senza mensa</option>
+                </select>
+            </div>
+        </div>
+        <p id="calendario-verifica-contatore" class="admin-verifica-contatore"
+           role="status" aria-live="polite"></p>
+        <div id="calendario-verifica-risultati" class="admin-verifica-scuole"
+             data-testid="calendario-verifica-risultati"></div>
+        <nav class="admin-verifica-pagine" aria-label="Pagine delle scuole">
+            <button type="button" class="btn btn-outline-primary btn-sm"
+                    id="calendario-verifica-precedente">Precedente</button>
+            <span id="calendario-verifica-pagina" aria-live="polite"></span>
+            <button type="button" class="btn btn-outline-primary btn-sm"
+                    id="calendario-verifica-successiva">Successiva</button>
+        </nav>
+    </section>
 </section>
 
 <section id="vista-classi" class="vista" hidden>
