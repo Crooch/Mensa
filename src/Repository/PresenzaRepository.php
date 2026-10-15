@@ -168,7 +168,8 @@ final class PresenzaRepository extends Repository
     {
         $sql = "SELECT p.id AS plesso_id, b.id AS bambino_id,
                        b.nome AS nome, b.cognome AS cognome,
-                       cs.id AS classe_id, cs.nome AS classe_nome
+                       cs.id AS classe_id, cs.nome AS classe_nome,
+                       b.tipologia_menu_id AS tipologia_id
                 FROM richieste_pasta_bianco rp
                 JOIN bambini b ON b.id = rp.bambino_id AND b.cancellato_logicamente = 0
                 JOIN assegnazioni_classe ac ON ac.bambino_id = b.id
