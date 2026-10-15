@@ -19,10 +19,12 @@ final class MenuSettimanaleRepository extends Repository
             FROM menu_settimanali m JOIN tipologie_menu t ON t.id = m.tipologia_menu_id
             WHERE m.id = :id', ['id' => $id]);
         if ($modello === null) return null;
-        $rev = $this->uno('SELECT id, nome, giorni_json, valido_dal FROM menu_settimanali_revisioni
+        $rev = $this->uno('SELECT id, nome, giorni_json, foto_json, valido_dal FROM menu_settimanali_revisioni
             WHERE menu_id = :id AND valido_dal <= :data
             ORDER BY valido_dal DESC, id DESC LIMIT 1', ['id' => $id, 'data' => $data]);
         $modello['giorni'] = $rev ? json_decode((string) $rev['giorni_json'], true) : [];
+        $modello['foto_giorni'] = $rev && $rev['foto_json']
+            ? json_decode((string) $rev['foto_json'], true) : [];
         if ($rev !== null && $rev['nome'] !== null) $modello['nome'] = $rev['nome'];
         $modello['revisione_id'] = $rev['id'] ?? null;
         $modello['valido_dal'] = $rev['valido_dal'] ?? null;
@@ -35,7 +37,7 @@ final class MenuSettimanaleRepository extends Repository
         return array_map(fn ($r) => $this->modello((int) $r['id'], $data), $righe);
     }
 
-    public function crea(string $nome, int $tipo, array $giorni, string $dal, int $autore): int
+    public function crea(string $nome, int $tipo, array $giorni, string $dal, int $autore, array $fotoGiorni = []): int
     {
         $transazione = !$this->db->inTransaction();
         if ($transazione) $this->db->beginTransaction();
@@ -43,7 +45,7 @@ final class MenuSettimanaleRepository extends Repository
             $id = $this->inserisci('menu_settimanali', [
                 'nome' => $nome, 'tipologia_menu_id' => $tipo
             ]);
-            $this->salvaRevisione($id, $nome, $giorni, $dal, $autore);
+            $this->salvaRevisione($id, $nome, $giorni, $fotoGiorni, $dal, $autore);
             if ($transazione) $this->db->commit();
             return $id;
         } catch (\Throwable $e) {
@@ -52,13 +54,13 @@ final class MenuSettimanaleRepository extends Repository
         }
     }
 
-    public function modifica(int $id, string $nome, array $giorni, string $dal, int $autore): void
+    public function modifica(int $id, string $nome, array $giorni, string $dal, int $autore, array $fotoGiorni = []): void
     {
         $transazione = !$this->db->inTransaction();
         if ($transazione) $this->db->beginTransaction();
         try {
             $this->aggiorna('menu_settimanali', $id, ['nome' => $nome]);
-            $this->salvaRevisione($id, $nome, $giorni, $dal, $autore);
+            $this->salvaRevisione($id, $nome, $giorni, $fotoGiorni, $dal, $autore);
             if ($transazione) $this->db->commit();
         } catch (\Throwable $e) {
             if ($transazione) $this->db->rollBack();
@@ -66,13 +68,14 @@ final class MenuSettimanaleRepository extends Repository
         }
     }
 
-    private function salvaRevisione(int $id, string $nome, array $giorni, string $dal, int $autore): void
+    private function salvaRevisione(int $id, string $nome, array $giorni, array $fotoGiorni, string $dal, int $autore): void
     {
         $this->inserisci('menu_settimanali_revisioni', [
             'menu_id' => $id,
             'nome' => $nome,
             'valido_dal' => $dal,
             'giorni_json' => json_encode($giorni, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            'foto_json' => json_encode($fotoGiorni, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
             'utente_id' => $autore > 0 ? $autore : null,
         ]);
     }
@@ -134,12 +137,13 @@ final class MenuSettimanaleRepository extends Repository
             $modello = $cache[$id];
             if (!$modello) continue;
             $descrizione = trim((string) ($modello['giorni'][$giorno] ?? ''));
-            if ($descrizione === '') continue;
+            $foto = $modello['foto_giorni'][$giorno] ?? null;
+            if ($descrizione === '' && !$foto) continue;
             $risultato[] = [
                 'id' => 'modello-' . $id . '-' . $assegnazione['plesso_id'] . '-' . $data,
                 'plesso_id' => (int) $assegnazione['plesso_id'],
                 'tipologia_menu_id' => (int) $assegnazione['tipologia_menu_id'],
-                'data' => $data, 'descrizione' => $descrizione, 'foto_path' => null,
+                'data' => $data, 'descrizione' => $descrizione, 'foto_path' => $foto,
                 'plesso_nome' => $assegnazione['plesso_nome'],
                 'tipologia_nome' => $assegnazione['tipologia_nome'],
                 'origine' => 'settimanale', 'modello_nome' => $modello['nome']
