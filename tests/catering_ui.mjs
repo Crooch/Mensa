@@ -261,8 +261,30 @@ const senzaMenu = renderClasse({
         pasti: 2, pasti_ordinari: 2, pasta_in_bianco: 0,
         menu_nome: null, menu_descrizione: null }]
 });
-assert.match(senzaMenu, /Menu non disponibile/,
-    'Il sistema non deve inventare nomi per le tipologie senza un menu assegnato');
+assert.match(senzaMenu, /Menù standard/,
+    'La tipologia Standard senza assegnazione deve avere un nome comprensibile');
+assert.doesNotMatch(senzaMenu, /Menu non disponibile/);
+
+const senzaModelloSpeciale = renderClasse({
+    classe_id: 90, classe_nome: 'Classe dieta speciale',
+    pasti: 1, pasti_ordinari: 1, pasta_in_bianco: 0,
+    tipologie: [{ tipologia_id: 2, tipologia_nome: 'Senza glutine',
+        pasti: 1, pasti_ordinari: 1, pasta_in_bianco: 0,
+        menu_nome: null, menu_descrizione: null }]
+});
+assert.match(senzaModelloSpeciale, /Menù senza glutine/,
+    'Le diete speciali non devono mai essere etichettate come Standard');
+assert.doesNotMatch(senzaModelloSpeciale, /Menù standard/);
+
+const dettagliPiatti = vm.runInContext('dettaglioPiattiScuola', context);
+const dettaglioSenzaModello = dettagliPiatti({
+    tipologie: [{ tipologia_id: 2, tipologia_nome: 'Senza glutine',
+        pasti: 1, pasti_ordinari: 1, pasta_in_bianco: 0,
+        menu_nome: null, menu_descrizione: null }]
+});
+assert.match(dettaglioSenzaModello, /Menù senza glutine/);
+assert.match(dettaglioSenzaModello, /Nessuna descrizione specifica inserita/);
+assert.doesNotMatch(dettaglioSenzaModello, /Menu non disponibile/);
 const classificaVariazione = renderClasse({
     classe_id: 89, classe_nome: 'Classe con variazione',
     pasti: 1, pasti_ordinari: 1, pasta_in_bianco: 0,
@@ -450,6 +472,10 @@ await elemento('menu-data').handlers.change();
 await new Promise((resolve) => setImmediate(resolve));
 assert.equal(elemento('menu-submit').disabled, true);
 assert.equal(fotoWidget['menu-foto-widget'].attiva, false);
+assert.match(elemento('menu-selezione-stato').textContent,
+    /Questo menù è di un giorno passato/,
+    'Il messaggio deve essere comprensibile e non contenere termini tecnici');
+assert.doesNotMatch(elemento('menu-selezione-stato').textContent, /cutoff/i);
 elemento('menu-data').value = '2026-10-19';
 await elemento('menu-data').handlers.change();
 await new Promise((resolve) => setImmediate(resolve));
