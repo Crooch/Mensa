@@ -236,7 +236,7 @@ for (const variante of ['report', 'menu', 'feedback']) {
     assert.ok(cateringHtml.includes('catering-filtri--' + variante),
         'Filtri Catering non raggruppati: ' + variante);
 }
-for (const id of ['menu-selezione-stato', 'menu-foto-stato', 'menu-submit']) {
+for (const id of ['menu-selezione-stato', 'menu-foto-widget', 'menu-submit']) {
     assert.ok(cateringHtml.includes('id="' + id + '"'), 'Campo Catering mancante: ' + id);
 }
 assert.match(cateringJs, /'Aggiorna menu'\s*:\s*'Pubblica menu'/);
