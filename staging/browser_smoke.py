@@ -283,6 +283,114 @@ def controlla_report_distribuzione(page, larghezza):
                     full_page=True)
     print(f"OK: report compatto@{larghezza}, 2 scuole, 4 classi con 12 tipi, pasta in bianco visibile, dettagli nativi")
 
+def collaudo_completo_famiglia_scuola_cucina(browser):
+    """Un vero flusso fra tre utenti, solo sul DB fittizio di staging.
+
+    Mario Testuno (Sezione A): chiede pasta in bianco, la cucina la vede,
+    comunica assenza, la cucina aggiorna i conteggi e la famiglia ripristina
+    la presenza. Non vengono acquistati o consumati buoni.
+    """
+    from datetime import date, timedelta
+    oggi = date.today()
+    # Una data futura di lunedi' e' attiva per l'infanzia.
+    lunedi = oggi + timedelta(days=(7 - oggi.weekday()) % 7 or 7)
+    giorno = max(lunedi, date(2026, 10, 19)).isoformat()
+    mese = giorno[:7]
+    contesti = []
+
+    def apri(ruolo, username):
+        ctx = browser.new_context(viewport={"width": 375, "height": 850},
+                                  locale="it-IT", device_scale_factor=1)
+        contesti.append(ctx)
+        p = ctx.new_page()
+        p.goto(BASE + "/login", wait_until="domcontentloaded")
+        p.locator('[data-testid="login-username-input"]').fill(username)
+        p.locator('[data-testid="login-password-input"]').fill(PASSWORD)
+        p.locator('[data-testid="login-submit-button"]').click()
+        p.wait_for_url(BASE + "/" + ruolo, timeout=15000)
+        p.locator("main h1:visible").first.wait_for()
+        return p
+
+    def aggiorna_cucina(pagina):
+        pagina.locator('#report-data').fill(giorno)
+        pagina.locator('#btn-report').click()
+        pagina.wait_for_function("""() => {
+            const stato = document.querySelector('#report-stato');
+            return stato && stato.textContent.includes('Pasti per il') &&
+                document.querySelectorAll('#report .catering-classe').length > 0;
+        }""", timeout=15000)
+
+    try:
+        famiglia = apri("genitore", "genitore.staging")
+        famiglia.locator('[data-vista="calendario"]').click()
+        famiglia.locator('#cal-mese').fill(mese)
+        famiglia.locator('#cal-figlio').select_option(index=0)
+        giorno_cal = famiglia.locator('#calendario [data-data="' + giorno + '"]')
+        giorno_cal.wait_for(state="visible")
+        assert 'Pasto previsto' in giorno_cal.get_attribute('aria-label'), (
+            'Nel calendario della famiglia il bambino non risulta presente')
+        giorno_cal.click()
+        dettaglio = famiglia.locator('#calendario-dettaglio')
+        richiedi = dettaglio.locator('[data-cal-pasta="1"]')
+        richiedi.wait_for(state="visible")
+        richiedi.click()
+        dettaglio.locator('[data-cal-pasta="0"]').wait_for(state="visible")
+        assert 'Richiesta' in dettaglio.inner_text()
+        controlla_dimensioni(famiglia, "Genitore: pasta in bianco richiesta")
+
+        scuola = apri("scuola", "scuola.infanzia.staging")
+        scuola.locator('#classe').select_option(label=next(
+            x for x in scuola.locator('#classe option').all_text_contents() if 'Sezione A' in x
+        ))
+        scuola.locator('#data').fill(giorno)
+        scuola.locator('#btn-carica').click()
+        scuola.wait_for_function("""() =>
+            document.querySelector('#scuola-stato')?.textContent.includes('Stai guardando i dati')
+            && document.querySelectorAll('#presenze-corpo tr[data-testid]').length === 2
+        """, timeout=15000)
+        assert 'Testuno Mario' in scuola.locator('#presenze-corpo').inner_text()
+        assert '2' in scuola.locator('#scuola-riepilogo').inner_text()
+        controlla_dimensioni(scuola, "Scuola: due pasti previsti")
+
+        cucina = apri("catering", "catering.staging")
+        aggiorna_cucina(cucina)
+        assert 'Testuno Mario' in cucina.locator('#report').inner_text(), (
+            'La richiesta di pasta in bianco non e visibile alla cucina')
+        assert '1 pasta in bianco' in cucina.locator('#report').inner_text()
+        controlla_dimensioni(cucina, "Catering: pasta in bianco visibile")
+
+        # Se il genitore annulla il pasto, la pasta in bianco viene eliminata
+        # nello stesso giorno e la cucina ricalcola i pasti senza duplicazioni.
+        dettaglio.locator('[data-cal-stato="assente"]').click()
+        dettaglio.locator('[data-cal-stato="presente"]').wait_for(state="visible")
+        assert 'Non richiesta' in dettaglio.inner_text()
+        cucina.locator('#btn-report').click()
+        cucina.wait_for_function("""() =>
+            document.querySelector('#report-stato')?.textContent.includes('Pasti per il')
+        """)
+        assert 'Testuno Mario' not in cucina.locator('#report').inner_text()
+        assert '1 pasta in bianco' not in cucina.locator('#report').inner_text()
+        scuola.locator('#btn-carica').click()
+        scuola.wait_for_function("""() =>
+            document.querySelector('#scuola-riepilogo')?.textContent.includes('Pasti non previsti')
+        """)
+        assert 'Pasto non previsto' in scuola.locator(
+            '#presenze-corpo tr').filter(has_text='Testuno').first.inner_text()
+        # Ripristino della presenza; la pasta in bianco NON deve ricomparire.
+        dettaglio.locator('[data-cal-stato="presente"]').click()
+        dettaglio.locator('[data-cal-stato="assente"]').wait_for(state="visible")
+        assert 'Non richiesta' in dettaglio.inner_text()
+        cucina.locator('#btn-report').click()
+        cucina.wait_for_function("""() =>
+            document.querySelector('#report-stato')?.textContent.includes('Pasti per il')
+        """)
+        assert 'Testuno Mario' not in cucina.locator('#report').inner_text()
+        print("OK: browser mobile Genitore → Scuola → Catering; richiesta, assenza, ricalcolo e ripristino.")
+    finally:
+        for ctx in contesti:
+            ctx.close()
+
+
 with sync_playwright() as engine:
     browser = engine.chromium.launch(headless=True, args=["--no-sandbox"])
     try:
@@ -332,6 +440,8 @@ with sync_playwright() as engine:
                     raise
                 finally:
                     ctx.close()
+        # Percorso trasversale a tre profili su dati di prova, senza contabilità.
+        collaudo_completo_famiglia_scuola_cucina(browser)
     finally:
         browser.close()
-print("OK: collaudo browser completato con 5 ruoli e 3 larghezze, staging sintetico.")
+print("OK: collaudo browser completato, inclusa prova funzionale incrociata fra ruoli.")
