@@ -178,12 +178,16 @@ def controlla_admin_calendario_classi(page, larghezza):
 
     page.locator('nav.schede [data-vista="classi"]').click()
     scelta_scuola = page.locator('#classe-plesso')
-    scelta_scuola.locator('option').first.wait_for()
-    page.wait_for_function("""() => document.querySelector('#classe-nome option[value="altro"]')""")
+    page.wait_for_function("""() =>
+        document.querySelectorAll('#classe-plesso option').length >= 2 &&
+        document.querySelector('#classe-nome option[value="altro"]') !== null
+    """)
     plessi_opzioni = scelta_scuola.locator('option').count()
     assert plessi_opzioni >= 2
     scelta_scuola.select_option(index=0)
-    page.wait_for_function("""() => document.querySelector('#classe-esistente option')""")
+    page.wait_for_function("""() =>
+        document.querySelector('#classe-esistente option') !== null
+    """)
     tutte = page.locator('#classi-corpo tr')
     # Nel select sono elencate solo classi della scuola attualmente scelta.
     def valori_scelta():
