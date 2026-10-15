@@ -101,7 +101,7 @@ try {
     // La duplicazione dal form invia descrizioni modificate e id del modello origine:
     // deve copiare i riferimenti fotografici senza copiare o sovrascrivere file.
     $copiaConFoto = $repo->crea('Modello fotografico', $standard, $giorni,
-        '2026-10-19', 0, ['1' => $fotoStorica]);
+        (new DateTimeImmutable('tomorrow'))->format('Y-m-d'), 0, ['1' => $fotoStorica]);
     $nuovaConFoto = $service->salvaMenuSettimanale(null, 'Copia con foto', $senza,
         ['1' => 'Menu personalizzato'], 0, [], [], [], $copiaConFoto);
     if ($repo->modello($nuovaConFoto, '2099-01-01')['foto_giorni']['1'] !== $fotoStorica ||
