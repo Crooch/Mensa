@@ -53,16 +53,31 @@ final class MenuGiornalieroRepository extends Repository
         ) === 1;
     }
 
-    /** Solo le eccezioni esplicite a partire da oggi (non tutti i modelli). */
-    public function elencoProgrammati(string $dal): array
+    /** Conta soltanto le variazioni da oggi in avanti, non i modelli. */
+    public function contaProgrammati(string $dal): int
     {
+        return (int) $this->valore(
+            'SELECT COUNT(*) FROM menu_giornalieri WHERE data >= :dal',
+            ['dal' => $dal]
+        );
+    }
+
+    /** Una pagina di variazioni, dalla data più lontana alla più vicina. */
+    public function elencoProgrammati(string $dal, int $pagina = 1, int $perPagina = 10): array
+    {
+        $pagina = max(1, $pagina);
+        $perPagina = max(1, min(10, $perPagina));
+        $offset = ($pagina - 1) * $perPagina;
+        // I due valori numerici sono calcolati sul server e mai concatenati
+        // da input utente; la data rimane sempre un parametro SQL.
         return $this->tutti(
             'SELECT m.*, p.nome AS plesso_nome, t.nome AS tipologia_nome
              FROM menu_giornalieri m
              JOIN plessi p ON p.id = m.plesso_id
              JOIN tipologie_menu t ON t.id = m.tipologia_menu_id
              WHERE m.data >= :dal
-             ORDER BY m.data, p.nome, t.nome',
+             ORDER BY m.data DESC, p.nome ASC, t.nome ASC, m.id DESC
+             LIMIT ' . $perPagina . ' OFFSET ' . $offset,
             ['dal' => $dal]
         );
     }
