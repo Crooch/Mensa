@@ -240,27 +240,162 @@ document.getElementById('form-eccezione-calendario').addEventListener('submit', 
         pulsante.disabled = false;
     }
 });
-document.getElementById('calendario-verifica').addEventListener('click', async () => {
-    const id = document.getElementById('calendario-plesso').value;
+/* Verifica generale, distinta dalla scuola selezionata per la modifica. */
+let verificaCalendarioDati = null;
+let verificaCalendarioPagina = 1;
+let verificaCalendarioRichiesta = 0;
+const VERIFICA_SCUOLE_PER_PAGINA = 8;
+const motiviVerificaCalendario = {
+    servizio_non_avviato: 'Servizio non ancora avviato',
+    servizio_terminato: 'Servizio terminato',
+    fine_settimana: 'Fine settimana',
+    festivita_nazionale: 'Festività nazionale',
+    chiusura_programmata: 'Chiusura straordinaria',
+    giorno_senza_servizio: 'Giorno senza mensa',
+    giorno_di_servizio: 'Giorno ordinario di mensa',
+    apertura_straordinaria: 'Apertura straordinaria',
+    calendario_non_configurato: 'Calendario da configurare'
+};
+function normalizzaRicercaCalendario(testo) {
+    return String(testo || '').toLocaleLowerCase('it')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+function disegnaRiepilogoCalendario() {
+    if (!verificaCalendarioDati) return;
+    const {scuole, totali} = verificaCalendarioDati;
+    const parola = normalizzaRicercaCalendario(
+        document.getElementById('calendario-verifica-cerca').value
+    );
+    const filtro = document.getElementById('calendario-verifica-filtro').value;
+    const risultati = scuole.filter(p => {
+        const statoCorretto = filtro === 'tutte' ||
+            (filtro === 'aperte' ? p.attivo : !p.attivo);
+        const scuolaCorrisponde = normalizzaRicercaCalendario(p.plesso_nome).includes(parola);
+        const classiCorrispondono = (p.classi || []).some(c =>
+            normalizzaRicercaCalendario(c.nome).includes(parola));
+        return statoCorretto && (!parola || scuolaCorrisponde || classiCorrispondono);
+    });
+    const pagine = Math.max(1, Math.ceil(risultati.length / VERIFICA_SCUOLE_PER_PAGINA));
+    verificaCalendarioPagina = Math.min(verificaCalendarioPagina, pagine);
+    const inizio = (verificaCalendarioPagina - 1) * VERIFICA_SCUOLE_PER_PAGINA;
+    const elementi = risultati.slice(inizio, inizio + VERIFICA_SCUOLE_PER_PAGINA);
+    const riepilogo = [
+        [totali.scuole_aperte, 'Scuole con mensa'],
+        [totali.scuole_chiuse, 'Scuole senza mensa'],
+        [totali.classi_aperte, 'Classi con mensa'],
+        [totali.classi_chiuse, 'Classi senza mensa']
+    ];
+    document.getElementById('calendario-verifica-sommario').innerHTML = riepilogo
+        .map(([n, etichetta]) =>
+            `<div class="admin-verifica-numero"><strong>${Number(n) || 0}</strong>
+                <span>${etichetta}</span></div>`).join('');
+    document.getElementById('calendario-verifica-contatore').textContent =
+        risultati.length ? `Scuole mostrate: ${risultati.length} su ${scuole.length}` :
+            'Nessuna scuola corrisponde ai filtri selezionati.';
+    document.getElementById('calendario-verifica-risultati').innerHTML =
+        elementi.map(p => {
+            const scuolaCorrisponde = normalizzaRicercaCalendario(p.plesso_nome).includes(parola);
+            const classi = (!parola || scuolaCorrisponde) ? (p.classi || [])
+                : (p.classi || []).filter(c =>
+                    normalizzaRicercaCalendario(c.nome).includes(parola));
+            const stato = p.attivo ? 'Mensa prevista' : 'Mensa non prevista';
+            const motivo = motiviVerificaCalendario[p.motivo] || p.motivo;
+            const elenco = classi.length
+                ? `<ul class="admin-verifica-classi__lista">${classi.map(c =>
+                    `<li>${esc(c.nome)}</li>`).join('')}</ul>`
+                : '<p class="nota">Nessuna classe registrata per l’anno scolastico indicato.</p>';
+            const specifica = parola && !scuolaCorrisponde
+                ? ` · ${classi.length} corrispondenti alla ricerca` : '';
+            return `<article class="admin-verifica-scuola ${p.attivo ? 'admin-verifica-scuola--aperta' : 'admin-verifica-scuola--chiusa'}"
+                         data-testid="verifica-scuola-${Number(p.plesso_id)}">
+                <div class="admin-verifica-scuola__testa">
+                    <div class="admin-verifica-scuola__titolo">
+                        <h4>${esc(p.plesso_nome)}</h4>
+                        <p>${esc(motivo)}</p>
+                    </div>
+                    <span class="badge-stato badge-${p.attivo ? 'verde' : 'rosso'}">${stato}</span>
+                </div>
+                <details class="admin-verifica-classi">
+                    <summary>${Number(p.totale_classi) || 0} classi della scuola${specifica}</summary>
+                    <div class="admin-verifica-classi__interno">
+                        <p class="nota">Le classi seguono lo stato della scuola:
+                           <strong>${stato.toLocaleLowerCase('it')}</strong>.</p>
+                        ${elenco}
+                    </div>
+                </details>
+            </article>`;
+        }).join('') || '<p class="admin-verifica-vuoto">Nessun risultato. Prova a modificare la ricerca o il filtro.</p>';
+    document.getElementById('calendario-verifica-pagina').textContent =
+        `Pagina ${verificaCalendarioPagina} di ${pagine}`;
+    const nav = document.querySelector('.admin-verifica-pagine');
+    nav.hidden = risultati.length <= VERIFICA_SCUOLE_PER_PAGINA;
+    document.getElementById('calendario-verifica-precedente').disabled =
+        verificaCalendarioPagina === 1;
+    document.getElementById('calendario-verifica-successiva').disabled =
+        verificaCalendarioPagina >= pagine;
+}
+function filtraRiepilogoCalendario() {
+    verificaCalendarioPagina = 1;
+    disegnaRiepilogoCalendario();
+}
+document.getElementById('calendario-verifica-cerca').addEventListener(
+    'input', filtraRiepilogoCalendario
+);
+document.getElementById('calendario-verifica-filtro').addEventListener(
+    'change', filtraRiepilogoCalendario
+);
+document.getElementById('calendario-verifica-precedente').addEventListener('click', () => {
+    if (verificaCalendarioPagina > 1) {
+        verificaCalendarioPagina--;
+        disegnaRiepilogoCalendario();
+    }
+});
+document.getElementById('calendario-verifica-successiva').addEventListener('click', () => {
+    verificaCalendarioPagina++;
+    disegnaRiepilogoCalendario();
+});
+document.getElementById('calendario-verifica-data').addEventListener('change', () => {
+    ++verificaCalendarioRichiesta;
+    verificaCalendarioDati = null;
+    document.getElementById('calendario-verifica-pannello').hidden = true;
+    document.getElementById('calendario-verifica-esito').textContent =
+        'Data modificata. Premi «Controlla tutte le scuole» per vedere i nuovi risultati.';
+});
+document.getElementById('calendario-verifica').addEventListener('click', async ev => {
     const data = document.getElementById('calendario-verifica-data').value;
-    if (!data) { avviso('Seleziona una data da verificare.', 'errore'); return; }
+    const stato = document.getElementById('calendario-verifica-esito');
+    if (!data) {
+        stato.textContent = 'Seleziona una data da verificare.';
+        return;
+    }
+    const richiesta = ++verificaCalendarioRichiesta;
+    verificaCalendarioDati = null;
+    document.getElementById('calendario-verifica-pannello').hidden = true;
+    stato.textContent = 'Verifica di tutte le scuole in corso…';
+    const pulsante = ev.currentTarget;
+    pulsante.disabled = true;
     try {
-        const esito = await API.get('/api/admin/calendari/' + id + '/verifica?data=' + encodeURIComponent(data));
-        const motivi = {
-            servizio_non_avviato: 'servizio non ancora avviato',
-            servizio_terminato: 'servizio terminato',
-            fine_settimana: 'fine settimana',
-            festivita_nazionale: 'festività nazionale',
-            chiusura_programmata: 'chiusura programmata',
-            giorno_senza_servizio: 'giorno senza mensa',
-            giorno_di_servizio: 'giorno di mensa',
-            apertura_straordinaria: 'apertura straordinaria',
-            calendario_non_configurato: 'calendario da configurare'
-        };
-        document.getElementById('calendario-verifica-esito').textContent =
-            (esito.attivo ? 'Sì, la mensa è prevista' : 'No, la mensa non è prevista') +
-            ' — ' + (motivi[esito.motivo] || esito.motivo);
-    } catch (err) { avviso(err.message, 'errore'); }
+        const dati = await API.get('/api/admin/calendari/riepilogo?data=' +
+            encodeURIComponent(data));
+        if (richiesta !== verificaCalendarioRichiesta) return;
+        verificaCalendarioDati = dati;
+        verificaCalendarioPagina = 1;
+        document.getElementById('calendario-verifica-cerca').value = '';
+        document.getElementById('calendario-verifica-filtro').value = 'tutte';
+        document.getElementById('calendario-verifica-titolo').textContent =
+            'Situazione del ' + dataIt(dati.data);
+        document.getElementById('calendario-verifica-anno').textContent =
+            'Classi dell’anno scolastico ' + dati.anno_scolastico;
+        document.getElementById('calendario-verifica-pannello').hidden = false;
+        stato.textContent = '';
+        disegnaRiepilogoCalendario();
+    } catch (err) {
+        if (richiesta === verificaCalendarioRichiesta) {
+            stato.textContent = 'Impossibile verificare il servizio: ' + err.message;
+        }
+    } finally {
+        pulsante.disabled = false;
+    }
 });
 
 /* ---------------- classi ---------------- */
