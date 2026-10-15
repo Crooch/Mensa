@@ -916,6 +916,14 @@ input[type="datetime-local"]:focus-visible {
     min-height: 46px;
     margin: 0;
 }
+.catering-menu-azioni {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .65rem;
+}
+.catering-menu-azioni > .btn { min-height: 46px; margin: 0; }
+#menu-ripristina[hidden] { display: none !important; }
 #vista-menu > h2 { margin: 1.25rem 0 .65rem; }
 #vista-menu #menu-stato { margin: 0 0 .8rem; }
 #vista-menu #menu-lista { width: 100%; gap: .85rem; }
@@ -951,6 +959,7 @@ input[type="datetime-local"]:focus-visible {
     }
     .catering-filtri__azione,
     .catering-form-menu .catering-menu-submit { width: 100%; }
+    .catering-menu-azioni .btn { width: 100%; }
     .catering-campo input[type="date"] { max-width: 100%; }
     .catering-menu-card .btn { width: 100%; }
 }
