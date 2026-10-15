@@ -315,9 +315,10 @@ sovrascrive il valore memorizzato.
 
 | Metodo | Endpoint | Ruoli | Descrizione |
 |---|---|---|---|
-| POST | `/api/job/scheduler` | admin | Valuta tutti i plessi ed esegue quelli oltre cutoff non ancora elaborati |
-| POST | `/api/job/plessi/{id}` | admin | Forza l'esecuzione per un plesso (`{"data": "YYYY-MM-DD"}` opzionale) |
-| GET | `/api/job/esecuzioni` | admin, operatore | Storico esecuzioni |
+| GET | `/api/job/stato` | admin | Stato della chiusura di oggi per ogni scuola attiva; **sola lettura**, nessun addebito |
+| POST | `/api/job/scheduler` | admin | Controllo manuale di tutte le scuole, con le stesse regole dello scheduler automatico |
+| POST | `/api/job/plessi/{id}` | admin | Esecuzione manuale di una scuola (`{"data": "YYYY-MM-DD"}` opzionale); rispetta comunque calendario, orario limite e protezioni sui consumi |
+| GET | `/api/job/esecuzioni` | admin, operatore | Storico delle elaborazioni e dettagli aggregati |
 | GET | `/scheduler?key=…` | — (chiave) | Endpoint per cron HTTP del pannello hosting |
 
 Esito tipico di un'esecuzione:
@@ -329,3 +330,22 @@ Esito tipico di un'esecuzione:
 Stati possibili: `eseguito`, `gia_eseguito`, `cutoff_non_raggiunto`, `errore`.
 Il job è idempotente: i consumi non vengono duplicati e i solleciti sono inviati una sola volta
 per genitore/plesso/giorno.
+
+Il monitoraggio usa `GET /api/job/stato` e non richiama il job. Restituisce:
+`data`, `scuole[]`, `plesso_id`, `plesso_nome`, `orario_limite`,
+`stato`, `pasti_confermati`, `buoni_utilizzati`,
+`solleciti_inviati`, `errori_comunicazioni` e `concluso_il`.
+Gli aggregati numerici sono disponibili **solo dopo una chiusura completata**.
+Gli stati possibili sono: `non_prevista`, `in_attesa`, `da_eseguire`,
+`in_corso`, `completata`, `errore`.
+
+I valori `consumi`/`buoni_utilizzati` indicano gli **addebiti registrati
+nell'esecuzione**, non un secondo conteggio da sottrarre allo stato dei conti.
+Inoltre un esito `ok` può avere `solleciti.errori > 0`: in quel caso i pasti
+risultano contabilizzati, ma le comunicazioni devono essere verificate.
+
+**Importante:** l'applicazione non può dedurre dall'API di monitoraggio se
+il cron esterno sul server sia attivo. La periodicità (ad esempio 5 minuti)
+dipende dalla configurazione effettiva del sistema e deve essere verificata
+separatamente. Non avviare scheduler o comandi manuali sulla produzione per
+verificarne lo stato.
