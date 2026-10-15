@@ -60,6 +60,21 @@ jobs:
             ('Scuola dell''Infanzia - Via Catania'),
             ('Scuola Secondaria di I grado');
           SQL
+          # Dati preesistenti sintetici: verificare che le modifiche additive
+          # preservino conto buoni e movimenti contabili gia' registrati.
+          $DB <<'SQL'
+          INSERT INTO utenti (ruolo, username, password_hash)
+          VALUES ('operatore', 'verifica_preservazione_ci', 'hash_fittizio');
+          INSERT INTO genitori (nome, cognome, telefono)
+          VALUES ('Famiglia', 'Con dati antecedenti', '0000000000');
+          INSERT INTO pool_crediti (genitore_id, plesso_id, saldo)
+          SELECT g.id, p.id, 7 FROM genitori g JOIN plessi p
+          WHERE g.cognome = 'Con dati antecedenti'
+            AND p.nome = 'Scuola dell''Infanzia - Via Catania';
+          INSERT INTO movimenti_crediti (pool_id, tipo, delta, data, utente_id, note)
+          SELECT c.id, 'acquisto', 7, '2026-10-01', u.id, 'Preservazione dati CI'
+          FROM pool_crediti c JOIN utenti u ON u.username = 'verifica_preservazione_ci';
+          SQL
           $DB < database/migrations/002_calendario_mensa.sql
           $DB < database/migrations/002_calendario_mensa.sql
           $DB < database/migrations/003_richieste_pasta_bianco.sql
@@ -76,6 +91,10 @@ jobs:
           $DB < database/migrations/008_foto_menu_settimanali.sql
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM calendari_servizio')" = "2"
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name = "richieste_pasta_bianco"')" = "1"
+          # Nessuna modifica dei record precedenti, anche eseguendo le migration due volte.
+          test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM movimenti_crediti WHERE note="Preservazione dati CI" AND tipo="acquisto" AND delta=7 AND data="2026-10-01" AND richiesta_id IS NULL')" = "1"
+          test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM pool_crediti WHERE saldo=7')" = "1"
+          test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM utenti WHERE username="verifica_preservazione_ci"')" = "1"
       - name: Check catering counts and pasta requests with synthetic pupils
         env:
           MYSQL_PWD: ci_root_password
