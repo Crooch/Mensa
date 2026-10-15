@@ -56,6 +56,7 @@ final class CateringService
                     'cutoff_orario'        => substr((string) $plesso['cutoff_orario'], 0, 5),
                     'definitivo'           => $esecuzione !== null && $esecuzione['esito'] === 'ok',
                     'totale_pasti'         => 0,
+                    'pasti_ordinari'       => 0,
                     'tipologie'            => [],
                     'sezioni'              => [],
                     'pasta_in_bianco'      => [],
@@ -71,36 +72,73 @@ final class CateringService
                 $tid = (int) $riga['tipologia_id'];
                 if (!isset($perPlesso[$pid]['tipologie'][$tid])) {
                     $perPlesso[$pid]['tipologie'][$tid] = [
-                        'tipologia_id' => $tid, 'tipologia_nome' => $riga['tipologia_nome'], 'pasti' => 0,
+                        'tipologia_id' => $tid, 'tipologia_nome' => $riga['tipologia_nome'],
+                        'pasti' => 0, 'pasti_ordinari' => 0, 'pasta_in_bianco' => 0,
                     ];
                 }
                 $perPlesso[$pid]['tipologie'][$tid]['pasti'] += $pasti;
+                $perPlesso[$pid]['tipologie'][$tid]['pasti_ordinari'] += $pasti;
             }
 
             $cid = (int) $riga['classe_id'];
             if (!isset($perPlesso[$pid]['sezioni'][$cid])) {
                 $perPlesso[$pid]['sezioni'][$cid] = [
-                    'classe_id' => $cid, 'classe_nome' => $riga['classe_nome'], 'pasti' => 0,
+                    'classe_id' => $cid, 'classe_nome' => $riga['classe_nome'],
+                    'pasti' => 0, 'pasti_ordinari' => 0, 'pasta_in_bianco' => 0,
+                    'tipologie' => [],
                 ];
             }
             $perPlesso[$pid]['sezioni'][$cid]['pasti'] += $pasti;
+            $perPlesso[$pid]['sezioni'][$cid]['pasti_ordinari'] += $pasti;
+            if ($riga['tipologia_id'] !== null) {
+                $tid = (int) $riga['tipologia_id'];
+                if (!isset($perPlesso[$pid]['sezioni'][$cid]['tipologie'][$tid])) {
+                    $perPlesso[$pid]['sezioni'][$cid]['tipologie'][$tid] = [
+                        'tipologia_id' => $tid, 'tipologia_nome' => $riga['tipologia_nome'],
+                        'pasti' => 0, 'pasti_ordinari' => 0, 'pasta_in_bianco' => 0,
+                        'richieste_pasta' => [],
+                    ];
+                }
+                $perPlesso[$pid]['sezioni'][$cid]['tipologie'][$tid]['pasti'] += $pasti;
+                $perPlesso[$pid]['sezioni'][$cid]['tipologie'][$tid]['pasti_ordinari'] += $pasti;
+            }
         }
 
         foreach ($this->presenze->elencoPastaBianco($data, $plessoId) as $richiesta) {
             $pid = (int) $richiesta['plesso_id'];
-            if (!isset($perPlesso[$pid])) {
+            $cid = (int) $richiesta['classe_id'];
+            $tid = (int) $richiesta['tipologia_id'];
+            // La pasta in bianco e' una PARTE dei pasti previsti per
+            // quella classe e tipologia, non un pasto aggiuntivo.
+            if (!isset($perPlesso[$pid]['sezioni'][$cid]['tipologie'][$tid]) ||
+                $perPlesso[$pid]['sezioni'][$cid]['tipologie'][$tid]['pasti_ordinari'] <= 0) {
                 continue;
             }
-            $perPlesso[$pid]['pasta_in_bianco'][] = [
+            $nominativo = [
                 'bambino_id' => (int) $richiesta['bambino_id'],
                 'nome' => $richiesta['nome'],
                 'cognome' => $richiesta['cognome'],
                 'classe_nome' => $richiesta['classe_nome'],
+                'classe_id' => $cid,
+                'tipologia_id' => $tid,
             ];
+            $perPlesso[$pid]['pasta_in_bianco'][] = $nominativo;
             $perPlesso[$pid]['totale_pasta_in_bianco']++;
+            $perPlesso[$pid]['sezioni'][$cid]['pasta_in_bianco']++;
+            $perPlesso[$pid]['sezioni'][$cid]['pasti_ordinari']--;
+            $perPlesso[$pid]['sezioni'][$cid]['tipologie'][$tid]['pasta_in_bianco']++;
+            $perPlesso[$pid]['sezioni'][$cid]['tipologie'][$tid]['pasti_ordinari']--;
+            $perPlesso[$pid]['sezioni'][$cid]['tipologie'][$tid]['richieste_pasta'][] = $nominativo;
+            $perPlesso[$pid]['tipologie'][$tid]['pasta_in_bianco']++;
+            $perPlesso[$pid]['tipologie'][$tid]['pasti_ordinari']--;
         }
         foreach ($perPlesso as &$plesso) {
+            $plesso['pasti_ordinari'] = $plesso['totale_pasti'] - $plesso['totale_pasta_in_bianco'];
             $plesso['tipologie'] = array_values($plesso['tipologie']);
+            foreach ($plesso['sezioni'] as &$sezione) {
+                $sezione['tipologie'] = array_values($sezione['tipologie']);
+            }
+            unset($sezione);
             $plesso['sezioni'] = array_values($plesso['sezioni']);
         }
         unset($plesso);
