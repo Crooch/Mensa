@@ -6,6 +6,7 @@ namespace App\Service;
 
 use App\Core\Config;
 use App\Core\Mailer;
+use App\Repository\BambinoRepository;
 use App\Repository\ComunicazioneRepository;
 use App\Repository\CreditoRepository;
 use App\Repository\PlessoRepository;
@@ -23,7 +24,8 @@ final class SollecitoService
     public function __construct(
         private CreditoRepository $crediti,
         private ComunicazioneRepository $comunicazioni,
-        private PlessoRepository $plessi
+        private PlessoRepository $plessi,
+        private BambinoRepository $bambini
     ) {
     }
 
@@ -97,14 +99,21 @@ final class SollecitoService
         return $esito;
     }
 
-    /** Nomi dei figli attivi nel plesso alla data (per il placeholder {alunno}). */
+    /**
+     * Placeholder {alunno}: solo figli attualmente assegnati al plesso indicato,
+     * alla data del sollecito. Non usare lo storico globale dei consumi:
+     * includerebbe minori di altri plessi o non più assegnati.
+     */
     private function nomiFigli(int $genitoreId, int $plessoId, string $data): string
     {
-        $righe = $this->crediti->movimenti($genitoreId, 'consumo_pasto', 50);
         $nomi = [];
-        foreach ($righe as $riga) {
-            if ($riga['bambino_nome'] !== null) {
-                $nomi[$riga['bambino_nome'] . ' ' . $riga['bambino_cognome']] = true;
+        foreach ($this->bambini->elencoPerPlesso($plessoId, $data) as $riga) {
+            if ((int) $riga['genitore_id'] !== $genitoreId) {
+                continue;
+            }
+            $nome = trim((string) $riga['nome'] . ' ' . (string) $riga['cognome']);
+            if ($nome !== '') {
+                $nomi[$nome] = true;
             }
         }
         return $nomi === [] ? '-' : implode(', ', array_keys($nomi));
