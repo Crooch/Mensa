@@ -22,6 +22,22 @@ const errori = [];
 const conferme = [];
 const salvataggi = [];
 const callbackSchede = [];
+const fotoWidget = {};
+const FotoMenuStub = {
+    crea(id) {
+        const campo = {
+            salvata: null, rimossa: false, nuova: null,
+            imposta(path) { this.salvata = path || null; this.rimossa = false; this.nuova = null; },
+            file() { return this.nuova; },
+            rimuovere() { return this.rimossa; },
+            haFoto() { return Boolean(this.nuova || (this.salvata && !this.rimossa)); },
+            segnaRimozione() { if (this.salvata) this.rimossa = true; },
+            annulla() { this.rimossa = false; }
+        };
+        fotoWidget[id] = campo;
+        return campo;
+    }
+};
 const menuPubblicati = [
     { id: 7, plesso_id: 1, tipologia_menu_id: 1, plesso_nome: 'Infanzia',
       tipologia_nome: 'Standard', descrizione: 'Pasta', foto_path: 'menu/1_1/2026-10-14.jpg' },
@@ -50,6 +66,7 @@ const context = {
     BASE: '',
     Sessione: { token: () => 'token-fittizio' },
     FormData,
+    FotoMenu: FotoMenuStub,
     fetch: async (_url, opzioni) => {
         const fd = opzioni.body;
         const dati = {
@@ -155,7 +172,7 @@ assert.equal(elemento('menu-submit').textContent, 'Aggiorna menu');
 assert.equal(elemento('menu-submit').disabled, false);
 assert.equal(elemento('menu-descrizione').value, 'Pasta');
 assert.match(elemento('menu-selezione-stato').textContent, /Aggiornerai solo questo menu/);
-assert.match(elemento('menu-foto-stato').textContent, /rimane quella attuale/);
+assert.equal(fotoWidget['menu-foto-widget'].salvata, 'menu/1_1/2026-10-14.jpg');
 assert.match(elemento('menu-lista').innerHTML, /Modifica menu/);
 
 elemento('menu-tipologia').value = '2';
@@ -200,24 +217,17 @@ await elemento('form-menu').handlers.submit({ preventDefault() {} });
 assert.equal(salvataggi.at(-1).descrizione, 'Primo: pasta\nSecondo: pollo\n\nFrutta');
 assert.match(elemento('menu-lista').innerHTML, /Primo: pasta\nSecondo: pollo\n\nFrutta/);
 assert.match(elemento('menu-lista').innerHTML, /class="menu-descrizione"/);
-assert.equal(elemento('menu-foto-anteprima').hidden, false);
-assert.match(elemento('menu-foto-immagine').src, /menu\/1_1/);
-elemento('menu-foto-elimina').handlers.click();
-assert.equal(elemento('menu-foto-anteprima').hidden, true);
-assert.equal(elemento('menu-foto-annulla').hidden, false);
+assert.equal(fotoWidget['menu-foto-widget'].salvata, 'menu/1_1/2026-10-14.jpg');
+fotoWidget['menu-foto-widget'].segnaRimozione();
 assert.equal(menuPubblicati.find((m) => m.id === 7).foto_path,
-    'menu/1_1/2026-10-14.jpg', 'La X non deve eliminare subito la foto nel backend');
-assert.equal(salvataggi.at(-1).rimuovi_foto, '0', 'Nessuna chiamata al server dopo la X');
-elemento('menu-foto-annulla').handlers.click();
-assert.equal(elemento('menu-foto-anteprima').hidden, false);
-assert.equal(elemento('menu-foto-annulla').hidden, true);
-elemento('menu-foto-elimina').handlers.click();
+    'menu/1_1/2026-10-14.jpg', 'La X non deve cancellare la foto già salvata');
+fotoWidget['menu-foto-widget'].annulla();
+assert.equal(fotoWidget['menu-foto-widget'].haFoto(), true);
+fotoWidget['menu-foto-widget'].segnaRimozione();
 await elemento('form-menu').handlers.submit({ preventDefault() {} });
 assert.equal(salvataggi.at(-1).rimuovi_foto, '1');
 assert.equal(menuPubblicati.find((m) => m.id === 7).foto_path, null);
-assert.equal(elemento('menu-foto-anteprima').hidden, true);
-assert.equal(elemento('menu-foto-annulla').hidden, true);
-assert.equal(elemento('menu-foto').disabled, false);
+assert.equal(fotoWidget['menu-foto-widget'].haFoto(), false);
 assert.equal(menuPubblicati.find((m) => m.id === 8).descrizione, 'Riso');
 assert.equal(menuPubblicati.find((m) => m.id === 9).descrizione, 'Minestra');
 assert.match(conferme.at(-1)[1], /La foto verrà rimossa/);
