@@ -75,6 +75,10 @@ jobs:
           SELECT c.id, 'acquisto', 7, '2026-10-01', u.id, 'Preservazione dati CI'
           FROM pool_crediti c JOIN utenti u ON u.username = 'verifica_preservazione_ci';
           SQL
+          # Il preflight deve funzionare anche sullo schema iniziale 001.
+          $DB < database/preflight_readonly.sql > /tmp/preflight-before-migrations.txt
+          grep -q '07_CONTABILITA_AGGREGATA' /tmp/preflight-before-migrations.txt
+          grep -q '10_JOB_PER_ESITO' /tmp/preflight-before-migrations.txt
           $DB < database/migrations/002_calendario_mensa.sql
           $DB < database/migrations/002_calendario_mensa.sql
           $DB < database/migrations/003_richieste_pasta_bianco.sql
