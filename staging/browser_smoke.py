@@ -256,6 +256,30 @@ def controlla_admin_calendario_classi(page, larghezza):
     page.screenshot(path=str(OUTPUT / f"admin-calendario-riprogettato-{larghezza}.png"),
                     full_page=True)
 
+    assert page.locator('#calendario-anno-scolastico').inner_text() == '2026/2027'
+    assert page.locator('text=Chiusure e aperture straordinarie').count() >= 1
+    assert page.locator('#eccezione-fine').is_visible()
+    numero_colonne = page.locator('.admin-periodo-campi').evaluate(
+        "(e) => getComputedStyle(e).gridTemplateColumns.split(' ').length")
+    assert numero_colonne == (1 if larghezza <= 600 else 2 if larghezza <= 900 else 3)
+    richieste_periodo = []
+    def rispondi_conflitto(route):
+        richieste_periodo.append(route.request.method)
+        route.fulfill(status=422, content_type="application/json",
+                      body='{"ok":false,"errore":"Il periodo si sovrappone a una chiusura già registrata."}')
+    page.route('**/api/admin/calendari/*/periodi', rispondi_conflitto)
+    page.locator('#eccezione-data').fill('2027-02-12')
+    page.locator('#eccezione-fine').fill('2027-02-16')
+    page.locator('#eccezione-motivazione').fill('Prova di sovrapposizione')
+    page.locator('[data-testid="eccezione-salva"]').click()
+    page.locator('#eccezione-messaggio').wait_for(state='visible')
+    assert 'si sovrappone' in page.locator('#eccezione-messaggio').inner_text()
+    assert richieste_periodo == ['POST']
+    page.screenshot(path=str(OUTPUT / f"admin-periodi-conflitto-{larghezza}.png"),
+                    full_page=True)
+    page.unroute('**/api/admin/calendari/*/periodi')
+    page.locator('#form-eccezione-calendario').evaluate("(e) => e.reset()")
+
     page.locator('nav.schede [data-vista="classi"]').click()
     scelta_scuola = page.locator('#classe-plesso')
     page.wait_for_function("""() =>
