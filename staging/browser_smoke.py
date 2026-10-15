@@ -219,7 +219,33 @@ def controlla_admin_calendario_classi(page, larghezza):
     controlla_dimensioni(page, f'Classi Admin {larghezza}')
     page.screenshot(path=str(OUTPUT / f"admin-classi-riprogettate-{larghezza}.png"),
                     full_page=True)
-    print(f"OK: Admin @{larghezza}: checkbox 19px, etichette centrate, date e classi per scuola")
+
+    # Audit trasversale di tutti gli altri moduli amministrativi: anche
+    # etichette e campi caricati nelle schede secondarie devono allinearsi.
+    for vista in ['plessi', 'tipologie', 'email', 'utenti', 'job']:
+        page.locator(f'nav.schede [data-vista="{vista}"]').click()
+        page.locator(f'#vista-{vista}').wait_for(state="visible")
+        controllo = page.evaluate("""(vista) => {
+            const nodo = document.querySelector('#vista-' + vista);
+            return [...nodo.querySelectorAll('.campo-filtro')]
+                .map(c => {
+                    const l = c.querySelector(':scope > label');
+                    const input = c.querySelector(':scope > input, :scope > select, :scope > textarea');
+                    if (!l || !input) return null;
+                    return {
+                        nome: l.textContent.trim().slice(0, 55),
+                        differenza: Math.abs(l.getBoundingClientRect().left -
+                             input.getBoundingClientRect().left),
+                        associata: l.control === input
+                    };
+                }).filter(Boolean);
+        }""", vista)
+        assert all(x["associata"] and x["differenza"] < 12 for x in controllo), (
+            f'Admin {vista}@{larghezza}: allineamento o label non corretti: {controllo}'
+        )
+        controlla_etichette(page, f'Admin {vista}@{larghezza}')
+        controlla_dimensioni(page, f'Admin {vista}@{larghezza}')
+    print(f"OK: Admin @{larghezza}: checkbox, date, classi per scuola, 7 schede allineate")
 
 
 def controlla_modali_operatore(page):
