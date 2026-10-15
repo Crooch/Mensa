@@ -61,6 +61,23 @@ final class AdminController
         return ['salvato' => true];
     }
 
+    /** Ricerca globale di apertura mensa, sola lettura, senza addebiti. */
+    public function riepilogoCalendario(Request $r, array $utente): array
+    {
+        $data = (string) $r->query('data', date('Y-m-d'));
+        $giorno = \DateTimeImmutable::createFromFormat('!Y-m-d', $data);
+        if ($giorno === false || $giorno->format('Y-m-d') !== $data) {
+            throw \App\Core\HttpException::nonValido('Seleziona una data valida.');
+        }
+        $anno = (int) $giorno->format('Y');
+        $annoInizio = (int) $giorno->format('n') >= 9 ? $anno : $anno - 1;
+        $annoScolastico = $annoInizio . '/' . ($annoInizio + 1);
+        return $this->c->calendario()->riepilogoPlessi(
+            $data,
+            $this->c->configurazione()->classi(null, $annoScolastico)
+        );
+    }
+
     public function verificaCalendario(Request $r, array $utente): array
     {
         return $this->c->calendario()->previsto(
