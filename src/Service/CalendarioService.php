@@ -11,7 +11,7 @@ use App\Repository\PlessoRepository;
 /**
  * Calendario del servizio per plesso.
  * Regola fail-closed: senza configurazione non si congelano presenze ne' si addebitano buoni.
- * Sabati, domeniche e festivita' nazionali sono sempre esclusi.
+ * Le eccezioni prevalgono su calendario, weekend e festivita'.
  */
 final class CalendarioService
 {
@@ -61,6 +61,15 @@ final class CalendarioService
         if (!self::dataValida($data)) {
             return ['attivo' => false, 'motivo' => 'data_non_valida'];
         }
+        // Aperture e chiusure deliberate prevalgono anche su inizio/fine,
+        // weekend, festività e giorni ordinariamente non previsti.
+        if ($eccezione !== null) {
+            return [
+                'attivo' => (int) $eccezione['servizio_attivo'] === 1,
+                'motivo' => (int) $eccezione['servizio_attivo'] === 1
+                    ? 'apertura_straordinaria' : 'chiusura_programmata',
+            ];
+        }
         $giorno = new \DateTimeImmutable($data);
         if ($data < (string) $config['data_inizio']) {
             return ['attivo' => false, 'motivo' => 'servizio_non_avviato'];
@@ -69,7 +78,6 @@ final class CalendarioService
             return ['attivo' => false, 'motivo' => 'servizio_terminato'];
         }
 
-        // Vincolo assoluto, anche in presenza di una eventuale apertura straordinaria.
         if ((int) $giorno->format('N') >= 6) {
             return ['attivo' => false, 'motivo' => 'fine_settimana'];
         }
@@ -77,13 +85,6 @@ final class CalendarioService
             return ['attivo' => false, 'motivo' => 'festivita_nazionale'];
         }
 
-        if ($eccezione !== null) {
-            return [
-                'attivo' => (int) $eccezione['servizio_attivo'] === 1,
-                'motivo' => (int) $eccezione['servizio_attivo'] === 1
-                    ? 'apertura_straordinaria' : 'chiusura_programmata',
-            ];
-        }
         $colonna = self::GIORNI[(int) $giorno->format('N')];
         return (int) ($config[$colonna] ?? 0) === 1
             ? ['attivo' => true, 'motivo' => 'giorno_di_servizio']
@@ -125,14 +126,11 @@ final class CalendarioService
         $this->calendari->salvaConfigurazione($plessoId, $dati);
     }
 
-    /**
-     * Restituisce true se due intervalli si sovrappongono oltre il solo giorno
-     * di confine. Esempio: 12-14 e 14-16 ammessi; 12-14 e 13-16 vietati.
-     * Un singolo giorno è sempre consentito se libero, ma non può duplicare
-     * una giornata già coperta da un altro intervallo.
-     */
-    public static function intervalliInConflitto(string $inizio1, string $fine1, string $inizio2, string $fine2): bool
-    {
+    /** Solo i confini di due periodi con lo stesso stato possono coincidere. */
+    public static function intervalliInConflitto(
+        string $inizio1, string $fine1, string $inizio2, string $fine2,
+        bool $aperto1, bool $aperto2
+    ): bool {
         $dal = max($inizio1, $inizio2);
         $al = min($fine1, $fine2);
         if ($dal > $al) {
@@ -141,8 +139,11 @@ final class CalendarioService
         if ($dal < $al) {
             return true;
         }
-        return !(($fine1 === $inizio2 && $inizio1 !== $fine1 && $inizio2 !== $fine2)
-            || ($fine2 === $inizio1 && $inizio2 !== $fine2 && $inizio1 !== $fine1));
+        // Intersezione su un solo giorno: deve essere un confine, non
+        // una giornata interna né la duplicazione del medesimo periodo.
+        $soloConfine = $fine1 === $inizio2 || $fine2 === $inizio1;
+        $identici = $inizio1 === $inizio2 && $fine1 === $fine2;
+        return !($soloConfine && !$identici && $aperto1 === $aperto2);
     }
 
     /** Crea oppure modifica un periodo salvato, includendo il caso data singola. */
@@ -166,17 +167,6 @@ final class CalendarioService
         if ($motivo === '' || strlen($motivo) > 255) {
             throw HttpException::nonValido('Indica una motivazione (massimo 255 caratteri).');
         }
-        if ((int) $attivo === 1) {
-            for ($d = new \DateTimeImmutable($inizio), $ultimo = new \DateTimeImmutable($fine);
-                 $d <= $ultimo; $d = $d->modify('+1 day')) {
-                if ((int) $d->format('N') >= 6 || self::festivitaNazionale($d)) {
-                    throw HttpException::nonValido(
-                        'Un’apertura straordinaria non può comprendere sabati, domeniche o festività nazionali. '
-                        . 'Seleziona soltanto giorni consentiti.'
-                    );
-                }
-            }
-        }
         if (!$this->calendari->acquisisciLockPeriodi($plessoId)) {
             throw HttpException::nonValido('Il calendario è già in modifica. Riprova tra pochi istanti.');
         }
@@ -186,13 +176,14 @@ final class CalendarioService
             }
             foreach ($this->calendari->periodiIntersecanti($plessoId, $inizio, $fine, $periodoId) as $p) {
                 if (self::intervalliInConflitto(
-                    $inizio, $fine, (string) $p['giorno'], (string) $p['giorno_fine']
+                    $inizio, $fine, (string) $p['giorno'], (string) $p['giorno_fine'],
+                    (bool) $attivo, (bool) $p['servizio_attivo']
                 )) {
                     throw HttpException::nonValido(
                         'Il periodo si sovrappone a quello dal '
                         . date('d/m/Y', strtotime((string) $p['giorno']))
                         . ' al ' . date('d/m/Y', strtotime((string) $p['giorno_fine']))
-                        . '. Modifica le date oppure modifica il periodo già registrato.'
+                        . '. Le date di confine possono coincidere solo per due aperture o due chiusure. Modifica le date oppure il periodo esistente.'
                     );
                 }
             }
