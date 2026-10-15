@@ -205,7 +205,7 @@ try {
         'Risotto senza glutine', null, $autoreTest);
     $programmate = $service->variazioniProgrammate();
     $trovata = false;
-    foreach ($programmate as $voce) {
+    foreach ($programmate['righe'] as $voce) {
         if ((int) $voce['plesso_id'] === $secondaria &&
             (int) $voce['tipologia_menu_id'] === $senza &&
             $voce['data'] === $dataSenzaModello) {
@@ -249,6 +249,61 @@ try {
     $service->pubblicaMenu($secondaria, $senza, $dataSenzaModello,
         'Programmazione futura valida', null, $autoreTest);
     $service->annullaVariazioneGiornaliera($secondaria, $senza, $dataSenzaModello);
+
+    // Paginazione: 25 variazioni sintetiche su date distinte.
+    // La pagina 1 parte dalla data piu' lontana, senza duplicare le altre.
+    $basePagine = new DateTimeImmutable($dataTest);
+    $dateCreate = [];
+    for ($i = 1; $i <= 25; $i++) {
+        $dataP = $basePagine->modify('+' . $i . ' days')->format('Y-m-d');
+        $giornaliero->salva($secondaria, $senza, $dataP,
+            'Menu programmato ' . $i, null, $autoreTest);
+        $dateCreate[] = $dataP;
+    }
+    $prima = $service->variazioniProgrammate(1);
+    $seconda = $service->variazioniProgrammate(2);
+    $terza = $service->variazioniProgrammate(3);
+    if ($prima['per_pagina'] !== 10 || count($prima['righe']) !== 10 ||
+        count($seconda['righe']) !== 10 || $prima['pagina'] !== 1 ||
+        $seconda['pagina'] !== 2 || $prima['totale'] < 25 ||
+        $prima['pagine'] < 3) {
+        throw new RuntimeException('Dimensione delle pagine o totale delle variazioni errato');
+    }
+    $rigaPiuLontana = $prima['righe'][0];
+    if ($rigaPiuLontana['data'] !== end($dateCreate)) {
+        throw new RuntimeException('La prima pagina non parte dalla data piu lontana');
+    }
+    $viste = [];
+    foreach ([$prima, $seconda, $terza] as $blocco) {
+        $precedenteData = null;
+        foreach ($blocco['righe'] as $voce) {
+            if ($precedenteData !== null && $voce['data'] > $precedenteData) {
+                throw new RuntimeException('Ordinamento delle date non decrescente');
+            }
+            if (in_array((int) $voce['id'], $viste, true)) {
+                throw new RuntimeException('Una variazione compare in piu pagine');
+            }
+            $viste[] = (int) $voce['id'];
+            $precedenteData = $voce['data'];
+        }
+    }
+    $troppoLontana = $service->variazioniProgrammate(99999);
+    if ($troppoLontana['pagina'] !== $troppoLontana['pagine'] ||
+        count($troppoLontana['righe']) > 10) {
+        throw new RuntimeException('Pagina non valida non riportata all ultima pagina');
+    }
+    // Dopo la cancellazione dei menu piu' lontani l'ultima pagina scompare
+    // e la richiesta fuori intervallo viene riportata alla pagina esistente.
+    foreach ($dateCreate as $dataP) {
+        $giornaliero->rimuoviPerChiave($secondaria, $senza, $dataP);
+    }
+    $dopoCancellazione = $service->variazioniProgrammate(99999);
+    if ($dopoCancellazione['pagina'] !== $dopoCancellazione['pagine'] ||
+        $dopoCancellazione['totale'] !==
+            $giornaliero->contaProgrammati(date('Y-m-d'))) {
+        throw new RuntimeException('Paginazione non aggiornata dopo cancellazione');
+    }
+    echo "OK: 10 variazioni per pagina, ordine futuro-decrescente, nessun duplicato e pagina valida dopo cancellazione.\n";
 
     // In una giornata non prevista non si crea un giornaliero, e le vecchie
     // pubblicazioni non vengono proposte come menu attivi.
