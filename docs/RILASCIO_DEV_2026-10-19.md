@@ -122,6 +122,7 @@ Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non 
 - Scuola: conferma motivata di un pasto servito dopo il cutoff, una sola registrazione contabile e nessun rimborso automatico in caso di successiva segnalazione di assenza.
 - Integrità contabile: `SUM(pool_crediti.saldo) = SUM(movimenti_crediti.delta)`, acquisti e rettifiche originari invariati; nessuna modifica ai 112 movimenti precedenti e ai 70 storni.
 - Consegna: niente nomi, dati economici o crediti dei familiari fuori dalle API autorizzate.
+- Solleciti: nel campo `{alunno}` devono comparire **solo** i figli assegnati al plesso e alla data del sollecito, non nominativi estratti dai consumi storici del genitore in altri plessi. Test con due plessi sintetici separati, senza invio di email reali.
 
 ## Controlli obbligatori pre-rilascio e blocco dell'avvio
 
@@ -137,7 +138,7 @@ Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non 
 
 ### Job `in_corso` e recupero dopo errore
 
-In caso di stato `in_corso` persistente o `errore`, **non** eliminare la riga di esecuzione, non riavviare ripetutamente il job e non correggere direttamente crediti o presenze per farlo passare. Prima esaminare log, record di presenza congelati, movimenti di consumo per bambino/data, stato dei solleciti e bilanci dei pool. Il codice impedisce alcuni duplicati ma il recupero va verificato come scenario dedicato su una copia protetta. Se non è possibile riconciliare completamente i dati, mantenere il job sospeso e richiedere una valutazione tecnica prima di qualsiasi ripresa.
+In caso di stato `in_corso` persistente o `errore`, **non** eliminare la riga di esecuzione, non riavviare ripetutamente il job e non correggere direttamente crediti o presenze per farlo passare. Prima esaminare log, record di presenza congelati, movimenti di consumo per bambino/data, stato dei solleciti e bilanci dei pool. Lo scheduler aggiornato **non ritenta automaticamente** un'esecuzione con precedente esito `errore`: restituisce `errore_precedente`. Il comando manuale Admin è comunque un'operazione reale e può avviare un recupero; usarlo solo dopo riconciliazione e autorizzazione. La prova su un database sintetico dimostra il blocco del retry automatico ma non copre da sola ogni modalità di errore parziale. Se i dati non sono riconciliabili, mantenere il job sospeso e richiedere una valutazione tecnica prima di qualsiasi ripresa.
 
 ### Esito delle verifiche
 
