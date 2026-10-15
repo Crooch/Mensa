@@ -29,9 +29,13 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-menu" class="vista" hidden>
     <h1>Menu del giorno</h1>
-    <p class="nota catering-introduzione">Seleziona il plesso e la tipologia. Puoi pubblicare un menu nuovo oppure aggiornare quello già presente.</p>
+    <p class="nota catering-introduzione">Scegli la data, il plesso e la tipologia. Puoi programmare un solo giorno, modificare una variazione o annullarla.</p>
     <form id="form-menu" class="pannello catering-form-menu" enctype="multipart/form-data" data-testid="menu-form">
         <div class="catering-filtri catering-filtri--menu">
+            <div class="catering-campo">
+                <label for="menu-data">Giorno del menu</label>
+                <input type="date" id="menu-data" required data-testid="menu-data-input">
+            </div>
             <div class="catering-campo">
                 <label for="menu-plesso">Plesso</label>
                 <select id="menu-plesso" data-testid="menu-plesso-select"></select>
@@ -53,12 +57,16 @@ require __DIR__ . '/partials/testa.php';
         <div class="catering-menu-azioni">
             <button type="submit" id="menu-submit" class="btn btn-primary catering-menu-submit" disabled data-testid="menu-submit-button">Pubblica menu</button>
             <button type="button" id="menu-ripristina" class="btn btn-outline-primary" hidden disabled
-                    data-testid="menu-ripristina-button">Ripristina menu settimanale</button>
+                    data-testid="menu-ripristina-button">Annulla variazione giornaliera</button>
         </div>
     </form>
-    <h2>Menu già pubblicati oggi</h2>
+    <h2>Menu previsti per il giorno selezionato</h2>
     <p id="menu-stato" class="stato-operazione" role="status" hidden></p>
     <div id="menu-lista" class="griglia-cards" data-testid="menu-lista"></div>
+    <h2>Variazioni giornaliere programmate</h2>
+    <p class="nota">Solo modifiche specifiche, ordinate per data. I menu settimanali rimangono nella loro sezione.</p>
+    <p id="menu-variazioni-stato" class="nota" role="status" aria-live="polite"></p>
+    <div id="menu-variazioni-lista" class="catering-variazioni" data-testid="menu-variazioni-lista"></div>
 </section>
 
 <section id="vista-settimane" class="vista" hidden>
