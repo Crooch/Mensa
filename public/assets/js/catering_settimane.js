@@ -2,6 +2,7 @@
 let catalogoSettimane = [];
 let assegnazioniSettimane = [];
 let settimanaInModifica = null;
+let settimanaDuplicataDa = null;
 const nomiGiorniSettimana = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
 const fotoSettimana = {};
 for (let giorno = 1; giorno <= 7; giorno++) {
@@ -11,6 +12,7 @@ for (let giorno = 1; giorno <= 7; giorno++) {
 
 function azzeraModelloSettimana() {
     settimanaInModifica = null;
+    settimanaDuplicataDa = null;
     document.getElementById('form-settimana').reset();
     document.getElementById('settimana-tipo').disabled = false;
     document.getElementById('settimana-form-titolo').textContent = 'Nuovo menu settimanale';
@@ -23,6 +25,7 @@ function azzeraModelloSettimana() {
 
 function compilaSettimana(modello, duplicazione = false) {
     settimanaInModifica = duplicazione ? null : Number(modello.id);
+    settimanaDuplicataDa = duplicazione ? Number(modello.id) : null;
     document.getElementById('settimana-form-titolo').textContent =
         duplicazione ? 'Duplica menu settimanale' : 'Modifica menu settimanale';
     document.getElementById('settimana-nome').value =
@@ -163,6 +166,9 @@ document.getElementById('form-settimana').addEventListener('submit', async event
             dati.append('nome', nome);
             dati.append('tipologia_menu_id', String(tipo));
             dati.append('giorni', JSON.stringify(giorni));
+            if (settimanaDuplicataDa !== null) {
+                dati.append('duplica_da_id', String(settimanaDuplicataDa));
+            }
             const rimozioni = [];
             for (let g = 1; g <= 7; g++) {
                 const widget = fotoSettimana[String(g)];
