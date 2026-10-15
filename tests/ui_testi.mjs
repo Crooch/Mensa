@@ -303,5 +303,13 @@ console.log('OK: catalogo settimanale con sette giorni e assegnazioni, desktop/m
 
 assert.ok(cateringHtml.includes('id="menu-data"'), 'La data del menu deve essere selezionabile');
 assert.ok(cateringHtml.includes('id="menu-variazioni-lista"'), 'Le variazioni future devono essere elencate');
+assert.ok(!cateringHtml.includes('menu-variazioni-stato'),
+    'Non mostrare un contatore o un messaggio sotto il titolo delle variazioni');
+assert.ok(!cateringHtml.includes('Dalle date più lontane alle più vicine.'),
+    'La spiegazione sull\'ordinamento è superflua');
+assert.ok(!cateringHtml.includes('Solo modifiche specifiche, ordinate per data.'),
+    'Non ripristinare la vecchia spiegazione');
+assert.doesNotMatch(cateringJs, /variazioni da oggi in poi|variazioni programmate · 10 per pagina|Caricamento delle variazioni…/);
+assert.doesNotMatch(cateringJs, /stato\.textContent\s*=\s*totale/);
 assert.ok(cateringJs.includes("'/api/catering/menu/annulla'"), 'Annullamento disponibile per le variazioni');
 console.log('OK: scelta data, modifica e annullamento delle variazioni programmate.');
