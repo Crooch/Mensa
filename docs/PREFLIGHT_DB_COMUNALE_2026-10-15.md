@@ -1,10 +1,18 @@
-# Mensa Caltavuturo — preflight su database comunale e prova di migrazione
+# Mensa Caltavuturo — preflight su database comunale e upgrade dello schema SENZA import dati
 
 **Stato:** attività preparatoria, non autorizzazione al rilascio.  
 **Perimetro:** `Crooch/Mensa:dev`. Non aggiornare `main` ufficiale,
 `/srv/www/mensa/app`, `mensa_db` né il cron di produzione.
 
-## 1. Prima di qualunque copia o migrazione
+
+> **Vincolo non negoziabile:** il database comunale `mensa_db` e' la fonte
+> dei dati reali. Non importare dump sintetici, non usare seed, non riavviare
+> lo schema da `001`, non ripristinare dati di staging su produzione. Gli
+> eventuali calendari nuovi sono configurazioni da verificare e inserire
+> esplicitamente in una fase successiva. Se la struttura rilevata sul server
+> e' diversa da quella attesa, non eseguire lo script automaticamente.
+
+## 1. Prima di qualunque copia o modifica strutturale
 
 - Il collaudo delle interfacce è stato dichiarato eseguito dall'utente. Registrare
   separatamente eventuali anomalie e la conferma degli scenari critici.
@@ -45,7 +53,7 @@ Risultati da annotare:
 | 00 | Il database di destinazione è **esattamente** `mensa_db` |
 | 01 | Le tabelle base attese sono presenti |
 | 02–03 | Schema rilevato: assenza/presenza di migrazioni documentata; non applicare quelle già presenti in modo incontrollato |
-| 04–05 | Identificati plessi e cutoff reali; le due denominazioni richieste dalla migration 002 corrispondono una volta ciascuna, oppure correggere il piano prima di ogni prova |
+| 04–05 | Identificati plessi e cutoff reali; le denominazioni e gli ID vanno confermati per configurare manualmente i calendari dopo il deploy. Nessun seed automatico |
 | 06 | Registrati conteggi di baseline |
 | 07 | Annotati saldi aggregati, movimenti, acquisti, consumi, rettifiche |
 | 08 | Qualsiasi pool non allineato richiede analisi prima del rilascio, non correzione automatica |
@@ -56,7 +64,7 @@ Non trasferire dump, tabelle anagrafiche, token, configurazioni SMTP o credenzia
 in chat, repository GitHub o servizi pubblici. Solo risultati aggregati e privi
 di dati personali possono essere usati come evidenza di lavoro.
 
-## 3. Copia isolata e dry-run delle migrazioni
+## 3. Copia isolata e dry-run dell'upgrade **solo strutture**
 
 **Da eseguire soltanto dopo preflight positivo e verifica dello spazio su disco.**
 
@@ -67,13 +75,20 @@ di dati personali possono essere usati come evidenza di lavoro.
    dal nome diverso da `mensa_db`. Non concedere credenziali di questa copia
    all'applicazione in produzione, né esporre via web o e-mail.
 3. Verificare su copia gli stessi aggregati del punto 2 prima delle migrazioni.
-4. Applicare **nell'ordine** `002`, `003`, `004`, `005`, `006`,
-   `007`, `008`, `009`. **Non applicare `001_schema.sql`** al database
-   preesistente.
+4. Applicare **esclusivamente** lo script di solo schema
+   `database/deploy/upgrade_schema_only_2026_10.sql`, e solo sulla copia
+   isolata. Lo script crea le sette nuove tabelle e aggiunge le colonne e
+   l'indice mancanti; **non esegue INSERT, UPDATE, DELETE, import o reset**.
+   **Non applicare `001_schema.sql` né gli script 002–009 originali
+   al database comunale**: il file 002 include INSERT di calendari e il 007
+   contiene un UPDATE delle revisioni.
 5. Ripetere il preflight sulla copia e confrontare *per tabella e per pool* lo
    stato contabile: saldi, movimenti, importi, origini, record precedenti,
    presenze, assegnazioni e job. Le nuove tabelle inizialmente vuote sono
-   normali; l'inserimento delle due configurazioni calendario va verificato.
+   normali; in particolare **`calendari_servizio` deve rimanere vuota**
+   dopo lo script se non esistevano configurazioni precedenti. Le regole
+   di servizio saranno inserite successivamente dagli amministratori,
+   soltanto dopo verifica delle indicazioni del Comune.
 6. Provare il codice candidato contro la **sola copia isolata**, senza cron,
    job di consolidamento, SMTP reale o scritture non controllate. Collaudare
    privilegi tra i ruoli, variazioni menu e intervalli di calendario.
@@ -91,7 +106,9 @@ Lo stato rimane **NO-GO** finché non sono documentati:
 
 - Esito del collaudo funzionale manuale e accettazione dei referenti;
 - preflight read-only del DB comunale senza anomalie non risolte;
-- dry-run su copia isolata con confronti contabili invariati;
+- dry-run di **sole CREATE/ALTER** su copia isolata con confronti contabili invariati;
+- accertamento che nessun dato fittizio/staging sia stato importato;
+- definizione esplicita di quali calendari nuovi creare tramite UI Admin dopo l'aggiornamento, senza modificare i dati storici;
 - backup/ripristino provati per DB e immagini;
 - finestra autorizzata dal Comune e commit candidato fissato;
 - decisione distinta per il cron e per le comunicazioni automatiche.
