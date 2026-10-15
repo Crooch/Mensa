@@ -359,3 +359,17 @@ assert.match(adminJsRivisto, /API\.put\(percorso \+ '\/' \+ periodoId, dati\)/);
 assert.match(adminJsRivisto, /data-modifica-periodo/);
 assert.match(adminJsRivisto, /data-cancella-periodo/);
 console.log('OK: calendario annuale, range con modifica/eliminazione ed errori nel modulo.');
+
+/* Calendario: riepilogo per plessi e classi, filtri e paginazione. */
+assert.match(adminPaginaRivista, /id="calendario-verifica-pannello"/);
+assert.match(adminPaginaRivista, /id="calendario-verifica-cerca"/);
+assert.match(adminPaginaRivista, /id="calendario-verifica-filtro"/);
+assert.match(adminPaginaRivista, /id="calendario-verifica-precedente"/);
+assert.match(adminPaginaRivista, /id="calendario-verifica-successiva"/);
+assert.match(adminPaginaRivista, /Le classi seguono il calendario della propria scuola/);
+assert.match(adminJsRivisto, /VERIFICA_SCUOLE_PER_PAGINA = 8/);
+assert.match(adminJsRivisto, /API\.get\('\/api\/admin\/calendari\/riepilogo\?data='/);
+assert.match(adminJsRivisto, /normalizzaRicercaCalendario\(c\.nome\)/);
+assert.match(adminJsRivisto, /segnalaVerificaDaAggiornare\(\)/);
+assert.match(css, /\.admin-verifica-scuole\s*\{[^}]*grid-template-columns:\s*repeat\(2,/s);
+console.log('OK: riepilogo scolastico, classi ereditate, ricerca e paginazione mobile.');
