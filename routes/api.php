@@ -85,6 +85,7 @@ $router->get('/api/catering/feedback', [$catering, 'feedback'], ['catering', 'ad
 $router->get('/api/catering/menu-settimanali', [$catering, 'menuSettimanali'], ['catering', 'admin']);
 $router->post('/api/catering/menu-settimanali', [$catering, 'salvaMenuSettimanale'], ['catering', 'admin']);
 $router->put('/api/catering/menu-settimanali/{id}', [$catering, 'modificaMenuSettimanale'], ['catering', 'admin']);
+$router->post('/api/catering/menu-settimanali/{id}/aggiorna', [$catering, 'modificaMenuSettimanale'], ['catering', 'admin']);
 $router->post('/api/catering/menu-settimanali/{id}/duplica', [$catering, 'duplicaMenuSettimanale'], ['catering', 'admin']);
 $router->get('/api/catering/menu-settimanali/assegnazioni', [$catering, 'assegnazioniMenuSettimanali'], ['catering', 'admin']);
 $router->post('/api/catering/menu-settimanali/assegnazioni', [$catering, 'assegnaMenuSettimanale'], ['catering', 'admin']);
