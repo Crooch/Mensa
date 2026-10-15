@@ -13,8 +13,12 @@ $config = [
         'base_path' => '',          // sottocartella di pubblicazione, es. '/mensa'
         'debug'     => false,
         'timezone'  => 'Europe/Rome',
-        // Chiave richiesta per invocare lo scheduler via URL (cron da pannello hosting)
-        'scheduler_key' => 'cambiami-scheduler-key',
+        // Lo scheduler e' disattivato dopo ogni nuovo deploy fino ad attivazione
+        // esplicita nell'override locale (config.local.php, mai versionato).
+        // Vale per bin/cron_daily.php e /scheduler?key=...
+        'scheduler_enabled' => false,
+        // Senza chiave locale casuale l'endpoint HTTP non e' accessibile.
+        'scheduler_key' => '',
     ],
     'db' => [
         'host'     => '127.0.0.1',
