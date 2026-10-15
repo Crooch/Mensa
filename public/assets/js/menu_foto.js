@@ -88,9 +88,16 @@ const FotoMenu = {
             inRimozione = false;
             mostra();
         }
+        function abilita(attivo) {
+            campo.disabled = !attivo;
+            scegli.disabled = !attivo;
+            chiudi.disabled = !attivo;
+            annulla.disabled = !attivo;
+        }
         imposta(null);
         return {
             imposta,
+            abilita,
             file: () => campo.files[0] || null,
             rimuovere: () => inRimozione,
             haFoto: () => Boolean(campo.files.length || (salvata && !inRimozione)),
