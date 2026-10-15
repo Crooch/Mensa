@@ -604,6 +604,47 @@ print("OK: programmazione futura, elenco, aggiornamento e annullamento senza mod
 print("OK: foto settimanale aggiunta, condivisa, duplicata e rimossa via multipart; copia preservata.")
 
 
+# Riepilogo Admin per tutte le scuole e classi (sola lettura).
+# La scelta di una scuola nel modulo di configurazione non restringe l'API.
+riepilogo = call("/api/admin/calendari/riepilogo?data=2026-10-19", token=admin)
+assert riepilogo["data"] == "2026-10-19"
+assert riepilogo["anno_scolastico"] == "2026/2027"
+assert len(riepilogo["scuole"]) == len(scuole_attive)
+assert riepilogo["totali"]["scuole"] == len(scuole_attive)
+assert riepilogo["totali"]["scuole_aperte"] == 2
+assert riepilogo["totali"]["scuole_chiuse"] == len(scuole_attive) - 2
+assert riepilogo["totali"]["classi_aperte"] == 5
+assert riepilogo["totali"]["classi_chiuse"] == 0
+assert sum(len(p["classi"]) for p in riepilogo["scuole"]) == 5
+assert all(p["totale_classi"] == len(p["classi"]) for p in riepilogo["scuole"])
+assert all(set(c) == {"id", "nome"} for p in riepilogo["scuole"] for c in p["classi"])
+# Un giorno senza mensa per la Secondaria, con classi ereditate.
+riepilogo_martedi = call("/api/admin/calendari/riepilogo?data=2026-10-20", token=admin)
+secondaria = next(p for p in riepilogo_martedi["scuole"]
+                 if "Secondaria" in p["plesso_nome"])
+assert secondaria["attivo"] is False
+assert secondaria["motivo"] == "giorno_senza_servizio"
+assert secondaria["totale_classi"] == 1
+assert riepilogo_martedi["totali"]["classi_chiuse"] == 1
+# La ricerca per un altro anno non deve attribuire classi dell'anno precedente.
+riepilogo_anno_successivo = call(
+    "/api/admin/calendari/riepilogo?data=2027-10-19", token=admin)
+assert riepilogo_anno_successivo["anno_scolastico"] == "2027/2028"
+assert sum(p["totale_classi"] for p in riepilogo_anno_successivo["scuole"]) == 0
+assert call("/api/job/esecuzioni", token=admin) == storico_dopo
+for data_errata in ["2026-02-30", "2026-10-xx"]:
+    try:
+        call("/api/admin/calendari/riepilogo?data=" + data_errata, token=admin)
+        raise AssertionError("Data errata accettata nel riepilogo")
+    except urllib.error.HTTPError as exc:
+        assert exc.code == 422
+try:
+    call("/api/admin/calendari/riepilogo?data=2026-10-19", token=genitore_sola_lettura)
+    raise AssertionError("Genitore autorizzato alla vista Admin")
+except urllib.error.HTTPError as exc:
+    assert exc.code == 403
+print("OK: tutte le scuole, classi per anno, giorni aperti/chiusi, privacy e lettura senza job.")
+
 # Periodi straordinari: test API sul SOLO database sintetico di staging.
 cal = "/api/admin/calendari/1"
 def salva_periodo(inizio, fine, attivo, motivazione, periodo_id=None):
