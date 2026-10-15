@@ -396,9 +396,17 @@ Esito tipico di un'esecuzione:
   "presenze": { "presente": 7, "assente": 1 }, "consumi": 7, "pasti_report": 7,
   "solleciti": { "controllati": 3, "inviati": 3, "errori": 0, "dettagli": [ … ] } }
 ```
-Stati possibili: `eseguito`, `gia_eseguito`, `cutoff_non_raggiunto`, `errore`.
+Stati possibili: `eseguito`, `gia_eseguito`, `cutoff_non_raggiunto`,
+`fuori_calendario`, `in_corso`, `errore`, `errore_precedente`.
 Il job è idempotente: i consumi non vengono duplicati e i solleciti sono inviati una sola volta
 per genitore/plesso/giorno.
+
+**Recupero dopo un errore:** lo scheduler restituisce `errore_precedente` per una
+scuola/giorno con esito `errore` già registrato, **senza** riavviare
+automaticamente la chiusura. Occorre prima riconciliare consumi, presenze
+congelate, solleciti e log; un successivo intervento manuale da Admin è
+una nuova operazione reale, da autorizzare dopo le verifiche. Per
+`in_corso` persistente non esiste alcun ripristino automatico.
 
 Il monitoraggio usa `GET /api/job/stato` e non richiama il job. Restituisce:
 `data`, `scuole[]`, `plesso_id`, `plesso_nome`, `orario_limite`,
