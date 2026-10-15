@@ -4,12 +4,13 @@ import urllib.request
 import urllib.error
 
 base = "http://127.0.0.1:18080"
-def call(path, payload=None, token=None):
+def call(path, payload=None, token=None, method=None):
     headers = {"Content-Type": "application/json"}
     if token:
         headers["Authorization"] = "Bearer " + token
     req = urllib.request.Request(base + path,
-        data=json.dumps(payload).encode() if payload is not None else None, headers=headers)
+        data=json.dumps(payload).encode() if payload is not None else None,
+        headers=headers, method=method)
     with urllib.request.urlopen(req, timeout=15) as resp:
         return json.load(resp)["dati"]
 
@@ -610,7 +611,7 @@ def salva_periodo(inizio, fine, attivo, motivazione, periodo_id=None):
     return call(url, {
         "data_inizio": inizio, "data_fine": fine,
         "servizio_attivo": attivo, "motivazione": motivazione
-    }, token=admin)
+    }, token=admin, method="PUT" if periodo_id is not None else None)
 
 chiusura_a = salva_periodo("2027-02-12", "2027-02-14", 0, "Chiusura A")["id"]
 chiusura_b = salva_periodo("2027-02-14", "2027-02-16", 0, "Chiusura B")["id"]
@@ -637,7 +638,9 @@ for da, a, stato in [
 salva_periodo("2027-02-14", "2027-02-17", 0, "Chiusura B modificata", chiusura_b)
 assert next(p for p in call(cal, token=admin)["eccezioni"]
             if int(p["id"]) == int(chiusura_b))["giorno_fine"] == "2027-02-17"
-call(cal + "/periodi/" + str(chiusura_b), token=admin) if False else None
+call(cal + "/periodi/" + str(chiusura_b), token=admin, method="DELETE")
+assert not any(int(p["id"]) == int(chiusura_b)
+               for p in call(cal, token=admin)["eccezioni"])
 # Apertura deliberata di sabato/domenica e in una festività nazionale.
 apertura_weekend = salva_periodo("2027-02-20", "2027-02-21", 1, "Servizio speciale")["id"]
 for giorno_speciale in ("2027-02-20", "2027-02-21"):
