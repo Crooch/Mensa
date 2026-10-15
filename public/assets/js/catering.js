@@ -72,7 +72,9 @@ function sincronizzaMenuSelezionato() {
         (!modificabile ? 'non-previsto' : 'info');
     const quando = dataIt(data);
     stato.textContent = !modificabile
-        ? 'Menu del ' + quando + ' in sola lettura: cutoff superato o data passata.'
+        ? (data < oggi()
+            ? 'Questo menù è di un giorno passato e non può più essere modificato.'
+            : 'È passato l’orario limite per modificare il menù di oggi in questo plesso.')
         : esistente?.origine === 'giornaliero'
             ? 'Variazione giornaliera già salvata per il ' + quando +
               '. Puoi modificarla o annullarla senza cambiare gli altri giorni.'
@@ -96,11 +98,15 @@ abilitaSchede((vista) => {
 
 let ultimaRichiestaReport = 0;
 
+/** Quando manca un modello specifico, mostra la tipologia alimentare prevista.
+ * Una dieta senza glutine o speciale non deve mai essere etichettata come standard. */
+function nomeMenuVisualizzato(tipo) {
+    return tipo.menu_nome || 'Menù ' + String(tipo.tipologia_nome || 'standard').toLocaleLowerCase('it');
+}
+
 /** Quantita' effettive per menu: la pasta in bianco e' mostrata a parte. */
 function voceDistribuzione(tipo) {
-    const nomeMenu = tipo.menu_nome
-        ? esc(tipo.menu_nome)
-        : 'Menu non disponibile';
+    const nomeMenu = esc(nomeMenuVisualizzato(tipo));
     return `<span class="catering-quantita">
         <strong>${Number(tipo.pasti_ordinari ?? tipo.pasti)}</strong>
         <span class="catering-quantita__testi">${esc(tipo.tipologia_nome)}
@@ -118,10 +124,10 @@ function dettaglioPiattiScuola(plesso) {
         <summary>Piatti previsti per questa data</summary>
         <div class="catering-scuola__piatti-elenco">
             ${tipi.map(t => `<div class="catering-scuola__piatto">
-                <strong>${esc(t.tipologia_nome)} · ${esc(t.menu_nome || 'Menu non disponibile')}</strong>
+                <strong>${esc(t.tipologia_nome)} · ${esc(nomeMenuVisualizzato(t))}</strong>
                 <p>${t.menu_descrizione
                     ? esc(t.menu_descrizione)
-                    : 'Nessun piatto descritto per questa data.'}</p>
+                    : 'Nessuna descrizione specifica inserita.'}</p>
             </div>`).join('')}
         </div>
     </details>`;
@@ -401,7 +407,9 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
     }
     const data = menuDataSelezionata();
     if (!menuModificabile(plesso, data)) {
-        avviso('Cutoff superato o data non modificabile.', 'errore');
+        avviso(data < oggi()
+            ? 'Non puoi modificare un menù di un giorno passato.'
+            : 'È passato l’orario limite per modificare il menù di oggi in questo plesso.', 'errore');
         return;
     }
     const esistente = menuSelezionato();
