@@ -39,6 +39,9 @@ con `MENSA_STAGING_ONLY=1` e database `mensa_staging`. `config.local.php`
 
 Il codice non viene montato sulla VPS e `mensa_db` non viene mai utilizzato.
 Il seed **non** viene ripetuto se trova già utenti; non impiega mai `TRUNCATE`.
+Le fotografie dei menu sono ora conservate in un volume Docker dedicato, anche se
+il container applicativo viene ricreato. Il volume non recupera eventuali foto
+perse prima della sua introduzione.
 
 Per verificare lo stato:
 
@@ -53,13 +56,52 @@ Per fermare i container conservando le prove:
 docker compose -f compose.staging.yml down
 ```
 
+### Ripulire soltanto i menu di prova (senza azzerare lo staging)
+
+Dal clone locale sul ramo `dev`, dopo aver aggiornato i file e i container:
+
+```bash
+git pull --ff-only origin dev
+docker compose -f compose.staging.yml up --build -d --wait
+```
+
+Anteprima obbligatoria dei record da eliminare (non modifica il DB):
+
+```bash
+docker compose -f compose.staging.yml exec -T app php staging/pulisci_menu.php --preview
+```
+
+Per conservare una copia prima della pulizia, esportare il database fittizio:
+
+```bash
+docker compose -f compose.staging.yml exec -T database sh -c 'exec mariadb-dump --single-transaction -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" "$MARIADB_DATABASE"' > mensa_staging_backup.sql
+```
+
+Se il riepilogo corrisponde alle prove da rimuovere:
+
+```bash
+docker compose -f compose.staging.yml exec -T app php staging/pulisci_menu.php --apply --confirm=mensa_staging
+```
+
+Lo strumento elimina **soltanto** `menu_giornalieri`,
+`menu_settimanali_assegnazioni`, `menu_settimanali_revisioni` e
+`menu_settimanali`, oltre alle immagini ancora referenziate e generate
+nell'archivio di staging. Mantiene utenti, genitori, alunni, assegnazioni di
+classe, calendario, presenze, feedback, crediti e movimenti. Rifiuta
+esplicitamente qualsiasi database diverso da `mensa_staging` sul servizio
+Docker `database` con variabili di staging abilitate.
+
+**Attenzione:** lo script `python3 staging/smoke.py` effettua scritture vere
+sul database fittizio; se lo esegui dopo la pulizia, ritroverai menu di
+collaudo e nuove assegnazioni.
+
 Per **cancellare soltanto il database fittizio locale** e ripartire da zero:
 
 ```bash
 docker compose -f compose.staging.yml down -v
 ```
 
-`down -v` elimina **il database staging** e non deve essere usato su una
+`down -v` elimina **il database staging e il volume delle foto** e non deve essere usato su una
 configurazione Docker diversa. Accertarsi sempre di essere nella cartella
 del clone `Crooch/Mensa`, branch `dev`.
 
