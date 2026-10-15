@@ -241,6 +241,13 @@ for (const id of ['menu-selezione-stato', 'menu-foto-widget', 'menu-submit']) {
 }
 assert.match(cateringJs, /'Salva modifica'\s*:\s*'Pubblica menu'/);
 assert.match(cateringJs, /Puoi modificarla o annullarla senza cambiare gli altri giorni/);
+assert.equal((cateringHtml.match(/Se presente, il menù del giorno prevale su quello settimanale\./g) || []).length, 2,
+    'La regola di precedenza deve comparire in entrambe le sezioni');
+assert.ok(!cateringHtml.includes('lo storico dei pasti già somministrati non viene riscritto'),
+    'La spiegazione superflua sullo storico deve essere rimossa');
+assert.match(cateringJs, /È passato l’orario limite per modificare il menù di oggi/);
+assert.doesNotMatch(cateringJs, /cutoff superato/i);
+assert.doesNotMatch(cateringJs, /Menu non disponibile/);
 assert.match(readFileSync('public/assets/js/menu_foto.js', 'utf8'), /Sostituisci foto/);
 assert.match(cateringJs, /data-menu-modifica="/);
 assert.match(cateringJs, /UI\.conferma\(/);
