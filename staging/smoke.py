@@ -38,6 +38,28 @@ def verifica_distribuzione(plesso):
 
 admin = token("admin.staging")
 catering = token("catering.staging")
+
+# Monitoraggio: solo GET, nessun effetto sui buoni e sui log del job.
+storico_prima = call("/api/job/esecuzioni", token=admin)
+stato_uno = call("/api/job/stato", token=admin)
+stato_due = call("/api/job/stato", token=admin)
+storico_dopo = call("/api/job/esecuzioni", token=admin)
+assert stato_uno == stato_due, "Il monitoraggio deve essere ripetibile"
+assert storico_prima == storico_dopo, "La consultazione non deve aprire esecuzioni"
+assert stato_uno["data"] == dt.date.today().isoformat()
+assert len(stato_uno["scuole"]) == 3
+assert all(r["stato"] in ("non_prevista", "in_attesa", "da_eseguire",
+                          "in_corso", "completata", "errore")
+           for r in stato_uno["scuole"])
+assert all(len(r["orario_limite"]) == 5 for r in stato_uno["scuole"])
+genitore_sola_lettura = token("genitore.staging")
+try:
+    call("/api/job/stato", token=genitore_sola_lettura)
+    raise AssertionError("Un genitore puo consultare lo stato Admin")
+except urllib.error.HTTPError as exc:
+    assert exc.code == 403
+print("OK: monitoraggio odierno in sola lettura, accesso solo Admin, nessun job aperto.")
+
 assert call("/api/admin/calendari/1", token=admin)["configurazione"]["lunedi"] == 1
 report = call("/api/catering/report?data=2026-10-19", token=catering)
 infanzia = next(x for x in report["plessi"] if x["plesso_id"] == 1)
