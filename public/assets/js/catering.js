@@ -38,7 +38,9 @@ function sincronizzaMenuSelezionato() {
     // Cambiando plesso o tipologia, nessun testo del precedente menu
     // deve rimanere nel campo della nuova pubblicazione.
     descrizione.value = esistente?.descrizione || '';
-    fotoMenuGiorno.imposta(esistente?.foto_path || null);
+    // Un'eccezione giornaliera non deve proporre come propria la foto del modello.
+    // Il file settimanale resta visibile nella scheda del menu, non nella bozza.
+    fotoMenuGiorno.imposta(esistente?.origine === 'settimanale' ? null : esistente?.foto_path || null);
     pulsante.disabled = false;
     pulsante.textContent = esistente ? 'Aggiorna menu' : 'Pubblica menu';
     stato.className = 'stato-operazione catering-menu-stato stato-operazione--' +
@@ -46,7 +48,7 @@ function sincronizzaMenuSelezionato() {
     stato.textContent = esistente
         ? (esistente.origine === 'settimanale'
             ? 'Menu previsto dal modello settimanale per ' + plesso.nome + ' · ' + tipologia.nome +
-              '. Salvando creerai una modifica valida soltanto per oggi.'
+              '. Salvando creerai una modifica valida soltanto per oggi. La foto del modello non verrà copiata automaticamente.'
             : 'Menu già pubblicato per ' + plesso.nome + ' · ' + tipologia.nome +
               ' (oggi). Aggiornerai solo questo menu: gli altri non cambiano.')
         : 'Nessun menu ancora pubblicato per ' + plesso.nome + ' · ' + tipologia.nome +
@@ -205,11 +207,18 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
     }
     const esistente = menuSelezionato();
     const rimuoviFoto = fotoMenuGiorno.rimuovere();
+    const nuovaFoto = fotoMenuGiorno.file();
+    const messaggioFoto = rimuoviFoto ? 'La foto verrà rimossa.'
+        : nuovaFoto ? 'La nuova foto verrà pubblicata.'
+        : esistente?.origine === 'settimanale'
+            ? 'La foto del modello settimanale non verrà copiata.'
+            : fotoMenuGiorno.haFoto()
+                ? 'La foto giornaliera già pubblicata rimarrà invariata.'
+                : 'Il menu rimarrà senza foto.';
     if (esistente && !await UI.conferma(
         'Aggiorna solo questo menu',
         'Stai per aggiornare il menu ' + tipologia.nome + ' del plesso ' + plesso.nome +
-            ' per oggi. Gli altri menu resteranno invariati. ' +
-            (rimuoviFoto ? 'La foto verrà rimossa.' : 'Una foto nuova sostituirà quella attuale.'),
+            ' per oggi. Gli altri menu resteranno invariati. ' + messaggioFoto,
         'Aggiorna menu'
     )) return;
     // Ripristina il blocco in caso di selezione cambiata durante il dialogo.
