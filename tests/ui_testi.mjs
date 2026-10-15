@@ -313,3 +313,19 @@ assert.doesNotMatch(cateringJs, /variazioni da oggi in poi|variazioni programmat
 assert.doesNotMatch(cateringJs, /stato\.textContent\s*=\s*totale/);
 assert.ok(cateringJs.includes("'/api/catering/menu/annulla'"), 'Annullamento disponibile per le variazioni');
 console.log('OK: scelta data, modifica e annullamento delle variazioni programmate.');
+
+/* Amministratore: regressioni visive segnalate nel collaudo manuale. */
+const adminPaginaRivista = readFileSync('src/View/admin.php', 'utf8');
+const adminJsRivisto = readFileSync('public/assets/js/admin.js', 'utf8');
+assert.match(adminPaginaRivista, /class="admin-calendario-giorni__griglia"/);
+assert.match(adminPaginaRivista, /class="admin-calendario-date"/);
+assert.match(adminPaginaRivista, /id="classe-esistente"/);
+assert.match(adminPaginaRivista, /<select id="classe-nome"/);
+assert.match(adminPaginaRivista, /id="classe-altro-gruppo" hidden/);
+assert.match(adminJsRivisto, /function aggiornaSceltaClasse\(/);
+assert.match(adminJsRivisto, /classiDisponibili\.filter\(c => Number\(c\.plesso_id\) === plessoId\)/);
+assert.match(adminJsRivisto, /function suggerimentiClassi\(plessoId\)/);
+assert.match(css, /\.admin-calendario-giorno input\[type="checkbox"\]\s*\{[^}]*width:\s*19px\s*!important/s);
+assert.match(css, /\.admin-calendario-giorni__griglia\s*\{[^}]*grid-template-columns:\s*repeat\(5,/s);
+assert.match(css, /\.riga-filtri > \.campo-filtro > label,[\s\S]*align-self:\s*stretch\s*!important/);
+console.log('OK: Admin calendario, checkbox, allineamento etichette e classi filtrate per scuola.');
