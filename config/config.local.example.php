@@ -7,7 +7,9 @@ return [
         // Abilitare solo dopo verifica dati, calendario, cutoff, cron e Comune.
         'scheduler_enabled' => false,
         // Necessaria solo se il cron invoca /scheduler via HTTP.
-        'scheduler_key' => 'una-chiave-lunga-e-casuale',
+        // Solo per l'endpoint HTTP: impostare una chiave casuale >= 32
+        // caratteri, mai un segnaposto noto. Per PHP CLI lasciare vuoto.
+        'scheduler_key' => '',
     ],
     'db' => [
         'host'     => 'localhost',
