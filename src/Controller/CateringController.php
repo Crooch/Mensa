@@ -62,13 +62,47 @@ final class CateringController
         return $this->c->catering()->elencoMenuSettimanali();
     }
 
+    /** Compatibile con le chiamate JSON già presenti e con multipart foto. */
+    private function giorniMenu(Request $r): array
+    {
+        $valore = $r->obbligatorio('giorni');
+        if (is_string($valore)) {
+            $valore = json_decode($valore, true);
+        }
+        if (!is_array($valore)) {
+            throw \App\Core\HttpException::nonValido('I giorni del menu non sono validi');
+        }
+        return $valore;
+    }
+
+    private function rimozioniFoto(Request $r): array
+    {
+        $valore = $r->input('rimuovi_foto', []);
+        if (is_string($valore)) $valore = json_decode($valore, true);
+        if (!is_array($valore)) {
+            throw \App\Core\HttpException::nonValido('Elenco delle foto da rimuovere non valido');
+        }
+        return $valore;
+    }
+
+    private function fileGiorni(): array
+    {
+        $file = [];
+        for ($i = 1; $i <= 7; $i++) {
+            if (isset($_FILES['foto_giorno_' . $i])) {
+                $file[(string) $i] = $_FILES['foto_giorno_' . $i];
+            }
+        }
+        return $file;
+    }
+
     public function salvaMenuSettimanale(Request $r, array $utente): array
     {
         $id = $this->c->catering()->salvaMenuSettimanale(
             null, (string) $r->obbligatorio('nome'),
             (int) $r->obbligatorio('tipologia_menu_id'),
-            (array) $r->obbligatorio('giorni'),
-            (int) $utente['id']
+            $this->giorniMenu($r), (int) $utente['id'],
+            $this->fileGiorni(), $this->rimozioniFoto($r)
         );
         return ['id' => $id];
     }
@@ -79,8 +113,8 @@ final class CateringController
         return ['id' => $this->c->catering()->salvaMenuSettimanale(
             $id, (string) $r->obbligatorio('nome'),
             (int) $r->obbligatorio('tipologia_menu_id'),
-            (array) $r->obbligatorio('giorni'),
-            (int) $utente['id']
+            $this->giorniMenu($r), (int) $utente['id'],
+            $this->fileGiorni(), $this->rimozioniFoto($r)
         )];
     }
 
