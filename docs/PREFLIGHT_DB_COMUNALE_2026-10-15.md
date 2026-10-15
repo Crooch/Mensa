@@ -100,7 +100,35 @@ di dati personali possono essere usati come evidenza di lavoro.
 Se si scoprono movimenti incoerenti, nomi dei plessi discordanti, schemi
 parzialmente migrati, differenze contabili o foto non recuperabili: **STOP**.
 
-## 4. Decisione e rilascio
+## 4. Pubblicazione del codice senza trasferire dati di staging
+
+Il rilascio futuro riguarda il **codice applicativo selezionato** dal commit
+collaudato, non la directory o il database dello staging. Prima della
+pubblicazione sul server identificare i file realmente gestiti da Git e
+le esclusioni dell'ambiente in esercizio:
+
+- **Mantenere** il database `mensa_db` esistente e tutte le sue anagrafiche,
+  saldi, movimenti, presenze e menu storici.
+- **Mantenere** la configurazione riservata `config/config.local.php` della VPS
+  e verificare eventuali parametri di `config/config.php`. Non trasferire
+  credenziali/configurazioni sintetiche dello staging.
+- **Mantenere** le immagini e gli allegati reali di `storage/menu/`, oltre
+  ai log e alle directory di lavoro. Il repository contiene solo un file
+  segnaposto in `storage/menu/`.
+- Non eseguire `git clean -fdx`, `rsync --delete` indiscriminato, reset
+  del database, import dei dump sintetici, `001_schema.sql` o seed.
+- Se serve aggiungere strutture, applicare soltanto
+  `database/deploy/upgrade_schema_only_2026_10.sql`, **dopo** preflight,
+  prova protetta e backup; non eseguire gli script numerati originali.
+- La nuova tabella `calendari_servizio` non viene precompilata. Dopo il
+  rilascio, l'Admin configura esplicitamente i calendari approvati dal Comune;
+  **fino alla configurazione, i plessi senza calendario non devono
+  generare consumi automatici**. Il cron resta sospeso fino all'ok finale.
+- Verificare il diff del codice candidato e lo stato dei file locali
+  **prima** di pubblicare; in caso di discrepanze, fermarsi e riconciliare
+  manualmente le modifiche (non sovrascrivere file non identificati).
+
+## 5. Decisione e rilascio
 
 Lo stato rimane **NO-GO** finché non sono documentati:
 
