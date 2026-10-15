@@ -98,6 +98,22 @@ try {
     if ($nuovaCopia === $copia || $repo->modello($nuovaCopia, '2099-01-01')['giorni']['1'] !== $giorni['1']) {
         throw new RuntimeException('La duplicazione non è indipendente');
     }
+    // La duplicazione dal form invia descrizioni modificate e id del modello origine:
+    // deve copiare i riferimenti fotografici senza copiare o sovrascrivere file.
+    $copiaConFoto = $repo->crea('Modello fotografico', $standard, $giorni,
+        '2026-10-19', 0, ['1' => $fotoStorica]);
+    $nuovaConFoto = $service->salvaMenuSettimanale(null, 'Copia con foto', $senza,
+        ['1' => 'Menu personalizzato'], 0, [], [], [], $copiaConFoto);
+    if ($repo->modello($nuovaConFoto, '2099-01-01')['foto_giorni']['1'] !== $fotoStorica ||
+        $repo->modello($nuovaConFoto, '2099-01-01')['giorni']['1'] !== 'Menu personalizzato') {
+        throw new RuntimeException('La duplicazione da form non mantiene le foto');
+    }
+    $service->salvaMenuSettimanale($nuovaConFoto, 'Copia senza foto', $senza,
+        ['1' => 'Menu personalizzato'], 0, [], ['1']);
+    if (!empty($repo->modello($nuovaConFoto, '2099-01-01')['foto_giorni']['1']) ||
+        $repo->modello($copiaConFoto, '2099-01-01')['foto_giorni']['1'] !== $fotoStorica) {
+        throw new RuntimeException('Rimuovere la foto della copia modifica il modello originale');
+    }
     $service->salvaMenuSettimanale($nuovaCopia, 'Nuova copia', $senza,
         ['1' => 'Pizza senza glutine'], 0);
     if ($repo->modello($copia, '2099-01-01')['giorni']['1'] !== $giorni['1']) {
