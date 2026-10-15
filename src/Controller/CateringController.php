@@ -35,6 +35,23 @@ final class CateringController
         );
     }
 
+    /** Elenco delle variazioni programmate dalla data odierna in avanti. */
+    public function variazioniProgrammate(Request $r, array $utente): array
+    {
+        return $this->c->catering()->variazioniProgrammate();
+    }
+
+    /** Annulla una variazione, ripristinando il modello ove disponibile. */
+    public function annullaMenuGiornaliero(Request $r, array $utente): array
+    {
+        $this->c->catering()->annullaVariazioneGiornaliera(
+            (int) $r->obbligatorio('plesso_id'),
+            (int) $r->obbligatorio('tipologia_menu_id'),
+            (string) $r->obbligatorio('data')
+        );
+        return ['annullato' => true];
+    }
+
     /** Upload multipart: descrizione + foto facoltativa. */
     public function pubblicaMenu(Request $r, array $utente): array
     {
