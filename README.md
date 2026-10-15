@@ -66,7 +66,7 @@ Questa sezione descrive i componenti, **non autorizza l'aggiornamento della prod
 6. Verificare i permessi della cartella `storage/menu`, l'accesso protetto alle immagini e l'esito del login prima di valutare l'avvio di operazioni automatiche.
 7. Configurare email e pianificazione **solo dopo collaudo**, con l'autorizzazione dei referenti.
 
-Per un'installazione **già in uso**, non eseguire il comando precedente come scorciatoia: seguire il [piano di verifica e rilascio](docs/RILASCIO_DEV_2026-10-19.md), che prevede copia isolata del database, migrazioni incrementali, verifica della contabilità e prova di ripristino.
+Per un'installazione **già in uso**, non eseguire il comando precedente come scorciatoia: seguire il [piano di verifica e rilascio](docs/RILASCIO_DEV_2026-10-19.md). Se mancano tabelle o colonne, usare **solo l'upgrade di schema** `database/deploy/upgrade_schema_only_2026_10.sql` dopo una prova su copia protetta, senza seed, import o modifiche ai dati esistenti. Il job/cron richiede anche il [piano di aggiornamento dedicato](docs/RILASCIO_JOB_2026-10.md).
 
 ### Script dimostrativi: non usare sui dati reali
 
@@ -76,7 +76,7 @@ Anche `bin/avvia_demo.sh` è uno strumento di dimostrazione: può reimpostare il
 
 ## Gestione quotidiana e sicurezza
 
-L'elaborazione giornaliera, implementata in `bin/cron_daily.php`, considera l'orario limite di ciascuna scuola. Le operazioni possono consolidare presenze, registrare consumi di buoni e produrre comunicazioni: **non avviare cron o job manuali senza verificare calendario, data e contabilità**.
+L'elaborazione giornaliera, implementata in `bin/cron_daily.php`, considera l'orario limite di ciascuna scuola. Le operazioni possono consolidare presenze, registrare consumi di buoni e produrre comunicazioni: **non avviare cron o job manuali senza verificare calendario, data e contabilità**. Il nuovo interruttore `app.scheduler_enabled` è **false per default** e blocca sia CLI/HTTP sia esecuzioni Admin. Per verificare in sola lettura lo stato dopo il deploy: `php bin/cron_daily.php --check`. Per aggiornare la pianificazione cron della VPS seguire la [procedura dedicata](docs/RILASCIO_JOB_2026-10.md).
 
 La configurazione delle email è disponibile nell'area Amministrazione. Prima di abilitare gli invii, controllare destinatari, indirizzi istituzionali, modelli e servizio SMTP. Un ambiente di test non deve inviare comunicazioni a destinatari reali.
 
