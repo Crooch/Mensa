@@ -7,8 +7,10 @@ declare(strict_types=1);
  *
  * Uso:  php bin/install.php
  * Crea il database (se l'utente ha i permessi) ed esegue le migration in
- * database/migrations in ordine alfabetico. Idempotente: le migration usano
- * CREATE TABLE IF NOT EXISTS.
+ * database/migrations in ordine alfabetico. Solo per database nuovo e vuoto:
+ * alcune migrazioni includono inizializzazioni specifiche di Caltavuturo.
+ * NON usare come scorciatoia per aggiornare il database comunale esistente:
+ * seguire la procedura documentata, su copia isolata e con backup verificato.
  */
 
 require dirname(__DIR__) . DIRECTORY_SEPARATOR . 'bootstrap.php';
@@ -38,4 +40,4 @@ foreach ($file as $percorso) {
     echo "ok\n";
 }
 
-echo "Schema installato. Eseguire ora: php bin/seed.php (dati di esempio)\n";
+echo "Schema installato. ATTENZIONE: bin/seed.php cancella i dati delle tabelle; usarlo soltanto su un database dimostrativo isolato.\n";
