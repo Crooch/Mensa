@@ -280,6 +280,70 @@ def controlla_admin_calendario_classi(page, larghezza):
     page.unroute('**/api/admin/calendari/*/periodi')
     page.locator('#form-eccezione-calendario').evaluate("(e) => e.reset()")
 
+    # Volume realistico elevato senza scrivere dati sintetici nel DB di staging:
+    # 24 scuole, 384 classi; verifica filtri, paginazione e dettagli compatti.
+    import json
+    scuole_grandi = []
+    for numero in range(1, 25):
+        classi = [{"id": numero * 100 + i,
+                   "nome": (f"Gruppo Speciale {numero}" if i == 1 else f"Sezione {i:02d}")}
+                  for i in range(1, 17)]
+        scuole_grandi.append({
+            "plesso_id": numero, "plesso_nome": f"Scuola {numero:02d}",
+            "attivo": numero % 2 == 0,
+            "motivo": "giorno_di_servizio" if numero % 2 == 0 else "giorno_senza_servizio",
+            "totale_classi": len(classi), "classi": classi
+        })
+    richieste_verifica = []
+    def risposta_riepilogo(route):
+        richieste_verifica.append(route.request.method)
+        route.fulfill(status=200, content_type="application/json", body=json.dumps({
+            "ok": True,
+            "dati": {
+                "data": "2026-11-05", "anno_scolastico": "2026/2027",
+                "totali": {"scuole": 24, "scuole_aperte": 12, "scuole_chiuse": 12,
+                           "classi_aperte": 192, "classi_chiuse": 192},
+                "scuole": scuole_grandi
+            }
+        }))
+    page.route('**/api/admin/calendari/riepilogo?*', risposta_riepilogo)
+    page.locator('#calendario-verifica-data').fill('2026-11-05')
+    page.locator('#calendario-verifica').click()
+    page.wait_for_function("""() =>
+        document.querySelectorAll('#calendario-verifica-risultati article').length === 8
+    """, timeout=12000)
+    assert richieste_verifica == ['GET']
+    assert page.locator('#calendario-verifica-sommario').inner_text().count('192') == 2
+    assert page.locator('#calendario-verifica-pagina').inner_text() == 'Pagina 1 di 3'
+    assert page.locator('#calendario-verifica-anno').inner_text().endswith('2026/2027')
+    page.locator('#calendario-verifica-risultati details').first.locator('summary').click()
+    assert page.locator('#calendario-verifica-risultati details[open]').count() == 1
+    assert page.locator('#calendario-verifica-risultati details[open] li').count() == 16
+    page.screenshot(path=str(OUTPUT / f"admin-verifica-scuole-{larghezza}.png"), full_page=True)
+    controlla_dimensioni(page, f'Admin ricerca scuole e classi {larghezza}')
+    page.locator('#calendario-verifica-successiva').click()
+    assert page.locator('#calendario-verifica-pagina').inner_text() == 'Pagina 2 di 3'
+    assert 'Scuola 09' in page.locator('#calendario-verifica-risultati').inner_text()
+    page.locator('#calendario-verifica-cerca').fill('Gruppo Speciale 17')
+    assert page.locator('#calendario-verifica-risultati article').count() == 1
+    assert 'Scuola 17' in page.locator('#calendario-verifica-risultati').inner_text()
+    assert page.locator('#calendario-verifica-contatore').inner_text().startswith('Scuole mostrate: 1')
+    page.locator('#calendario-verifica-risultati details summary').click()
+    assert page.locator('#calendario-verifica-risultati details li').count() == 1
+    page.locator('#calendario-verifica-filtro').select_option('aperte')
+    assert page.locator('#calendario-verifica-risultati article').count() == 0
+    assert 'Nessun risultato' in page.locator('#calendario-verifica-risultati').inner_text()
+    page.locator('#calendario-verifica-filtro').select_option('chiuse')
+    assert page.locator('#calendario-verifica-risultati article').count() == 1
+    page.locator('#calendario-verifica-cerca').fill('')
+    assert page.locator('#calendario-verifica-risultati article').count() == 8
+    assert page.locator('#calendario-verifica-pagina').inner_text() == 'Pagina 1 di 2'
+    controlla_dimensioni(page, f'Admin ricerca filtrata {larghezza}')
+    page.locator('#calendario-verifica-data').fill('2026-11-06')
+    assert page.locator('#calendario-verifica-pannello').is_hidden()
+    assert richieste_verifica == ['GET'], 'Cambiare data non deve salvare né ricalcolare da solo'
+    page.unroute('**/api/admin/calendari/riepilogo?*')
+
     page.locator('nav.schede [data-vista="classi"]').click()
     scelta_scuola = page.locator('#classe-plesso')
     page.wait_for_function("""() =>
