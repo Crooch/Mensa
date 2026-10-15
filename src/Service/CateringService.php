@@ -151,9 +151,6 @@ final class CateringService
             }
             $puliti[(string) $g] = trim($valore);
         }
-        if (implode('', $puliti) === '') {
-            throw HttpException::nonValido('Inserisci almeno un giorno del menu settimanale');
-        }
         return $puliti;
     }
 
@@ -162,8 +159,40 @@ final class CateringService
         return $this->settimanali->elenco($this->dalGiornoSuccessivo());
     }
 
-    public function salvaMenuSettimanale(?int $id, string $nome, int $tipo, array $giorni, int $autore): int
+    /** Le foto sono file immutabili: una nuova revisione non sovrascrive quelle passate. */
+    private function salvaFotoSettimanale(array $file): string
     {
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            throw HttpException::nonValido('Caricamento foto non riuscito');
+        }
+        if ((int) ($file['size'] ?? 0) > (int) Config::get('storage.max_upload_bytes', 4194304)) {
+            throw HttpException::nonValido('La foto supera la dimensione massima consentita');
+        }
+        $tipi = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+        $percorsoTemporaneo = (string) ($file['tmp_name'] ?? '');
+        if (!is_uploaded_file($percorsoTemporaneo)) {
+            throw HttpException::nonValido('Foto non valida');
+        }
+        $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($percorsoTemporaneo);
+        if (!isset($tipi[$mime]) || @getimagesize($percorsoTemporaneo) === false) {
+            throw HttpException::nonValido('Usa una foto JPG, PNG o WebP valida');
+        }
+        $cartella = (string) Config::get('storage.menu_dir') . DIRECTORY_SEPARATOR . 'settimane';
+        if (!is_dir($cartella) && !mkdir($cartella, 0775, true) && !is_dir($cartella)) {
+            throw new \RuntimeException('Impossibile predisporre la cartella delle foto');
+        }
+        $nome = bin2hex(random_bytes(16)) . '.' . $tipi[$mime];
+        if (!move_uploaded_file($percorsoTemporaneo, $cartella . DIRECTORY_SEPARATOR . $nome)) {
+            throw new \RuntimeException('Salvataggio foto non riuscito');
+        }
+        return 'menu/settimane/' . $nome;
+    }
+
+    /** @param array<string,array> $nuoveFoto $_FILES raggruppati per giorno. */
+    public function salvaMenuSettimanale(
+        ?int $id, string $nome, int $tipo, array $giorni, int $autore,
+        array $nuoveFoto = [], array $fotoDaRimuovere = [], array $fotoDaCopiare = []
+    ): int {
         $nome = trim($nome);
         if ($nome === '' || strlen($nome) > 150) {
             throw HttpException::nonValido('Indica un nome per il menu settimanale (massimo 150 caratteri)');
@@ -173,13 +202,43 @@ final class CateringService
         }
         $contenuti = $this->validaGiorni($giorni);
         $dal = $this->dalGiornoSuccessivo();
-        if ($id === null) return $this->settimanali->crea($nome, $tipo, $contenuti, $dal, $autore);
-        $esistente = $this->settimanali->modello($id, $dal);
-        if (!$esistente) throw HttpException::nonTrovato('Menu settimanale inesistente');
-        if ((int) $esistente['tipologia_menu_id'] !== $tipo) {
+        $esistente = $id !== null ? $this->settimanali->modello($id, $dal) : null;
+        if ($id !== null && !$esistente) {
+            throw HttpException::nonTrovato('Menu settimanale inesistente');
+        }
+        if ($esistente && (int) $esistente['tipologia_menu_id'] !== $tipo) {
             throw HttpException::nonValido('La tipologia di un menu già assegnato non può cambiare: duplicalo');
         }
-        $this->settimanali->modifica($id, $nome, $contenuti, $dal, $autore);
+        $fotoGiorni = $esistente['foto_giorni'] ?? $fotoDaCopiare;
+        $daCaricare = [];
+        for ($i = 1; $i <= 7; $i++) {
+            $giorno = (string) $i;
+            $foto = $nuoveFoto[$giorno] ?? $nuoveFoto[$i] ?? null;
+            $rimozione = in_array($giorno, array_map('strval', $fotoDaRimuovere), true);
+            if ($foto !== null && ($foto['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                if ($rimozione) {
+                    throw HttpException::nonValido('Non puoi sostituire e rimuovere la stessa foto');
+                }
+                if (($foto['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                    throw HttpException::nonValido('Caricamento foto non riuscito per il giorno ' . $i);
+                }
+                $daCaricare[$giorno] = $foto;
+            } elseif ($rimozione) {
+                unset($fotoGiorni[$giorno]);
+            }
+        }
+        if (implode('', $contenuti) === '' && $fotoGiorni === [] && $daCaricare === []) {
+            throw HttpException::nonValido('Indica almeno un giorno con una descrizione o una foto');
+        }
+        foreach ($daCaricare as $giorno => $foto) {
+            // Ogni caricamento crea un nuovo file e conserva quello referenziato
+            // dalla revisione precedente: niente sovrascritture storiche.
+            $fotoGiorni[(string) $giorno] = $this->salvaFotoSettimanale($foto);
+        }
+        if ($id === null) {
+            return $this->settimanali->crea($nome, $tipo, $contenuti, $dal, $autore, $fotoGiorni);
+        }
+        $this->settimanali->modifica($id, $nome, $contenuti, $dal, $autore, $fotoGiorni);
         return $id;
     }
 
@@ -187,7 +246,9 @@ final class CateringService
     {
         $modello = $this->settimanali->modello($id, $this->dalGiornoSuccessivo());
         if (!$modello) throw HttpException::nonTrovato('Menu settimanale da duplicare inesistente');
-        return $this->salvaMenuSettimanale(null, $nome, $tipo, $modello['giorni'], $autore);
+        return $this->salvaMenuSettimanale(
+            null, $nome, $tipo, $modello['giorni'], $autore, [], [], $modello['foto_giorni']
+        );
     }
 
     public function assegnazioniMenuSettimanali(): array
