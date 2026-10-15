@@ -47,7 +47,7 @@ require __DIR__ . '/partials/testa.php';
             <textarea id="menu-descrizione" rows="3" placeholder="Es. Pasta al pomodoro, pollo e verdure" data-testid="menu-descrizione-input"></textarea>
         </div>
         <div class="catering-campo">
-            <label>Foto del menu (facoltativa)</label>
+            <label for="menu-foto-widget-input">Foto del menu (facoltativa)</label>
             <div id="menu-foto-widget" class="menu-foto" data-testid="menu-foto-widget"></div>
         </div>
         <div class="catering-menu-azioni">
