@@ -2231,3 +2231,178 @@ body[data-ruolo="admin"] .admin-sezione-campi .riga-filtri > .campo-filtro > lab
     padding: 0;
     text-align: left !important;
 }
+
+
+/* Admin — Chiusura giornaliera dei pasti. Consultazione prima delle azioni. */
+body[data-ruolo="admin"] .admin-job-intro {
+    color: #425c73;
+    line-height: 1.55;
+    max-width: 95ch;
+    margin: .25rem 0 1.15rem;
+}
+body[data-ruolo="admin"] .admin-job-intro p { margin: 0; }
+body[data-ruolo="admin"] #vista-job .area-sezione-testa {
+    align-items: center;
+}
+body[data-ruolo="admin"] #job-data-oggi {
+    font-size: .92rem;
+    font-weight: 500;
+    color: #597087;
+}
+body[data-ruolo="admin"] .admin-job-scuole {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .85rem;
+}
+body[data-ruolo="admin"] .admin-job-scuola {
+    min-width: 0;
+    padding: 1.05rem 1.15rem;
+    border: 1px solid #d5e2ee;
+    border-radius: 10px;
+    background: #fff;
+}
+body[data-ruolo="admin"] .admin-job-scuola__testa {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .6rem;
+}
+body[data-ruolo="admin"] .admin-job-scuola__testa h3 {
+    margin: 0 0 .25rem;
+    font-size: 1.05rem;
+}
+body[data-ruolo="admin"] .admin-job-scuola__testa .nota { margin: 0; }
+body[data-ruolo="admin"] .admin-job-scuola__testa .badge-stato {
+    max-width: 100%;
+    text-align: center;
+    white-space: normal;
+}
+body[data-ruolo="admin"] .admin-job-scuola__numeri {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .45rem .9rem;
+    padding-top: .8rem;
+    margin-top: .75rem;
+    border-top: 1px solid #e6edf3;
+    font-size: .87rem;
+    line-height: 1.4;
+}
+body[data-ruolo="admin"] .admin-job-scuola__numeri strong {
+    font-size: 1.07rem;
+    color: #173e62;
+}
+body[data-ruolo="admin"] .admin-job-errore {
+    color: #963c24;
+    font-weight: 700;
+}
+body[data-ruolo="admin"] .admin-job-scuola__nota {
+    margin: .8rem 0 0;
+    line-height: 1.45;
+}
+body[data-ruolo="admin"] .admin-job-storico {
+    margin: .75rem 0 1.65rem;
+}
+body[data-ruolo="admin"] .admin-job-storico td,
+body[data-ruolo="admin"] .admin-job-storico th {
+    vertical-align: middle;
+}
+body[data-ruolo="admin"] .admin-job-storico .badge-stato {
+    display: inline-block;
+    white-space: normal;
+}
+body[data-ruolo="admin"] .admin-job-manuale {
+    border: 1px solid #d5e2ee;
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+    margin: 1.2rem 0 2rem;
+}
+body[data-ruolo="admin"] .admin-job-manuale > summary {
+    cursor: pointer;
+    padding: 1rem 1.15rem;
+    color: #194d75;
+    font-weight: 700;
+    font-size: 1rem;
+}
+body[data-ruolo="admin"] .admin-job-manuale[open] > summary {
+    border-bottom: 1px solid #d5e2ee;
+}
+body[data-ruolo="admin"] .admin-job-manuale__contenuto {
+    padding: 1.15rem;
+}
+body[data-ruolo="admin"] .admin-job-manuale__contenuto > p {
+    max-width: 85ch;
+    margin: 0 0 1rem;
+    line-height: 1.5;
+}
+body[data-ruolo="admin"] .admin-job-manuale__azioni {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: end;
+    gap: .8rem;
+}
+body[data-ruolo="admin"] .admin-job-manuale__azioni .campo-filtro {
+    min-width: 0;
+}
+body[data-ruolo="admin"] .admin-job-manuale__azioni .campo-filtro label {
+    display: block;
+    width: 100%;
+    text-align: left;
+    margin: 0 0 .3rem;
+    align-self: stretch;
+}
+body[data-ruolo="admin"] .admin-job-manuale__azioni select {
+    min-height: 44px;
+    width: 100%;
+}
+body[data-ruolo="admin"] .admin-job-manuale__azioni .btn {
+    margin: 0;
+    min-height: 44px;
+    white-space: normal;
+}
+body[data-ruolo="admin"] .admin-job-esito {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+    gap: .65rem;
+    margin-top: 1rem;
+}
+body[data-ruolo="admin"] .admin-job-esito[hidden] { display: none; }
+body[data-ruolo="admin"] .admin-job-risultato {
+    border: 1px solid #d5e2ee;
+    border-radius: 9px;
+    padding: .9rem 1rem;
+}
+body[data-ruolo="admin"] .admin-job-risultato h3 {
+    font-size: 1rem;
+    margin: 0 0 .5rem;
+}
+body[data-ruolo="admin"] .admin-job-risultato p {
+    margin: .6rem 0 0;
+    font-size: .91rem;
+}
+@media (max-width: 980px) {
+    body[data-ruolo="admin"] .admin-job-scuole {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="admin"] .admin-job-manuale__azioni {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    body[data-ruolo="admin"] .admin-job-manuale__azioni .campo-filtro {
+        grid-column: 1 / -1;
+    }
+}
+@media (max-width: 600px) {
+    body[data-ruolo="admin"] .admin-job-scuola { padding: .9rem; }
+    body[data-ruolo="admin"] .admin-job-scuola__testa { flex-direction: column; }
+    body[data-ruolo="admin"] .admin-job-manuale__azioni {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="admin"] .admin-job-manuale__azioni .campo-filtro {
+        grid-column: auto;
+    }
+    body[data-ruolo="admin"] .admin-job-manuale__azioni .btn {
+        width: 100%;
+    }
+}
