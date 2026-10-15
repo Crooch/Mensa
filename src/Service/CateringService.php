@@ -400,10 +400,17 @@ final class CateringService
         }
     }
 
-    /** Riepilogo delle sole variazioni giornaliere, senza i modelli ripetuti. */
-    public function variazioniProgrammate(): array
+    /** Riepilogo paginato delle sole variazioni, senza i modelli ripetuti. */
+    public function variazioniProgrammate(int $paginaRichiesta = 1): array
     {
-        $righe = $this->menu->elencoProgrammati(date('Y-m-d'));
+        $dal = date('Y-m-d');
+        $perPagina = 10;
+        $totale = $this->menu->contaProgrammati($dal);
+        $pagine = max(1, (int) ceil($totale / $perPagina));
+        // Se si annulla l'ultima variazione dell'ultima pagina, torna
+        // automaticamente all'ultima pagina ancora esistente.
+        $pagina = max(1, min($paginaRichiesta, $pagine));
+        $righe = $this->menu->elencoProgrammati($dal, $pagina, $perPagina);
         foreach ($righe as &$riga) {
             $plessoId = (int) $riga['plesso_id'];
             $data = (string) $riga['data'];
@@ -422,7 +429,13 @@ final class CateringService
                     ['ok', 'in_corso'], true);
         }
         unset($riga);
-        return $righe;
+        return [
+            'righe' => $righe,
+            'pagina' => $pagina,
+            'per_pagina' => $perPagina,
+            'totale' => $totale,
+            'pagine' => $pagine,
+        ];
     }
 
     /** Cancella solo la variazione scelta; se esiste, riemerge il modello. */
