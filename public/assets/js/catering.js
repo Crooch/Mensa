@@ -72,10 +72,33 @@ let ultimaRichiestaReport = 0;
 
 /** Quantita' effettive per menu: la pasta in bianco e' mostrata a parte. */
 function voceDistribuzione(tipo) {
+    const nomeMenu = tipo.menu_nome
+        ? esc(tipo.menu_nome)
+        : 'Menu non disponibile';
     return `<span class="catering-quantita">
         <strong>${Number(tipo.pasti_ordinari ?? tipo.pasti)}</strong>
-        <span>${esc(tipo.tipologia_nome)}</span>
+        <span class="catering-quantita__testi">${esc(tipo.tipologia_nome)}
+            <small class="catering-quantita__modello">${nomeMenu}</small>
+        </span>
     </span>`;
+}
+
+/** I piatti del giorno sono consultabili una volta per scuola,
+ * senza ripetere descrizioni lunghe in ogni classe. */
+function dettaglioPiattiScuola(plesso) {
+    const tipi = (plesso.tipologie || []).filter(t => Number(t.pasti_ordinari ?? t.pasti) > 0);
+    if (!tipi.length) return '';
+    return `<details class="catering-scuola__piatti">
+        <summary>Piatti previsti per questa data</summary>
+        <div class="catering-scuola__piatti-elenco">
+            ${tipi.map(t => `<div class="catering-scuola__piatto">
+                <strong>${esc(t.tipologia_nome)} · ${esc(t.menu_nome || 'Menu non disponibile')}</strong>
+                <p>${t.menu_descrizione
+                    ? esc(t.menu_descrizione)
+                    : 'Nessun piatto descritto per questa data.'}</p>
+            </div>`).join('')}
+        </div>
+    </details>`;
 }
 
 /** Mostra subito le tipologie principali, lasciando accessibili le altre. */
@@ -137,8 +160,9 @@ function schedaDistribuzioneScuola(plesso) {
         <p class="catering-scuola__sintesi">${totale - bianchi} da menu
             ${bianchi ? ` · <strong>${bianchi} pasta in bianco</strong>` : ''}</p>
         <div class="catering-scuola__tipologie">
-            <h4>Pasti per tipo di menu</h4>
+            <h4>Tipologie e menu assegnati</h4>
             ${ripartizioneCompatta(plesso.tipologie)}
+            ${dettaglioPiattiScuola(plesso)}
         </div>
         <h4 class="catering-scuola__titolo-classi">Pasti per classe o sezione</h4>
         <ul class="catering-scuola__classi">${classi.map(rigaDistribuzioneClasse).join('')}</ul>
