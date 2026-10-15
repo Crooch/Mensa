@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 // Job giornaliero da schedulare via cron (o Utility di pianificazione su Windows).
 //
-// Esempio crontab, ogni 5 minuti (valuta il cutoff di ciascun plesso):
+// Esempio crontab, ogni 5 minuti, TUTTI i giorni (anche weekend):
+// le aperture straordinarie possono prevalere sulle chiusure del calendario.
+// L'applicazione decide scuola per scuola se contabilizzare dopo il cutoff.
 //   [*]/5 * * * * /usr/bin/php /percorso/app/bin/cron_daily.php >> /percorso/app/storage/cron.log 2>&1
 // (sostituire [*] con l'asterisco)
 //
