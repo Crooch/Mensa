@@ -27,14 +27,18 @@ try {
 
     $giorni = ['1' => "Primo: pasta\nSecondo: pollo", '2' => 'Riso',
         '3' => '', '4' => 'Verdure', '5' => 'Pesce', '6' => '', '7' => ''];
-    $id = $repo->crea('Settimana A', $standard, $giorni, '2026-10-19', 0);
+    $fotoStorica = 'menu/settimane/foto-versione-originale.jpg';
+    $fotoNuova = 'menu/settimane/foto-versione-nuova.png';
+    $id = $repo->crea('Settimana A', $standard, $giorni, '2026-10-19', 0,
+        ['1' => $fotoStorica]);
     $repo->assegna([$infanzia, $secondaria], $standard, $id, '2026-10-19', 0);
 
     foreach ([$infanzia, $secondaria] as $plesso) {
         $righe = $service->menuDelGiorno('2026-10-19', $plesso);
         if (count($righe) !== 1 ||
             $righe[0]['descrizione'] !== $giorni['1'] ||
-            $righe[0]['origine'] !== 'settimanale') {
+            $righe[0]['origine'] !== 'settimanale' ||
+            $righe[0]['foto_path'] !== $fotoStorica) {
             throw new RuntimeException('Il menu assegnato non compare su entrambi i plessi');
         }
     }
@@ -47,16 +51,27 @@ try {
 
     $nuovi = $giorni;
     $nuovi['1'] = 'Primo: fusilli';
-    $repo->modifica($id, 'Settimana A aggiornata', $nuovi, '2026-10-26', 0);
+    $repo->modifica($id, 'Settimana A aggiornata', $nuovi, '2026-10-26', 0,
+        ['1' => $fotoNuova]);
     $storico = $service->menuDelGiorno('2026-10-19', $infanzia);
     if (count($storico) !== 1 || $storico[0]['descrizione'] !== $giorni['1'] ||
-        $storico[0]['modello_nome'] !== 'Settimana A') {
+        $storico[0]['modello_nome'] !== 'Settimana A' ||
+        $storico[0]['foto_path'] !== $fotoStorica) {
         throw new RuntimeException('La revisione ha riscritto un menu storico');
     }
     $futuro = $service->menuDelGiorno('2026-10-26', $infanzia);
     if (count($futuro) !== 1 || $futuro[0]['descrizione'] !== 'Primo: fusilli' ||
-        $futuro[0]['modello_nome'] !== 'Settimana A aggiornata') {
+        $futuro[0]['modello_nome'] !== 'Settimana A aggiornata' ||
+        $futuro[0]['foto_path'] !== $fotoNuova) {
         throw new RuntimeException('La revisione non vale dalle date future');
+    }
+
+    // Togliere una foto in una revisione non fa scomparire quella storica.
+    $repo->modifica($id, 'Settimana A senza foto', $nuovi, '2026-11-02', 0, []);
+    if ($service->menuDelGiorno('2026-10-19', $secondaria)[0]['foto_path'] !== $fotoStorica ||
+        $service->menuDelGiorno('2026-10-26', $secondaria)[0]['foto_path'] !== $fotoNuova ||
+        $service->menuDelGiorno('2026-11-02', $secondaria)[0]['foto_path'] !== null) {
+        throw new RuntimeException('La rimozione di una foto futura ha danneggiato lo storico');
     }
 
     $secondo = $repo->crea('Settimana B', $standard,
