@@ -2217,3 +2217,17 @@ body[data-ruolo="admin"] .admin-config fieldset :is(input, select) {
         width: 100%;
     }
 }
+
+/* La regola legacy .riga-filtri label usava align-self:center:
+   nei contenitori verticali centrava le etichette sopra i campi.
+   Forziamo la stessa larghezza e lo stesso margine sinistro dell'input. */
+body[data-ruolo="admin"] .riga-filtri > .campo-filtro > label,
+body[data-ruolo="admin"] .admin-sezione-campi .riga-filtri > .campo-filtro > label {
+    align-self: stretch !important;
+    width: 100% !important;
+    max-width: 100%;
+    flex: none;
+    margin: 0 0 .3rem !important;
+    padding: 0;
+    text-align: left !important;
+}
