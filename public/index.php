@@ -43,6 +43,14 @@ if ($percorso === '/scheduler') {
 // solo per path logico; il controllo di accesso richiede un utente autenticato)
 // ---------------------------------------------------------------------
 if (strncmp($percorso, '/storage/', 9) === 0) {
+    // Le fotografie possono riferirsi a minori e menu dietetici:
+    // l'accesso e' consentito soltanto con una sessione applicativa valida.
+    try {
+        $container->autenticazione()->autorizza($richiesta, []);
+    } catch (HttpException $e) {
+        Response::errore($e->getCode(), $e->getMessage());
+        return;
+    }
     $relativo = substr($percorso, 9);
     if (str_contains($relativo, '..')) {
         Response::errore(400, 'Percorso non valido');
