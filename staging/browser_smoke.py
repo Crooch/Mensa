@@ -362,8 +362,8 @@ def collaudo_completo_famiglia_scuola_cucina(browser):
             return el && el.textContent.includes('Testuno Mario');
         }""", timeout=15000)
         assert '1 pasta in bianco' in cucina.locator('#report').inner_text()
-        assert cucina.locator('[data-testid="report-plesso-1"] .saldo').inner_text() == '2', (
-            'Il totale della scuola deve includere la pasta in bianco una sola volta'
+        assert cucina.locator('[data-testid="report-plesso-1"] .saldo').inner_text() == '4', (
+            'Il totale dell’intero plesso deve includere la pasta in bianco una sola volta'
         )
         controlla_dimensioni(cucina, "Catering: pasta in bianco visibile")
 
@@ -378,7 +378,7 @@ def collaudo_completo_famiglia_scuola_cucina(browser):
             const report = document.querySelector('#report')?.textContent || '';
             const totale = document.querySelector('[data-testid="report-plesso-1"] .saldo');
             return stato.includes('Pasti per il') && !report.includes('Testuno Mario')
-                && !report.includes('1 pasta in bianco') && totale?.textContent.trim() === '1';
+                && !report.includes('1 pasta in bianco') && totale?.textContent.trim() === '3';
         }""", timeout=15000)
         scuola.locator('#btn-carica').click()
         scuola.wait_for_function("""() => {
@@ -393,12 +393,12 @@ def collaudo_completo_famiglia_scuola_cucina(browser):
         cucina.locator('#btn-report').click()
         cucina.wait_for_function("""() => {
             const totale = document.querySelector('[data-testid="report-plesso-1"] .saldo');
-            return totale && totale.textContent.trim() === '2';
+            return totale && totale.textContent.trim() === '4';
         }""", timeout=15000)
         assert 'Testuno Mario' not in cucina.locator('#report').inner_text()
         assert '1 pasta in bianco' not in cucina.locator('#report').inner_text()
         controlla_dimensioni(cucina, "Catering: pasti ripristinati")
-        print("OK: browser mobile Genitore → Scuola → Catering; 2→1→2 pasti e pasta in bianco mai conteggiata due volte.")
+        print("OK: browser mobile Genitore → Scuola → Catering; 4→3→4 pasti e pasta in bianco mai conteggiata due volte.")
     finally:
         for ctx in contesti:
             ctx.close()
