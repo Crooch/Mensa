@@ -53,6 +53,20 @@ final class MenuGiornalieroRepository extends Repository
         ) === 1;
     }
 
+    /** Solo le eccezioni esplicite a partire da oggi (non tutti i modelli). */
+    public function elencoProgrammati(string $dal): array
+    {
+        return $this->tutti(
+            'SELECT m.*, p.nome AS plesso_nome, t.nome AS tipologia_nome
+             FROM menu_giornalieri m
+             JOIN plessi p ON p.id = m.plesso_id
+             JOIN tipologie_menu t ON t.id = m.tipologia_menu_id
+             WHERE m.data >= :dal
+             ORDER BY m.data, p.nome, t.nome',
+            ['dal' => $dal]
+        );
+    }
+
     /** Le pubblicazioni passate non vengono mai cancellate: restano consultabili. */
     public function elenco(string $data, ?int $plessoId = null): array
     {
