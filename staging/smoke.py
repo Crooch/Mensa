@@ -47,7 +47,11 @@ storico_dopo = call("/api/job/esecuzioni", token=admin)
 assert stato_uno == stato_due, "Il monitoraggio deve essere ripetibile"
 assert storico_prima == storico_dopo, "La consultazione non deve aprire esecuzioni"
 assert stato_uno["data"] == dt.date.today().isoformat()
-assert len(stato_uno["scuole"]) == 3
+scuole_attive = call("/api/admin/plessi", token=admin)
+assert len(stato_uno["scuole"]) == len(scuole_attive), (
+    f"Lo stato deve coprire tutte le scuole attive: {len(stato_uno['scuole'])}/"
+    f"{len(scuole_attive)}"
+)
 assert all(r["stato"] in ("non_prevista", "in_attesa", "da_eseguire",
                           "in_corso", "completata", "errore")
            for r in stato_uno["scuole"])
