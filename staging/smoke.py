@@ -406,8 +406,14 @@ for plesso_assegnato in (1, 3):
     )
     scuola = next(p for p in report_con_modello["plessi"]
         if int(p["plesso_id"]) == plesso_assegnato)
-    tipo = next(t for t in scuola["tipologie"]
-        if int(t["tipologia_id"]) == tipologia_menu)
+    attive = [t for t in scuola["tipologie"]
+        if int(t["tipologia_id"]) == tipologia_menu and int(t["pasti"]) > 0]
+    # Un'assegnazione senza alunni per quella tipologia non genera pasti:
+    # la scuola secondaria sintetica ha soltanto alunni Standard.
+    if not attive:
+        assert plesso_assegnato == 3
+        continue
+    tipo = attive[0]
     assert tipo["menu_nome"] == "Settimana base - collaudo"
     assert tipo["menu_descrizione"] == "Primo: pasta\\nSecondo: verdure"
     assert tipo["menu_origine"] == "settimanale"
