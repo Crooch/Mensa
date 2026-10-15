@@ -25,15 +25,33 @@ $container = new Container();
 // /scheduler?key=... (nessun token utente, chiave configurata in config)
 // ---------------------------------------------------------------------
 if ($percorso === '/scheduler') {
-    $chiaveAttesa = (string) Config::get('app.scheduler_key');
-    if (($richiesta->query('key') ?? '') !== $chiaveAttesa || $chiaveAttesa === '') {
-        Response::errore(403, 'Chiave scheduler non valida');
+    // Cron CLI preferito in produzione. L'endpoint web e' disattivato
+    // per default e non puo' avviare addebiti durante un semplice deploy.
+    if (Config::get('app.scheduler_enabled', false) !== true) {
+        Response::errore(503, 'Scheduler non abilitato');
+        return;
+    }
+    $chiaveAttesa = (string) Config::get('app.scheduler_key', '');
+    $chiaveRicevuta = (string) ($richiesta->query('key') ?? '');
+    if ($richiesta->metodo() !== 'GET'
+        || strlen($chiaveAttesa) < 32
+        || $chiaveAttesa === 'cambiami-scheduler-key'
+        || !hash_equals($chiaveAttesa, $chiaveRicevuta)) {
+        Response::errore(403, 'Scheduler non autorizzato');
         return;
     }
     try {
-        Response::ok($container->job()->eseguiScheduler());
+        $risultati = $container->job()->eseguiScheduler();
+        foreach ($risultati as $riga) {
+            if (in_array($riga['stato'] ?? '', ['errore', 'errore_precedente'], true)) {
+                Response::errore(500, 'Chiusura con errore: verificare lo storico');
+                return;
+            }
+        }
+        Response::ok($risultati);
     } catch (\Throwable $e) {
-        Response::errore(500, $e->getMessage());
+        error_log('[mensa scheduler] ' . $e->getMessage());
+        Response::errore(500, 'Errore interno durante la chiusura');
     }
     return;
 }
