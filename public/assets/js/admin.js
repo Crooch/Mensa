@@ -94,7 +94,33 @@ document.getElementById('plesso-annulla').addEventListener('click', () => {
 /* ---------------- calendario mensa ---------------- */
 const giorniCalendario = ['lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi'];
 document.getElementById('classe-anno').value = annoScolasticoCorrente();
+let periodiCalendario = [];
 
+function annoScolasticoCalendario(data) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data || '')) return 'da definire';
+    const anno = Number(data.slice(0, 4));
+    const mese = Number(data.slice(5, 7));
+    const inizio = mese >= 9 ? anno : anno - 1;
+    return inizio + '/' + (inizio + 1);
+}
+function aggiornaAnnoCalendario() {
+    const data = document.getElementById('calendario-inizio').value;
+    document.getElementById('calendario-anno-scolastico').textContent =
+        annoScolasticoCalendario(data);
+}
+function messaggioPeriodo(testo = '', errore = false) {
+    const messaggio = document.getElementById('eccezione-messaggio');
+    messaggio.textContent = testo;
+    messaggio.hidden = !testo;
+    messaggio.classList.toggle('admin-periodo-messaggio--errore', errore);
+}
+function azzeraModuloPeriodo() {
+    document.getElementById('form-eccezione-calendario').reset();
+    document.getElementById('eccezione-id').value = '';
+    document.getElementById('eccezione-annulla').hidden = true;
+    document.querySelector('[data-testid="eccezione-salva"]').textContent = 'Salva periodo';
+    messaggioPeriodo();
+}
 async function caricaCalendario() {
     const id = document.getElementById('calendario-plesso').value;
     const richiesta = ++numeroRichiestaCalendario;
@@ -105,60 +131,115 @@ async function caricaCalendario() {
     const cfg = dati.configurazione || {};
     document.getElementById('calendario-inizio').value = cfg.data_inizio || '';
     document.getElementById('calendario-fine').value = cfg.data_fine || '';
-    giorniCalendario.forEach((g) => {
+    aggiornaAnnoCalendario();
+    giorniCalendario.forEach(g => {
         document.getElementById('calendario-' + g).checked = Number(cfg[g]) === 1;
     });
+    periodiCalendario = dati.eccezioni || [];
     const corpo = document.getElementById('eccezioni-calendario-corpo');
-    corpo.innerHTML = (dati.eccezioni || []).map((e) => `
-        <tr><td>${dataIt(e.giorno)}</td>
-            <td>${Number(e.servizio_attivo) === 1 ? 'Apertura' : 'Chiusura'}</td>
+    corpo.innerHTML = periodiCalendario.map(e => `
+        <tr>
+            <td>${dataIt(e.giorno)}</td>
+            <td>${e.giorno_fine === e.giorno ? 'Un solo giorno' : dataIt(e.giorno_fine)}</td>
+            <td><span class="badge-stato badge-${Number(e.servizio_attivo) === 1 ? 'verde' : 'rosso'}">${Number(e.servizio_attivo) === 1 ? 'Apertura' : 'Chiusura'}</span></td>
             <td>${esc(e.motivazione)}</td>
-            <td><button class="btn-azione" data-cancella-eccezione="${esc(e.giorno)}">Elimina</button></td>
-        </tr>`).join('') || '<tr><td colspan="4" class="vuoto">Nessun giorno modificato rispetto al calendario normale.</td></tr>';
-    corpo.querySelectorAll('[data-cancella-eccezione]').forEach((btn) => btn.addEventListener('click', async () => {
-        if (!confirm('Vuoi togliere questa modifica? Per quel giorno tornerà a valere il calendario normale.')) return;
-        try {
-            await API.del('/api/admin/calendari/' + id + '/eccezioni/' + btn.dataset.cancellaEccezione);
-            avviso('Modifica cancellata. Ora vale il calendario normale.');
-            await caricaCalendario();
-        } catch (err) { avviso(err.message, 'errore'); }
-    }));
+            <td class="admin-periodo-azioni">
+                <button type="button" class="btn-azione" data-modifica-periodo="${Number(e.id)}">Modifica</button>
+                <button type="button" class="btn-azione" data-cancella-periodo="${Number(e.id)}">Elimina</button>
+            </td>
+        </tr>`).join('') || '<tr><td colspan="5" class="vuoto">Nessuna apertura o chiusura straordinaria registrata.</td></tr>';
+    azzeraModuloPeriodo();
 }
-
-document.getElementById('calendario-plesso').addEventListener('change', () => {
-    caricaCalendario().catch((err) => avviso(err.message, 'errore'));
+document.getElementById('eccezioni-calendario-corpo').addEventListener('click', async ev => {
+    const pulsante = ev.target.closest('button');
+    if (!pulsante) return;
+    const id = document.getElementById('calendario-plesso').value;
+    const modifica = pulsante.dataset.modificaPeriodo;
+    const cancella = pulsante.dataset.cancellaPeriodo;
+    const p = periodiCalendario.find(e => String(e.id) === String(modifica || cancella));
+    if (!p || !id) return;
+    if (modifica) {
+        document.getElementById('eccezione-id').value = p.id;
+        document.getElementById('eccezione-data').value = p.giorno;
+        document.getElementById('eccezione-fine').value = p.giorno_fine === p.giorno ? '' : p.giorno_fine;
+        document.getElementById('eccezione-attivo').value = String(Number(p.servizio_attivo));
+        document.getElementById('eccezione-motivazione').value = p.motivazione;
+        document.getElementById('eccezione-annulla').hidden = false;
+        document.querySelector('[data-testid="eccezione-salva"]').textContent = 'Salva modifiche';
+        messaggioPeriodo('Stai modificando il periodo selezionato.');
+        document.getElementById('form-eccezione-calendario').scrollIntoView({behavior: 'smooth', block: 'start'});
+        document.getElementById('eccezione-data').focus({preventScroll: true});
+    } else if (cancella) {
+        const periodo = p.giorno_fine === p.giorno ? dataIt(p.giorno)
+            : dataIt(p.giorno) + ' – ' + dataIt(p.giorno_fine);
+        if (!confirm('Eliminare ' + periodo + '? Tornerà a valere il calendario ordinario.')) return;
+        try {
+            await API.del('/api/admin/calendari/' + id + '/periodi/' + p.id);
+            avviso('Periodo eliminato. Ora vale il calendario ordinario.');
+            await caricaCalendario();
+        } catch (err) {
+            messaggioPeriodo(err.message, true);
+        }
+    }
 });
-
-document.getElementById('form-calendario').addEventListener('submit', async (ev) => {
+document.getElementById('eccezione-annulla').addEventListener('click', azzeraModuloPeriodo);
+document.getElementById('calendario-inizio').addEventListener('change', aggiornaAnnoCalendario);
+document.getElementById('calendario-plesso').addEventListener('change', () => {
+    periodiCalendario = [];
+    azzeraModuloPeriodo();
+    caricaCalendario().catch(err => avviso(err.message, 'errore'));
+});
+document.getElementById('form-calendario').addEventListener('submit', async ev => {
     ev.preventDefault();
     const id = document.getElementById('calendario-plesso').value;
+    if (!id) { avviso('Seleziona una scuola.', 'errore'); return; }
     const dati = {
         data_inizio: document.getElementById('calendario-inizio').value,
         data_fine: document.getElementById('calendario-fine').value || null
     };
-    giorniCalendario.forEach((g) => { dati[g] = document.getElementById('calendario-' + g).checked ? 1 : 0; });
+    giorniCalendario.forEach(g => {
+        dati[g] = document.getElementById('calendario-' + g).checked ? 1 : 0;
+    });
     try {
         await API.put('/api/admin/calendari/' + id, dati);
-        avviso('Giorni della mensa salvati per la scuola selezionata.');
+        avviso('Calendario ordinario salvato per la scuola selezionata.');
         await caricaCalendario();
     } catch (err) { avviso(err.message, 'errore'); }
 });
-
-document.getElementById('form-eccezione-calendario').addEventListener('submit', async (ev) => {
+document.getElementById('form-eccezione-calendario').addEventListener('submit', async ev => {
     ev.preventDefault();
     const id = document.getElementById('calendario-plesso').value;
-    const data = document.getElementById('eccezione-data').value;
+    const periodoId = document.getElementById('eccezione-id').value;
+    const dal = document.getElementById('eccezione-data').value;
+    const al = document.getElementById('eccezione-fine').value || dal;
+    messaggioPeriodo();
+    if (!id || !dal || al < dal) {
+        messaggioPeriodo('Controlla le date: la fine non può precedere l’inizio.', true);
+        return;
+    }
+    const dati = {
+        data_inizio: dal,
+        data_fine: al,
+        servizio_attivo: Number(document.getElementById('eccezione-attivo').value),
+        motivazione: document.getElementById('eccezione-motivazione').value.trim()
+    };
+    const percorso = '/api/admin/calendari/' + id + '/periodi';
+    const pulsante = ev.submitter || document.querySelector('[data-testid="eccezione-salva"]');
+    pulsante.disabled = true;
     try {
-        await API.put('/api/admin/calendari/' + id + '/eccezioni/' + data, {
-            servizio_attivo: Number(document.getElementById('eccezione-attivo').value),
-            motivazione: document.getElementById('eccezione-motivazione').value.trim()
-        });
-        avviso('Modifica al calendario salvata per la data selezionata.');
-        document.getElementById('form-eccezione-calendario').reset();
+        if (periodoId) {
+            await API.put(percorso + '/' + periodoId, dati);
+        } else {
+            await API.post(percorso, dati);
+        }
+        avviso('Periodo straordinario salvato.');
         await caricaCalendario();
-    } catch (err) { avviso(err.message, 'errore'); }
+    } catch (err) {
+        messaggioPeriodo(err.message, true);
+    } finally {
+        pulsante.disabled = false;
+    }
 });
-
 document.getElementById('calendario-verifica').addEventListener('click', async () => {
     const id = document.getElementById('calendario-plesso').value;
     const data = document.getElementById('calendario-verifica-data').value;
