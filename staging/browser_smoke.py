@@ -106,11 +106,25 @@ def controlla_report_distribuzione(page, larghezza):
         "pasti": 8, "pasti_ordinari": 4 if i == 0 else 8,
         "pasta_in_bianco": 4 if i == 0 else 0
     } for i in range(12)]
-    dati = {"data": "2099-10-19", "totale_pasti": 96, "plessi": [{
+    dati = {"data": "2099-10-19", "totale_pasti": 98, "plessi": [{
         "plesso_id": 1, "plesso_nome": "Scuola di collaudo sintetico",
         "totale_pasti": 96, "pasti_ordinari": 92, "totale_pasta_in_bianco": 4,
         "cutoff_orario": "09:15", "definitivo": False,
         "sezioni": sezioni, "tipologie": tipi_totale, "pasta_in_bianco": []
+    }, {
+        "plesso_id": 2, "plesso_nome": "Seconda scuola fittizia",
+        "totale_pasti": 2, "pasti_ordinari": 2, "totale_pasta_in_bianco": 0,
+        "cutoff_orario": "09:15", "definitivo": True,
+        "sezioni": [{
+            "classe_id": 100, "classe_nome": "Classe 1A",
+            "pasti": 2, "pasti_ordinari": 2, "pasta_in_bianco": 0,
+            "tipologie": [{"tipologia_id": 1, "tipologia_nome": "Standard",
+                           "pasti": 2, "pasti_ordinari": 2, "pasta_in_bianco": 0,
+                           "richieste_pasta": []}]
+        }],
+        "tipologie": [{"tipologia_id": 1, "tipologia_nome": "Standard",
+                       "pasti": 2, "pasti_ordinari": 2, "pasta_in_bianco": 0}],
+        "pasta_in_bianco": []
     }]}
     pagina_report = "**/api/catering/report?data=2099-10-19"
     page.route(pagina_report, lambda route: route.fulfill(
@@ -121,19 +135,36 @@ def controlla_report_distribuzione(page, larghezza):
     page.locator('#report-data').fill('2099-10-19')
     page.locator('#btn-report').click()
     page.wait_for_function("""() =>
-        document.querySelectorAll('#report .catering-classe__tipo').length === 48
+        document.querySelectorAll('#report .catering-classe').length === 5
     """, timeout=12000)
     controlla_dimensioni(page, f"report esteso@{larghezza}")
-    assert page.locator("#report .catering-classe").count() == 4
+    assert page.locator("#report .catering-scuola").count() == 2
+    assert page.locator("#report .catering-classe").count() == 5
     assert page.locator("#report .catering-classe__bianco").count() == 4
+    assert page.locator("#report .catering-ripartizione__altre").count() == 5
+    assert page.locator("#report input, #report select").count() == 0
     assert page.locator("#report .catering-classe table").count() == 0
+    dettagli = page.locator("#report .catering-classe__riga").first
+    dettagli.wait_for()
+    assert page.locator("#report .catering-classe__riga").first.is_visible()
+    altri = page.locator("#report .catering-classe .catering-ripartizione__altre").first
+    assert not altri.evaluate("(nodo) => nodo.open")
+    altri.locator("summary").click()
+    assert altri.evaluate("(nodo) => nodo.open")
+    assert "Dieta scolastica speciale con descrizione lunga 12" in altri.inner_text()
+    assert "98" in page.locator("#report-riepilogo").inner_text()
+    assert page.locator("#report-plesso, #report-classe-cerca").count() == 0
+    card_1 = page.locator("#report .catering-scuola").nth(0).bounding_box()
+    card_2 = page.locator("#report .catering-scuola").nth(1).bounding_box()
+    assert card_1 and card_2
+    if larghezza > 900:
+        assert abs(card_1["y"] - card_2["y"]) < 10, "Le scuole devono essere affiancate sul desktop"
+    else:
+        assert card_2["y"] > card_1["y"], "Le scuole devono essere in colonna su mobile/tablet"
+    controlla_dimensioni(page, f"report 12 tipologie@{larghezza}")
     page.screenshot(path=str(OUTPUT / f"distribuzione-12-menu-{larghezza}.png"),
                     full_page=True)
-    page.locator("#report-classe-cerca").fill("Sezione di prova 3")
-    assert page.locator("#report .catering-classe").count() == 1
-    assert "96" in page.locator("#report-riepilogo").inner_text()
-    controlla_dimensioni(page, f"report filtrato@{larghezza}")
-    print(f"OK: distribuzione@{larghezza}, 4 classi, 12 menu ciascuna, 4 paste in bianco, filtri e zero overflow")
+    print(f"OK: report compatto@{larghezza}, 2 scuole, 4 classi con 12 tipi, pasta in bianco visibile, dettagli nativi")
 
 with sync_playwright() as engine:
     browser = engine.chromium.launch(headless=True, args=["--no-sandbox"])
