@@ -601,3 +601,68 @@ except urllib.error.HTTPError as exc:
 print("OK: programmazione futura, elenco, aggiornamento e annullamento senza modello.")
 
 print("OK: foto settimanale aggiunta, condivisa, duplicata e rimossa via multipart; copia preservata.")
+
+
+# Periodi straordinari: test API sul SOLO database sintetico di staging.
+cal = "/api/admin/calendari/1"
+def salva_periodo(inizio, fine, attivo, motivazione, periodo_id=None):
+    url = cal + "/periodi" + ("/" + str(periodo_id) if periodo_id is not None else "")
+    return call(url, {
+        "data_inizio": inizio, "data_fine": fine,
+        "servizio_attivo": attivo, "motivazione": motivazione
+    }, token=admin)
+
+chiusura_a = salva_periodo("2027-02-12", "2027-02-14", 0, "Chiusura A")["id"]
+chiusura_b = salva_periodo("2027-02-14", "2027-02-16", 0, "Chiusura B")["id"]
+periodi = call(cal, token=admin)["eccezioni"]
+assert any(int(p["id"]) == int(chiusura_a) and p["giorno_fine"] == "2027-02-14"
+           for p in periodi)
+assert any(int(p["id"]) == int(chiusura_b) and p["giorno_fine"] == "2027-02-16"
+           for p in periodi)
+assert call(cal + "/verifica?data=2027-02-14", token=admin) == {
+    "attivo": False, "motivo": "chiusura_programmata"
+}
+for da, a, stato in [
+    ("2027-02-13", "2027-02-16", 0),  # sovrapposizione interna, stesso tipo
+    ("2027-02-16", "2027-02-18", 1),  # solo confine ma apertura/chiusura opposti
+    ("2027-02-12", "2027-02-14", 0),  # duplicazione
+    ("2027-02-14", "2027-02-14", 1),  # giorno singolo con stato opposto
+]:
+    try:
+        salva_periodo(da, a, stato, "Conflitto atteso")
+        raise AssertionError("Sovrapposizione accettata: " + da + " - " + a)
+    except urllib.error.HTTPError as exc:
+        assert exc.code == 422, "Sovrapposizione: atteso HTTP 422"
+# Modifica di un periodo senza duplicare record, e successiva cancellazione.
+salva_periodo("2027-02-14", "2027-02-17", 0, "Chiusura B modificata", chiusura_b)
+assert next(p for p in call(cal, token=admin)["eccezioni"]
+            if int(p["id"]) == int(chiusura_b))["giorno_fine"] == "2027-02-17"
+call(cal + "/periodi/" + str(chiusura_b), token=admin) if False else None
+# Apertura deliberata di sabato/domenica e in una festività nazionale.
+apertura_weekend = salva_periodo("2027-02-20", "2027-02-21", 1, "Servizio speciale")["id"]
+for giorno_speciale in ("2027-02-20", "2027-02-21"):
+    assert call(cal + "/verifica?data=" + giorno_speciale, token=admin) == {
+        "attivo": True, "motivo": "apertura_straordinaria"
+    }
+apertura_festa = salva_periodo("2026-12-08", "", 1, "Apertura eccezionale")["id"]
+assert call(cal + "/verifica?data=2026-12-08", token=admin) == {
+    "attivo": True, "motivo": "apertura_straordinaria"
+}
+# Verifica anche l'apertura prima della data d'avvio ordinaria.
+apertura_pre = salva_periodo("2026-10-17", "", 1, "Servizio precedente avvio")["id"]
+assert call(cal + "/verifica?data=2026-10-17", token=admin) == {
+    "attivo": True, "motivo": "apertura_straordinaria"
+}
+# I vecchi endpoint giornalieri non devono sovrascrivere un periodo intero.
+try:
+    call(cal + "/eccezioni/2027-02-12", {
+        "servizio_attivo": 1, "motivazione": "Modifica impropria"
+    }, token=admin)
+    raise AssertionError("Endpoint legacy ha alterato un periodo pluriennale")
+except urllib.error.HTTPError as exc:
+    assert exc.code == 422
+# Nessuna delle operazioni precedenti deve incidere su presenze/crediti,
+# perché non è mai stato chiamato lo scheduler.
+assert call("/api/job/esecuzioni", token=admin) == storico_dopo
+print("OK: intervalli contigui dello stesso tipo, conflitti 422, modifica, "
+      "aperture weekend/festivita/prima dell'avvio, niente job eseguiti.")
