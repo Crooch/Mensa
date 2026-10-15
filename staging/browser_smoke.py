@@ -362,6 +362,9 @@ def collaudo_completo_famiglia_scuola_cucina(browser):
             return el && el.textContent.includes('Testuno Mario');
         }""", timeout=15000)
         assert '1 pasta in bianco' in cucina.locator('#report').inner_text()
+        assert cucina.locator('[data-testid="report-plesso-1"] .saldo').inner_text() == '2', (
+            'Il totale della scuola deve includere la pasta in bianco una sola volta'
+        )
         controlla_dimensioni(cucina, "Catering: pasta in bianco visibile")
 
         # Se il genitore annulla il pasto, la pasta in bianco viene eliminata
@@ -373,8 +376,9 @@ def collaudo_completo_famiglia_scuola_cucina(browser):
         cucina.wait_for_function("""() => {
             const stato = document.querySelector('#report-stato')?.textContent || '';
             const report = document.querySelector('#report')?.textContent || '';
+            const totale = document.querySelector('[data-testid="report-plesso-1"] .saldo');
             return stato.includes('Pasti per il') && !report.includes('Testuno Mario')
-                && !report.includes('1 pasta in bianco');
+                && !report.includes('1 pasta in bianco') && totale?.textContent.trim() === '1';
         }""", timeout=15000)
         scuola.locator('#btn-carica').click()
         scuola.wait_for_function("""() => {
@@ -387,11 +391,14 @@ def collaudo_completo_famiglia_scuola_cucina(browser):
         dettaglio.locator('[data-cal-stato="assente"]').wait_for(state="visible")
         assert 'Non richiesta' in dettaglio.inner_text()
         cucina.locator('#btn-report').click()
-        cucina.wait_for_function("""() =>
-            document.querySelector('#report-stato')?.textContent.includes('Pasti per il')
-        """)
+        cucina.wait_for_function("""() => {
+            const totale = document.querySelector('[data-testid="report-plesso-1"] .saldo');
+            return totale && totale.textContent.trim() === '2';
+        }""", timeout=15000)
         assert 'Testuno Mario' not in cucina.locator('#report').inner_text()
-        print("OK: browser mobile Genitore → Scuola → Catering; richiesta, assenza, ricalcolo e ripristino.")
+        assert '1 pasta in bianco' not in cucina.locator('#report').inner_text()
+        controlla_dimensioni(cucina, "Catering: pasti ripristinati")
+        print("OK: browser mobile Genitore → Scuola → Catering; 2→1→2 pasti e pasta in bianco mai conteggiata due volte.")
     finally:
         for ctx in contesti:
             ctx.close()
