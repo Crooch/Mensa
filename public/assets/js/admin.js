@@ -229,10 +229,10 @@ function aggiornaSceltaClasse() {
     // del plesso in ogni riga e senza modificare il suo storico.
     const corpo = document.getElementById('classi-corpo');
     corpo.innerHTML = scuola.map(c => `
-        <tr><td>${esc(c.plesso_nome)}</td><td>${esc(c.nome)}</td><td>${esc(c.anno_scolastico)}</td>
+        <tr data-classe="${Number(c.id)}"><td>${esc(c.nome)}</td><td>${esc(c.anno_scolastico)}</td>
         <td><button type="button" class="btn-azione" data-cancella-classe="${Number(c.id)}"
             data-testid="classe-cancella-${Number(c.id)}">Disattiva classe</button></td></tr>`).join('')
-        || '<tr><td colspan="4" class="vuoto">Non ci sono classi registrate per questa scuola.</td></tr>';
+        || '<tr><td colspan="3" class="vuoto">Non ci sono classi registrate per questa scuola.</td></tr>';
     corpo.querySelectorAll('[data-cancella-classe]').forEach(b => b.addEventListener('click', async () => {
         if (!confirm('Vuoi disattivare questa classe? Le assegnazioni precedenti rimarranno nello storico.')) return;
         try {
