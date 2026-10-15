@@ -1,7 +1,10 @@
 # Mensa Caltavuturo — esito collaudo tecnico `dev`
 
 **Data:** 15 ottobre 2026. **Ambiente:** CI GitHub Actions con Docker
-`mensa_staging` sintetico. **Ultima revisione dell'interfaccia collaudata:** `67b6127` (Catering compatto). **Test PHP di integrazione aggiornati:** `f214600`.
+`mensa_staging` sintetico. **Ramo:** `Crooch/Mensa:dev`.
+I test sono stati aggiornati progressivamente per la gestione dei menù e la
+preparazione al rilascio. I risultati seguenti si riferiscono a dati fittizi;
+la produzione non è stata modificata.
 
 ## Risultati automatici
 
@@ -20,14 +23,20 @@
 | Catering | Browser con due scuole, quattro classi con 12 varianti ciascuna, desktop 1366 px, tablet 768 px e mobile 375 px | SUPERATO |
 | Catering | Altri tipi di menu espandibili senza campo di ricerca, nessuno scorrimento orizzontale | SUPERATO |
 | MariaDB CI | Tipologie alimentari miste per classe, pasta in bianco associata correttamente a dieta e sezione | SUPERATO |
+| MariaDB CI | Migrazioni 002–008 applicate due volte; saldi e movimenti preesistenti sintetici invariati | SUPERATO |
+| Docker CI | Backup dello staging con ripristino in un **secondo** database sintetico, verifica struttura e conteggi, eliminazione copia temporanea | SUPERATO |
+| Catering | Variazioni giornaliere: ordinamento data futura per prima, 10 per pagina, annullamento e nessun messaggio ridondante | SUPERATO |
 
-### Evidenze
+### Evidenze più recenti
 
-- [PHP quality checks aggiornati](https://github.com/Crooch/Mensa/actions/runs/38708436322) — test di integrazione anche per diete miste.
-- [Staging Docker HTTP smoke aggiornato](https://github.com/Crooch/Mensa/actions/runs/38708352704) — verifica delle somme fra classe, tipologie e pasta in bianco.
-- [Staging Browser 5 ruoli aggiornato](https://github.com/Crooch/Mensa/actions/runs/38708352738) — report compatto a tre larghezze e numerose tipologie.
-- Gli screenshot (esclusivamente con dati sintetici) sono allegati come artifact
-  nella run del browser. La conservazione in GitHub Actions è limitata a 7 giorni.
+- [GitHub PHP quality checks](https://github.com/Crooch/Mensa/actions/runs/38719791383):
+  controlli PHP/JS, integrazione e migrazioni sul database sintetico.
+- [Staging Docker HTTP e ripristino backup](https://github.com/Crooch/Mensa/actions/runs/38719791629):
+  prova HTTP, dump e ripristino in una seconda base; confronto tabelle e saldi.
+- [Browser Chrome/Chromium — cinque ruoli](https://github.com/Crooch/Mensa/actions/runs/38718493124):
+  test automatico precedente al solo aggiornamento delle procedure di rilascio.
+- Screenshot dei test browser disponibili negli artifact delle relative
+  pipeline GitHub, con conservazione limitata; nessun dato reale di minori.
 
 I test Chromium esaminano **solo navigazione, visibilità dei pannelli,
 overflow e assenza di eccezioni JS**; non sostituiscono l'esame umano della
@@ -55,8 +64,9 @@ leggibilità, dell'accessibilità o del corretto flusso operativo.
       su soli dati fittizi.
 - [ ] Admin: plessi, calendario, classi, utenze e comportamento senza job.
 - [ ] Verifica con il Comune delle regole operative e approvazione del rilascio.
-- [ ] Backup, prova del rollback in un ambiente non produttivo e autorizzazione
-      specifica prima di toccare `main` o la VPS.
+- [x] Prova **sintetica** di dump e ripristino su seconda base Docker separata.
+- [ ] Prova di migrazione e ripristino su **copia isolata e protetta del database comunale**, senza trasferire dati personali in CI pubblica.
+- [ ] Autorizzazione specifica prima di toccare `main` o la VPS.
 
 ## Regole di sicurezza del collaudo
 
