@@ -718,6 +718,9 @@ async function caricaStatoJob() {
         const risposta = await API.get('/api/job/stato');
         if (richiesta !== richiestaMonitoraggioJob) return;
         document.getElementById('job-data-oggi').textContent = '· ' + dataIt(risposta.data);
+        const abilitato = risposta.scheduler_abilitato === true;
+        document.getElementById('btn-scheduler').disabled = !abilitato;
+        document.getElementById('btn-job-plesso').disabled = !abilitato;
         const scuole = Array.isArray(risposta.scuole) ? risposta.scuole : [];
         document.getElementById('job-scuole').innerHTML = scuole.map(p => {
             const statoBase = statoChiusura[p.stato] || ['Da verificare', 'rosso'];
@@ -753,7 +756,9 @@ async function caricaStatoJob() {
                 ${chiarimento ? '<p class="nota admin-job-scuola__nota">' + esc(chiarimento) + '</p>' : ''}
             </article>`;
         }).join('') || '<p class="nota">Non ci sono scuole da controllare.</p>';
-        stato.textContent = '';
+        stato.textContent = abilitato
+            ? ''
+            : 'Le chiusure giornaliere sono disabilitate: consultazione e storico disponibili, nessun addebito attivabile.';
     } catch (err) {
         if (richiesta !== richiestaMonitoraggioJob) return;
         stato.textContent = 'Non è stato possibile caricare la situazione: ' + err.message;
