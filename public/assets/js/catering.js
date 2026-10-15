@@ -5,6 +5,8 @@ let menuPubblicati = [];
 let menuDisponibili = false;
 let numeroRichiestaMenu = 0;
 let numeroRichiestaVariazioni = 0;
+let paginaVariazioni = 1;
+let totalePagineVariazioni = 1;
 let variazioniProgrammate = [];
 
 /** Cutoff del plesso, sempre riverificato dal server al salvataggio. */
@@ -300,15 +302,31 @@ async function caricaMenu() {
 }
 
 /** Elenco breve e cronologico delle sole eccezioni; un clic apre il giorno. */
-async function caricaVariazioniProgrammate() {
+async function caricaVariazioniProgrammate(pagina = paginaVariazioni) {
     const richiesta = ++numeroRichiestaVariazioni;
     const stato = document.getElementById('menu-variazioni-stato');
+    const precedente = document.getElementById('menu-variazioni-precedenti');
+    const successivo = document.getElementById('menu-variazioni-successive');
+    precedente.disabled = true;
+    successivo.disabled = true;
     stato.textContent = 'Caricamento delle variazioni…';
     try {
-        const righe = await API.get('/api/catering/menu/variazioni');
+        const risultato = await API.get('/api/catering/menu/variazioni?pagina=' + pagina);
         if (richiesta !== numeroRichiestaVariazioni) return;
+        const righe = risultato.righe;
+        paginaVariazioni = Number(risultato.pagina);
+        totalePagineVariazioni = Number(risultato.pagine);
+        const totale = Number(risultato.totale);
         variazioniProgrammate = righe;
-        stato.textContent = righe.length + ' variazioni da oggi in poi.';
+        stato.textContent = totale === 0
+            ? 'Nessuna variazione giornaliera programmata.'
+            : totale + ' variazioni programmate · 10 per pagina.';
+        const navigazione = document.getElementById('menu-variazioni-pagine');
+        navigazione.hidden = totalePagineVariazioni <= 1;
+        precedente.disabled = paginaVariazioni <= 1;
+        successivo.disabled = paginaVariazioni >= totalePagineVariazioni;
+        document.getElementById('menu-variazioni-indicatore').textContent =
+            'Pagina ' + paginaVariazioni + ' di ' + totalePagineVariazioni;
         document.getElementById('menu-variazioni-lista').innerHTML = righe.length
             ? righe.map(m => `<article class="catering-variazione" data-testid="variazione-${Number(m.id)}">
                 <div class="catering-variazione__info">
@@ -340,6 +358,8 @@ async function caricaVariazioniProgrammate() {
             }));
     } catch (errore) {
         if (richiesta !== numeroRichiestaVariazioni) return;
+        document.getElementById('menu-variazioni-pagine').hidden = true;
+        document.getElementById('menu-variazioni-lista').innerHTML = '';
         stato.textContent = 'Impossibile caricare le variazioni: ' + errore.message;
     }
 }
@@ -387,6 +407,12 @@ async function caricaFeedback() {
 
 document.getElementById('menu-plesso').addEventListener('change', sincronizzaMenuSelezionato);
 document.getElementById('menu-tipologia').addEventListener('change', sincronizzaMenuSelezionato);
+document.getElementById('menu-variazioni-precedenti').addEventListener('click', () => {
+    if (paginaVariazioni > 1) caricaVariazioniProgrammate(paginaVariazioni - 1);
+});
+document.getElementById('menu-variazioni-successive').addEventListener('click', () => {
+    if (paginaVariazioni < totalePagineVariazioni) caricaVariazioniProgrammate(paginaVariazioni + 1);
+});
 document.getElementById('menu-data').addEventListener('change', () =>
     caricaMenu().catch(e => avviso('Impossibile mostrare i menu: ' + e.message, 'errore')));
 
@@ -465,7 +491,7 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
         avviso(esistente
             ? 'Menu ' + tipologia.nome + ' aggiornato. Gli altri menu sono invariati.'
             : 'Menu ' + tipologia.nome + ' pubblicato.', 'ok');
-        await Promise.all([caricaMenu(), caricaVariazioniProgrammate()]);
+        await Promise.all([caricaMenu(), caricaVariazioniProgrammate(1)]);
     } catch (err) {
         avviso('Non è stato possibile completare il salvataggio: ' + err.message, 'errore');
     }
