@@ -239,15 +239,15 @@ for (const variante of ['report', 'menu', 'feedback']) {
 for (const id of ['menu-selezione-stato', 'menu-foto-widget', 'menu-submit']) {
     assert.ok(cateringHtml.includes('id="' + id + '"'), 'Campo Catering mancante: ' + id);
 }
-assert.match(cateringJs, /'Aggiorna menu'\s*:\s*'Pubblica menu'/);
-assert.match(cateringJs, /Aggiornerai solo questo menu: gli altri non cambiano/);
+assert.match(cateringJs, /'Salva modifica'\s*:\s*'Pubblica menu'/);
+assert.match(cateringJs, /Puoi modificarla o annullarla senza cambiare gli altri giorni/);
 assert.match(readFileSync('public/assets/js/menu_foto.js', 'utf8'), /Sostituisci foto/);
 assert.match(cateringJs, /data-menu-modifica="/);
 assert.match(cateringJs, /UI\.conferma\(/);
 const cssCatering = css.slice(css.indexOf('/* Catering: griglie uniformi'));
 assert.ok(cssCatering.startsWith('/* Catering: griglie uniformi'));
 assert.match(cssCatering, /\.catering-filtri--report\s*\{[^}]*grid-template-columns:/s);
-assert.match(cssCatering, /\.catering-filtri--menu\s*\{[^}]*grid-template-columns:\s*repeat\(2,/s);
+assert.match(cssCatering, /\.catering-filtri--menu\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*210px\)\s+repeat\(2,/s);
 assert.match(cssCatering, /\.catering-filtri--feedback\s*\{[^}]*grid-template-columns:/s);
 assert.match(cssCatering, /@media \(max-width: 980px\)/);
 assert.match(cssCatering, /@media \(max-width: 600px\)/);
@@ -293,3 +293,8 @@ assert.ok(cssSettimane.startsWith('/* Catalogo di settimane tipo'));
 assert.ok(cssSettimane.includes('max-width: 940px'));
 assert.ok(cssSettimane.includes('max-width: 600px'));
 console.log('OK: catalogo settimanale con sette giorni e assegnazioni, desktop/mobile.');
+
+assert.ok(cateringHtml.includes('id="menu-data"'), 'La data del menu deve essere selezionabile');
+assert.ok(cateringHtml.includes('id="menu-variazioni-lista"'), 'Le variazioni future devono essere elencate');
+assert.ok(cateringJs.includes("'/api/catering/menu/annulla'"), 'Annullamento disponibile per le variazioni');
+console.log('OK: scelta data, modifica e annullamento delle variazioni programmate.');
