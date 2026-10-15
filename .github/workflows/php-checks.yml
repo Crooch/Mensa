@@ -42,6 +42,23 @@ jobs:
           node tests/catering_ui.mjs
           node tests/ui_scuola.mjs
           node tests/ui_testi.mjs
+      - name: Scheduler default-off and read-only diagnostic
+        run: |
+          set -euo pipefail
+          php bin/cron_daily.php --check > /tmp/mensa-scheduler-check.txt
+          grep -q 'Scheduler: DISABILITATO' /tmp/mensa-scheduler-check.txt
+          grep -q "Nessun job o accesso al database" /tmp/mensa-scheduler-check.txt
+          if php bin/cron_daily.php > /tmp/mensa-scheduler-exec.txt 2>&1; then
+            echo 'Scheduler executed without explicit enable switch' >&2
+            exit 1
+          fi
+          grep -q 'Scheduler disabilitato' /tmp/mensa-scheduler-exec.txt
+          if php bin/cron_daily.php 2026-10-01 > /tmp/mensa-scheduler-date.txt 2>&1; then
+            echo 'Scheduler accepted a forced historical date' >&2
+            exit 1
+          fi
+          grep -q 'Argomenti non consentiti' /tmp/mensa-scheduler-date.txt
+          echo 'OK: default off, --check safe, no historical date'
       - name: Calendar regression tests
         run: php tests/calendario.php
       - name: Install MariaDB CLI
