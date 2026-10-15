@@ -163,9 +163,9 @@ function formAcquisto(genitoreId) {
         : Array.from(crypto.getRandomValues(new Uint8Array(16)), (n) => n.toString(16).padStart(2, '0')).join('');
     apriModale('Registra un acquisto di buoni mensa', `
         <form data-testid="acquisto-form">
-            <label>Plesso</label><select name="plesso_id" id="acq-plesso" data-testid="acquisto-plesso-select">${opzioniPlessi()}</select>
-            <label>Quanti buoni sono stati acquistati?</label><input type="number" min="1" name="numero_buoni" id="acq-buoni" value="10" data-testid="acquisto-buoni-input">
-            <label>Note (facoltative)</label><input type="text" name="note" data-testid="acquisto-note-input">
+            <label for="acq-plesso">Plesso</label><select name="plesso_id" id="acq-plesso" data-testid="acquisto-plesso-select">${opzioniPlessi()}</select>
+            <label for="acq-buoni">Quanti buoni sono stati acquistati?</label><input type="number" min="1" name="numero_buoni" id="acq-buoni" value="10" data-testid="acquisto-buoni-input">
+            <label for="op-acquisto-note-input">Note (facoltative)</label><input id="op-acquisto-note-input" type="text" name="note" data-testid="acquisto-note-input">
             <p class="nota">Registra l'acquisto solo dopo avere verificato che il pagamento sia stato effettivamente ricevuto.</p>
             <p class="banner" id="acq-importo" data-testid="acquisto-importo">L'importo viene calcolato automaticamente.</p>
             <button class="btn btn-primary" type="submit" data-testid="acquisto-submit-button">Conferma l'acquisto</button>
@@ -206,9 +206,9 @@ function formAcquisto(genitoreId) {
 function formOverride(genitoreId) {
     apriModale('Imposta una tariffa agevolata', `
         <form data-testid="override-form">
-            <label>Plesso</label><select name="plesso_id" data-testid="override-plesso-select">${opzioniPlessi()}</select>
-            <label>Nuovo prezzo di un pasto (€)</label><input type="number" step="0.01" min="0" name="tariffa" data-testid="override-tariffa-input" required>
-            <label>Perché è prevista questa tariffa? (es. delibera)</label><textarea name="motivazione" rows="2" data-testid="override-motivazione-input" required></textarea>
+            <label for="op-override-plesso-select">Plesso</label><select id="op-override-plesso-select" name="plesso_id" data-testid="override-plesso-select">${opzioniPlessi()}</select>
+            <label for="op-override-tariffa-input">Nuovo prezzo di un pasto (€)</label><input id="op-override-tariffa-input" type="number" step="0.01" min="0" name="tariffa" data-testid="override-tariffa-input" required>
+            <label for="op-override-motivazione-input">Perché è prevista questa tariffa? (es. delibera)</label><textarea id="op-override-motivazione-input" name="motivazione" rows="2" data-testid="override-motivazione-input" required></textarea>
             <button class="btn btn-primary" type="submit" data-testid="override-submit-button">Salva tariffa agevolata</button>
         </form>`, async (fd) => {
         await API.post('/api/tariffe/override', {
@@ -227,10 +227,10 @@ function formRettifica(genitoreId) {
         : Array.from(crypto.getRandomValues(new Uint8Array(16)), (n) => n.toString(16).padStart(2, '0')).join('');
     apriModale('Correggi il numero di buoni', `
         <form data-testid="rettifica-form">
-            <label>Plesso</label><select name="plesso_id" data-testid="rettifica-plesso-select">${opzioniPlessi()}</select>
+            <label for="op-rettifica-plesso-select">Plesso</label><select id="op-rettifica-plesso-select" name="plesso_id" data-testid="rettifica-plesso-select">${opzioniPlessi()}</select>
             <p class="nota">Scrivi per esempio <strong>2</strong> per aggiungere due buoni oppure <strong>-2</strong> per toglierne due. Questa operazione viene registrata nello storico.</p>
-            <label>Quanti buoni aggiungere o togliere?</label><input type="number" name="delta" data-testid="rettifica-delta-input" required>
-            <label>Motivazione</label><input type="text" name="note" data-testid="rettifica-note-input" required>
+            <label for="op-rettifica-delta-input">Quanti buoni aggiungere o togliere?</label><input id="op-rettifica-delta-input" type="number" name="delta" data-testid="rettifica-delta-input" required>
+            <label for="op-rettifica-note-input">Motivazione</label><input id="op-rettifica-note-input" type="text" name="note" data-testid="rettifica-note-input" required>
             <button class="btn btn-primary" type="submit" data-testid="rettifica-submit-button">Salva la correzione</button>
         </form>`, async (fd) => {
         const delta = Number(fd.get('delta'));
@@ -253,12 +253,12 @@ function formRettifica(genitoreId) {
 function formNuovoGenitore() {
     apriModale('Aggiungi una famiglia', `
         <form data-testid="genitore-form">
-            <label>Nome</label><input type="text" name="nome" data-testid="genitore-nome-input" required>
-            <label>Cognome</label><input type="text" name="cognome" data-testid="genitore-cognome-input" required>
-            <label>Telefono (obbligatorio)</label><input type="text" name="telefono" data-testid="genitore-telefono-input" required>
-            <label>Email (facoltativa, usata per i solleciti)</label><input type="text" name="email" data-testid="genitore-email-input">
-            <label>Nome utente per accedere (deve essere unico)</label><input type="text" name="username" data-testid="genitore-username-input" required>
-            <label>Password iniziale (almeno 8 caratteri)</label><input type="password" name="password" data-testid="genitore-password-input" required>
+            <label for="op-genitore-nome-input">Nome</label><input id="op-genitore-nome-input" type="text" name="nome" data-testid="genitore-nome-input" required>
+            <label for="op-genitore-cognome-input">Cognome</label><input id="op-genitore-cognome-input" type="text" name="cognome" data-testid="genitore-cognome-input" required>
+            <label for="op-genitore-telefono-input">Telefono (obbligatorio)</label><input id="op-genitore-telefono-input" type="text" name="telefono" data-testid="genitore-telefono-input" required>
+            <label for="op-genitore-email-input">Email (facoltativa, usata per i solleciti)</label><input id="op-genitore-email-input" type="text" name="email" data-testid="genitore-email-input">
+            <label for="op-genitore-username-input">Nome utente per accedere (deve essere unico)</label><input id="op-genitore-username-input" type="text" name="username" data-testid="genitore-username-input" required>
+            <label for="op-genitore-password-input">Password iniziale (almeno 8 caratteri)</label><input id="op-genitore-password-input" type="password" name="password" data-testid="genitore-password-input" required>
             <button class="btn btn-primary" type="submit" data-testid="genitore-submit-button">Salva la famiglia</button>
         </form>`, async (fd) => {
         const esito = await API.post('/api/famiglie', Object.fromEntries(fd.entries()));
@@ -271,10 +271,10 @@ function formNuovoGenitore() {
 function formModificaGenitore(g) {
     apriModale('Modifica dati famiglia', `
         <form data-testid="modifica-genitore-form">
-            <label>Nome</label><input type="text" name="nome" value="${esc(g.nome)}" data-testid="modifica-nome-input">
-            <label>Cognome</label><input type="text" name="cognome" value="${esc(g.cognome)}" data-testid="modifica-cognome-input">
-            <label>Telefono</label><input type="text" name="telefono" value="${esc(g.telefono)}" data-testid="modifica-telefono-input">
-            <label>Email</label><input type="text" name="email" value="${esc(g.email || '')}" data-testid="modifica-email-input">
+            <label for="op-modifica-nome-input">Nome</label><input id="op-modifica-nome-input" type="text" name="nome" value="${esc(g.nome)}" data-testid="modifica-nome-input">
+            <label for="op-modifica-cognome-input">Cognome</label><input id="op-modifica-cognome-input" type="text" name="cognome" value="${esc(g.cognome)}" data-testid="modifica-cognome-input">
+            <label for="op-modifica-telefono-input">Telefono</label><input id="op-modifica-telefono-input" type="text" name="telefono" value="${esc(g.telefono)}" data-testid="modifica-telefono-input">
+            <label for="op-modifica-email-input">Email</label><input id="op-modifica-email-input" type="text" name="email" value="${esc(g.email || '')}" data-testid="modifica-email-input">
             <button class="btn btn-primary" type="submit" data-testid="modifica-submit-button">Salva</button>
         </form>`, async (fd) => {
         await API.put('/api/famiglie/' + g.id, Object.fromEntries(fd.entries()));
@@ -286,10 +286,10 @@ function formModificaGenitore(g) {
 function formNuovoFiglio(genitoreId) {
     apriModale('Nuovo alunno', `
         <form data-testid="bambino-form">
-            <label>Nome</label><input type="text" name="nome" data-testid="bambino-nome-input" required>
-            <label>Cognome</label><input type="text" name="cognome" data-testid="bambino-cognome-input" required>
-            <label>Tipologia menu</label><select name="tipologia_menu_id" data-testid="bambino-tipologia-select">${opzioniTipologie()}</select>
-            <label>Classe/sezione</label><select name="classe_sezione_id" data-testid="bambino-classe-select">${opzioniClassi()}</select>
+            <label for="op-bambino-nome-input">Nome</label><input id="op-bambino-nome-input" type="text" name="nome" data-testid="bambino-nome-input" required>
+            <label for="op-bambino-cognome-input">Cognome</label><input id="op-bambino-cognome-input" type="text" name="cognome" data-testid="bambino-cognome-input" required>
+            <label for="op-bambino-tipologia-select">Tipologia menu</label><select id="op-bambino-tipologia-select" name="tipologia_menu_id" data-testid="bambino-tipologia-select">${opzioniTipologie()}</select>
+            <label for="op-bambino-classe-select">Classe/sezione</label><select id="op-bambino-classe-select" name="classe_sezione_id" data-testid="bambino-classe-select">${opzioniClassi()}</select>
             <button class="btn btn-primary" type="submit" data-testid="bambino-submit-button">Crea alunno</button>
         </form>`, async (fd) => {
         await API.post('/api/bambini', { ...Object.fromEntries(fd.entries()), genitore_id: genitoreId });
@@ -301,8 +301,8 @@ function formNuovoFiglio(genitoreId) {
 function formCambioClasse(bambinoId) {
     apriModale('Cambia la classe del bambino', `
         <form data-testid="cambio-classe-form">
-            <label>Nuova classe</label><select name="classe_sezione_id" data-testid="cambio-classe-select">${opzioniClassi()}</select>
-            <label>Da quale giorno frequenta la nuova classe?</label><input type="date" name="data_inizio" value="${oggi()}" data-testid="cambio-classe-data-input">
+            <label for="op-cambio-classe-select">Nuova classe</label><select id="op-cambio-classe-select" name="classe_sezione_id" data-testid="cambio-classe-select">${opzioniClassi()}</select>
+            <label for="op-cambio-classe-data-input">Da quale giorno frequenta la nuova classe?</label><input id="op-cambio-classe-data-input" type="date" name="data_inizio" value="${oggi()}" data-testid="cambio-classe-data-input">
             <p class="nota">La classe precedente rimane nello storico; la nuova classe vale dal giorno indicato.</p>
             <button class="btn btn-primary" type="submit" data-testid="cambio-classe-submit-button">Assegna</button>
         </form>`, async (fd) => {
@@ -315,7 +315,7 @@ function formCambioClasse(bambinoId) {
 function formDieta(bambinoId) {
     apriModale('Cambia il menu del bambino', `
         <form data-testid="dieta-form">
-            <label>Nuovo tipo di menu</label><select name="tipologia_menu_id" data-testid="dieta-select">${opzioniTipologie()}</select>
+            <label for="op-dieta-select">Nuovo tipo di menu</label><select id="op-dieta-select" name="tipologia_menu_id" data-testid="dieta-select">${opzioniTipologie()}</select>
             <button class="btn btn-primary" type="submit" data-testid="dieta-submit-button">Salva</button>
         </form>`, async (fd) => {
         await API.put('/api/bambini/' + bambinoId, { tipologia_menu_id: Number(fd.get('tipologia_menu_id')) });
