@@ -94,6 +94,85 @@ final class CalendarioService
             : ['attivo' => false, 'motivo' => 'giorno_senza_servizio'];
     }
 
+    /**
+     * Riepilogo in sola lettura di tutte le scuole attive.
+     * Le classi appartengono alla scuola, non hanno calendari propri:
+     * il loro stato è quindi quello del plesso. Include soltanto le classi
+     * attive dell'anno scolastico della data richiesta.
+     */
+    public function riepilogoPlessi(string $data, array $classiAnno): array
+    {
+        if (!self::dataValida($data)) {
+            throw HttpException::nonValido('Seleziona una data valida (YYYY-MM-DD).');
+        }
+        $anno = (int) substr($data, 0, 4);
+        $annoInizio = (int) substr($data, 5, 2) >= 9 ? $anno : $anno - 1;
+        $annoScolastico = $annoInizio . '/' . ($annoInizio + 1);
+
+        $configurazioni = [];
+        foreach ($this->calendari->configurazioni() as $config) {
+            $configurazioni[(int) $config['plesso_id']] = $config;
+        }
+        $eccezioni = [];
+        foreach ($this->calendari->eccezioniPerData($data) as $riga) {
+            $id = (int) $riga['plesso_id'];
+            if (!isset($eccezioni[$id])) {
+                $eccezioni[$id] = $riga;
+            }
+        }
+        $perPlesso = [];
+        foreach ($classiAnno as $classe) {
+            if (($classe['anno_scolastico'] ?? null) !== $annoScolastico) {
+                continue;
+            }
+            $perPlesso[(int) $classe['plesso_id']][] = [
+                'id' => (int) $classe['id'],
+                'nome' => (string) $classe['nome'],
+            ];
+        }
+
+        $scuole = [];
+        $aperte = 0;
+        $classiAperte = 0;
+        $classiChiuse = 0;
+        foreach ($this->plessi->elenco() as $plesso) {
+            $id = (int) $plesso['id'];
+            $config = $configurazioni[$id] ?? null;
+            $eccezione = $eccezioni[$id] ?? null;
+            $esito = $config === null && $eccezione === null
+                ? ['attivo' => false, 'motivo' => 'calendario_non_configurato']
+                : self::valutaRegole($config ?? [], $eccezione, $data);
+            $classi = $perPlesso[$id] ?? [];
+            $numero = count($classi);
+            if ($esito['attivo']) {
+                $aperte++;
+                $classiAperte += $numero;
+            } else {
+                $classiChiuse += $numero;
+            }
+            $scuole[] = [
+                'plesso_id' => $id,
+                'plesso_nome' => (string) $plesso['nome'],
+                'attivo' => (bool) $esito['attivo'],
+                'motivo' => (string) $esito['motivo'],
+                'totale_classi' => $numero,
+                'classi' => $classi,
+            ];
+        }
+        return [
+            'data' => $data,
+            'anno_scolastico' => $annoScolastico,
+            'totali' => [
+                'scuole' => count($scuole),
+                'scuole_aperte' => $aperte,
+                'scuole_chiuse' => count($scuole) - $aperte,
+                'classi_aperte' => $classiAperte,
+                'classi_chiuse' => $classiChiuse,
+            ],
+            'scuole' => $scuole,
+        ];
+    }
+
     public function dettaglio(int $plessoId): array
     {
         $this->richiediPlesso($plessoId);
