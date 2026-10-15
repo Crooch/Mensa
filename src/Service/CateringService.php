@@ -191,7 +191,8 @@ final class CateringService
     /** @param array<string,array> $nuoveFoto $_FILES raggruppati per giorno. */
     public function salvaMenuSettimanale(
         ?int $id, string $nome, int $tipo, array $giorni, int $autore,
-        array $nuoveFoto = [], array $fotoDaRimuovere = [], array $fotoDaCopiare = []
+        array $nuoveFoto = [], array $fotoDaRimuovere = [], array $fotoDaCopiare = [],
+        ?int $duplicaDaId = null
     ): int {
         $nome = trim($nome);
         if ($nome === '' || strlen($nome) > 150) {
@@ -208,6 +209,18 @@ final class CateringService
         }
         if ($esistente && (int) $esistente['tipologia_menu_id'] !== $tipo) {
             throw HttpException::nonValido('La tipologia di un menu già assegnato non può cambiare: duplicalo');
+        }
+        // Nella duplicazione da interfaccia si ereditano i riferimenti alle foto
+        // immutabili del modello sorgente. Il nuovo modello mantiene poi revisioni autonome.
+        if ($duplicaDaId !== null) {
+            if ($id !== null || $duplicaDaId <= 0) {
+                throw HttpException::nonValido('Origine della duplicazione non valida');
+            }
+            $origine = $this->settimanali->modello($duplicaDaId, $dal);
+            if ($origine === null) {
+                throw HttpException::nonTrovato('Menu settimanale da duplicare inesistente');
+            }
+            $fotoDaCopiare = $origine['foto_giorni'] ?? [];
         }
         $fotoGiorni = $esistente['foto_giorni'] ?? $fotoDaCopiare;
         $daCaricare = [];
