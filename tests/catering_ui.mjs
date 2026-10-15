@@ -506,6 +506,9 @@ for (let i = 1; i <= 23; i++) {
     });
 }
 const ricaricaPagine = vm.runInContext('caricaVariazioniProgrammate', context);
+const totaleVariazioniTest = menuPubblicati.filter(
+    m => m.origine === 'giornaliero' && m.data >= '2026-10-14'
+).length;
 await ricaricaPagine(1);
 const primaPagina = elemento('menu-variazioni-lista').innerHTML;
 assert.equal((primaPagina.match(/class="catering-variazione"/g) || []).length, 10);
@@ -524,16 +527,17 @@ assert.notEqual(primaPagina, secondaPagina);
 await elemento('menu-variazioni-successive').handlers.click();
 await new Promise(resolve => setImmediate(resolve));
 assert.equal(elemento('menu-variazioni-indicatore').textContent, 'Pagina 3 di 3');
-assert.equal((elemento('menu-variazioni-lista').innerHTML.match(/class="catering-variazione"/g) || []).length, 3);
+assert.equal((elemento('menu-variazioni-lista').innerHTML.match(/class="catering-variazione"/g) || []).length,
+    totaleVariazioniTest - 20);
 assert.equal(elemento('menu-variazioni-successive').disabled, true);
 await elemento('menu-variazioni-precedenti').handlers.click();
 await new Promise(resolve => setImmediate(resolve));
 assert.equal(elemento('menu-variazioni-indicatore').textContent, 'Pagina 2 di 3');
 await ricaricaPagine(9999);
 assert.equal(elemento('menu-variazioni-indicatore').textContent, 'Pagina 3 di 3');
-menuPubblicati.splice(menuPubblicati.findIndex(m => m.id === 101), 1);
-menuPubblicati.splice(menuPubblicati.findIndex(m => m.id === 102), 1);
-menuPubblicati.splice(menuPubblicati.findIndex(m => m.id === 103), 1);
+for (let id = 101; id <= 110; id++) {
+    menuPubblicati.splice(menuPubblicati.findIndex(m => m.id === id), 1);
+}
 await ricaricaPagine(3);
 assert.equal(elemento('menu-variazioni-indicatore').textContent, 'Pagina 2 di 2');
 assert.equal(elemento('menu-variazioni-successive').disabled, true);
