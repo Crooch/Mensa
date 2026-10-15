@@ -69,103 +69,80 @@ abilitaSchede((vista) => {
 });
 
 let ultimaRichiestaReport = 0;
-let reportDistribuzione = null;
 
-/** Una scheda per classe: numeri distinti per menu, senza doppio conteggio. */
-function schedaDistribuzioneClasse(classe) {
+/** Quantita' effettive per menu: la pasta in bianco e' mostrata a parte. */
+function voceDistribuzione(tipo) {
+    return `<span class="catering-quantita">
+        <strong>${Number(tipo.pasti_ordinari ?? tipo.pasti)}</strong>
+        <span>${esc(tipo.tipologia_nome)}</span>
+    </span>`;
+}
+
+/** Mostra subito le tipologie principali, lasciando accessibili le altre. */
+function ripartizioneCompatta(tipologie, limite = 3) {
+    const tipi = (tipologie || [])
+        .filter(t => Number(t.pasti_ordinari ?? t.pasti) > 0)
+        .sort((a, b) => Number(b.pasti_ordinari ?? b.pasti) - Number(a.pasti_ordinari ?? a.pasti));
+    const principali = tipi.slice(0, limite);
+    const altre = tipi.slice(limite);
+    const totaleAltre = altre.reduce((somma, t) => somma + Number(t.pasti_ordinari ?? t.pasti), 0);
+    return `<div class="catering-ripartizione">
+        ${principali.map(voceDistribuzione).join('')}
+        ${altre.length ? `<details class="catering-ripartizione__altre">
+            <summary>Altri ${altre.length} tipi (${totaleAltre} pasti)</summary>
+            <div class="catering-ripartizione__dettagli">
+                ${altre.map(voceDistribuzione).join('')}
+            </div>
+        </details>` : ''}
+    </div>`;
+}
+
+/** Una riga per classe, leggibile insieme alle altre a colpo d'occhio. */
+function rigaDistribuzioneClasse(classe) {
     const tipi = (classe.tipologie || []).filter(t => Number(t.pasti) > 0);
+    const bianchi = tipi.filter(t => Number(t.pasta_in_bianco || 0) > 0);
     const ordinari = Number(classe.pasti_ordinari ?? classe.pasti);
-    const bianco = Number(classe.pasta_in_bianco || 0);
-    return `
-        <section class="catering-classe" data-testid="report-classe-${Number(classe.classe_id)}">
-            <header class="catering-classe__testa">
-                <h4>${esc(classe.classe_nome)}</h4>
-                <strong class="catering-classe__totale">${Number(classe.pasti)} <span>pasti</span></strong>
-            </header>
-            ${Number(classe.pasti) ? `
-                <p class="catering-classe__sintesi">${ordinari} pasti da menu
-                    ${bianco ? ` · <strong>${bianco} pasta in bianco</strong>` : ''}</p>
-                <ul class="catering-classe__menu">
-                ${tipi.map(t => `
-                    <li class="catering-classe__tipo">
-                        <div class="catering-classe__tipo-testa">
-                            <span class="catering-classe__tipo-nome">${esc(t.tipologia_nome)}</span>
-                            <span class="catering-classe__numero">${Number(t.pasti_ordinari ?? t.pasti)}
-                                <small>menu</small></span>
-                        </div>
-                        ${Number(t.pasta_in_bianco || 0) ? `
-                            <div class="catering-classe__bianco">
-                                <strong>${Number(t.pasta_in_bianco)} pasta in bianco</strong>
-                                <span class="catering-classe__nomi">
-                                    ${(t.richieste_pasta || []).map(b =>
-                                        esc(b.cognome) + ' ' + esc(b.nome)).join(', ')}
-                                </span>
-                            </div>` : ''}
-                    </li>`).join('')}
-                </ul>` : '<p class="catering-classe__vuoto">Nessun pasto da distribuire</p>'}
-        </section>`;
+    return `<li class="catering-classe" data-testid="report-classe-${Number(classe.classe_id)}">
+        <div class="catering-classe__riga">
+            <h4>${esc(classe.classe_nome)}</h4>
+            <strong class="catering-classe__totale">${Number(classe.pasti)} <small>pasti</small></strong>
+        </div>
+        ${Number(classe.pasti) === 0
+            ? '<p class="catering-classe__vuoto">Nessun pasto previsto</p>'
+            : `${ordinari > 0 ? ripartizioneCompatta(tipi) : ''}
+                ${bianchi.map(t => `<div class="catering-classe__bianco">
+                    <strong>${Number(t.pasta_in_bianco)} pasta in bianco</strong>
+                    <span class="catering-classe__bianco-tipo">${esc(t.tipologia_nome)}</span>
+                    <span class="catering-classe__nomi">${(t.richieste_pasta || [])
+                        .map(b => esc(b.cognome) + ' ' + esc(b.nome)).join(', ')}</span>
+                </div>`).join('')}`}
+    </li>`;
 }
 
-function riepilogoDistribuzioneTipologie(plesso) {
-    const tipi = (plesso.tipologie || []).filter(t => Number(t.pasti) > 0);
-    return `<details class="catering-plesso__tipi">
-        <summary>Totali per tipologia (${tipi.length})</summary>
-        <ul>${tipi.map(t => `
-            <li>
-                <span>${esc(t.tipologia_nome)}</span>
-                <span data-testid="report-tipologia-${Number(plesso.plesso_id)}-${Number(t.tipologia_id)}">
-                    ${Number(t.pasti_ordinari ?? t.pasti)} menu
-                    ${Number(t.pasta_in_bianco || 0) ? ` + ${Number(t.pasta_in_bianco)} pasta in bianco` : ''}
-                </span>
-            </li>`).join('')}</ul>
-    </details>`;
-}
-
-function mostraDistribuzione() {
-    if (!reportDistribuzione) return;
-    const plessoFiltro = document.getElementById('report-plesso').value;
-    const testoFiltro = document.getElementById('report-classe-cerca').value
-        .trim().toLocaleLowerCase('it');
-    const contenitore = document.getElementById('report');
-    const dati = reportDistribuzione.plessi
-        .filter(p => !plessoFiltro || String(p.plesso_id) === plessoFiltro)
-        .map(p => ({
-            ...p,
-            sezioniVisibili: (p.sezioni || []).filter(c =>
-                !testoFiltro || String(c.classe_nome).toLocaleLowerCase('it').includes(testoFiltro))
-        }))
-        .filter(p => p.sezioniVisibili.length > 0);
-    const numeroClassi = dati.reduce((n, p) => n + p.sezioniVisibili.length, 0);
-    document.getElementById('report-filtri-stato').textContent = reportDistribuzione.plessi.length
-        ? 'Visualizzate ' + numeroClassi + ' classi o sezioni in ' + dati.length +
-          ' scuole. I totali in alto si riferiscono all’intera giornata.'
-        : '';
-    contenitore.innerHTML = !reportDistribuzione.plessi.length
-        ? '<p class="vuoto">Non sono previsti pasti per la data selezionata.</p>'
-        : !numeroClassi
-            ? '<p class="vuoto">Nessuna classe corrisponde ai filtri selezionati.</p>'
-            : dati.map(p => `
-                <article class="catering-plesso" data-testid="report-plesso-${Number(p.plesso_id)}">
-                    <header class="catering-plesso__testa">
-                        <div>
-                            <h3>${esc(p.plesso_nome)}</h3>
-                            <span class="badge-stato badge-${p.definitivo ? 'verde' : 'giallo'}">
-                                ${p.definitivo ? 'Conteggio confermato' : 'Conteggio provvisorio'}
-                            </span>
-                            <p class="nota">Orario limite ${esc(p.cutoff_orario)}
-                                · Totali dell’intero plesso</p>
-                        </div>
-                        <div class="catering-plesso__numeri">
-                            <strong>${Number(p.totale_pasti)} <small>pasti totali</small></strong>
-                            <span>${Number(p.totale_pasti) - Number(p.totale_pasta_in_bianco || 0)}
-                                menu · ${Number(p.totale_pasta_in_bianco || 0)} pasta in bianco</span>
-                        </div>
-                    </header>
-                    ${riepilogoDistribuzioneTipologie(p)}
-                    <div class="catering-plesso__classi">
-                        ${p.sezioniVisibili.map(schedaDistribuzioneClasse).join('')}
-                    </div>
-                </article>`).join('');
+function schedaDistribuzioneScuola(plesso) {
+    const totale = Number(plesso.totale_pasti);
+    const bianchi = Number(plesso.totale_pasta_in_bianco || 0);
+    const classi = plesso.sezioni || [];
+    return `<article class="card-mensa catering-scuola" data-testid="report-plesso-${Number(plesso.plesso_id)}">
+        <h3>${esc(plesso.plesso_nome)}</h3>
+        <div class="catering-scuola__intestazione">
+            <div>
+                <strong class="saldo">${totale}</strong>
+                <p class="nota">pasti previsti · modifiche fino alle ${esc(plesso.cutoff_orario)}</p>
+            </div>
+            <span class="badge-stato badge-${plesso.definitivo ? 'verde' : 'giallo'}">
+                ${plesso.definitivo ? 'Conteggio confermato' : 'Conteggio provvisorio'}
+            </span>
+        </div>
+        <p class="catering-scuola__sintesi">${totale - bianchi} da menu
+            ${bianchi ? ` · <strong>${bianchi} pasta in bianco</strong>` : ''}</p>
+        <div class="catering-scuola__tipologie">
+            <h4>Pasti per tipo di menu</h4>
+            ${ripartizioneCompatta(plesso.tipologie)}
+        </div>
+        <h4 class="catering-scuola__titolo-classi">Pasti per classe o sezione</h4>
+        <ul class="catering-scuola__classi">${classi.map(rigaDistribuzioneClasse).join('')}</ul>
+    </article>`;
 }
 
 async function caricaReport() {
@@ -177,7 +154,6 @@ async function caricaReport() {
     const riepilogo = document.getElementById('report-riepilogo');
 
     stato.textContent = 'Caricamento dei pasti del ' + dataIt(data) + '…';
-    reportDistribuzione = null;
     contenitore.innerHTML = '';
     riepilogo.innerHTML = '';
     pulsante.disabled = true;
@@ -185,31 +161,24 @@ async function caricaReport() {
     try {
         const report = await API.get('/api/catering/report?data=' + encodeURIComponent(data));
         if (numeroRichiesta !== ultimaRichiestaReport) return;
-        reportDistribuzione = report;
-        const filtroPlesso = document.getElementById('report-plesso');
-        const selezione = filtroPlesso.value;
-        filtroPlesso.innerHTML = '<option value="">Tutte le scuole</option>' +
-            report.plessi.map(p => `<option value="${Number(p.plesso_id)}">${esc(p.plesso_nome)}</option>`).join('');
-        if (report.plessi.some(p => String(p.plesso_id) === selezione)) {
-            filtroPlesso.value = selezione;
-        }
+        contenitore.innerHTML = report.plessi.length
+            ? report.plessi.map(schedaDistribuzioneScuola).join('')
+            : '<p class="vuoto">Non sono previsti pasti per il ' + esc(dataIt(data)) + '.</p>';
         const pasta = report.plessi.reduce((n, p) => n + Number(p.totale_pasta_in_bianco || 0), 0);
-        const definitivi = report.plessi.filter(p => p.definitivo).length;
-        const dato = (numero, etichetta) => '<div class="riepilogo-mensa__dato"><strong>' + numero + '</strong><span>' + etichetta + '</span></div>';
-        riepilogo.innerHTML = dato(Number(report.totale_pasti || 0), 'Pasti complessivi') +
-            dato(Number(report.totale_pasti || 0) - pasta, 'Pasti da menu') +
+        const confermati = report.plessi.filter(p => p.definitivo).length;
+        const dato = (numero, etichetta) => '<div class="riepilogo-mensa__dato"><strong>' + numero +
+            '</strong><span>' + etichetta + '</span></div>';
+        riepilogo.innerHTML = dato(Number(report.totale_pasti || 0), 'Pasti da preparare') +
+            dato(report.plessi.length, 'Scuole con mensa') +
             dato(pasta, 'Pasta in bianco') +
-            dato(definitivi + '/' + report.plessi.length, 'Scuole confermate');
-        mostraDistribuzione();
-        stato.textContent = 'Distribuzione pasti del ' + dataIt(data) +
+            dato(confermati + '/' + report.plessi.length, 'Conteggi confermati');
+        stato.textContent = 'Pasti per il ' + dataIt(data) +
             ' · ' + Number(report.totale_pasti || 0) +
-            ' pasti complessivi · aggiornato alle ' + UI.oraAggiornamento();
+            ' pasti previsti · aggiornato alle ' + UI.oraAggiornamento();
     } catch (errore) {
         if (numeroRichiesta !== ultimaRichiestaReport) return;
-        reportDistribuzione = null;
         contenitore.innerHTML = '';
         riepilogo.innerHTML = '';
-        document.getElementById('report-filtri-stato').textContent = '';
         stato.textContent = 'Impossibile caricare il report del ' +
             dataIt(data) + ': ' + errore.message;
         avviso('Errore aggiornamento report: ' + errore.message, 'errore');
@@ -220,9 +189,6 @@ async function caricaReport() {
         }
     }
 }
-
-document.getElementById('report-plesso').addEventListener('change', mostraDistribuzione);
-document.getElementById('report-classe-cerca').addEventListener('input', mostraDistribuzione);
 
 async function caricaMenu() {
     const richiesta = ++numeroRichiestaMenu;
