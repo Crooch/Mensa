@@ -202,7 +202,11 @@ final class JobGiornalieroService
                 'concluso_il' => $esecuzione['concluso_il'] ?? null,
             ];
         }
-        return ['data' => $data, 'scuole' => $scuole];
+        return [
+            'data' => $data,
+            'scheduler_abilitato' => \App\Core\Config::get('app.scheduler_enabled', false) === true,
+            'scuole' => $scuole,
+        ];
     }
 
     public function ultimeEsecuzioni(): array
