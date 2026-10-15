@@ -805,10 +805,11 @@ function mostraEsitoJob(esito) {
         fuori_calendario: 'Mensa non prevista oggi',
         cutoff_non_raggiunto: 'Orario limite non ancora raggiunto',
         in_corso: 'Elaborazione già avviata',
+        errore_precedente: 'Errore precedente: recupero automatico bloccato',
         errore: 'Operazione non riuscita: verificare lo storico'
     }[stato] || 'Da verificare');
     const html = righe.map(r => {
-        const colore = r.stato === 'errore' ? 'rosso' :
+        const colore = ['errore', 'errore_precedente'].includes(r.stato) ? 'rosso' :
             r.stato === 'eseguito' || r.stato === 'gia_eseguito' ? 'verde' : 'giallo';
         const email = r.solleciti;
         return `<article class="admin-job-risultato">
@@ -818,7 +819,7 @@ function mostraEsitoJob(esito) {
                 · Buoni addebitati: <strong>${numeroJob(r.consumi)}</strong></p>` : ''}
             ${email ? `<p>Solleciti inviati: <strong>${numeroJob(email.inviati)}</strong>
                 ${numeroJob(email.errori) ? ' · Invii non riusciti: ' + numeroJob(email.errori) : ''}</p>` : ''}
-            ${r.stato === 'errore' ? '<p class="nota">Controlla le cause prima di ripetere l’operazione.</p>' : ''}
+            ${['errore', 'errore_precedente'].includes(r.stato) ? '<p class="nota">Controlla movimenti, presenze e comunicazioni prima di qualsiasi recupero manuale.</p>' : ''}
         </article>`;
     }).join('');
     const contenitore = document.getElementById('job-esito');
