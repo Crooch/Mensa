@@ -177,6 +177,7 @@ document.getElementById('eccezioni-calendario-corpo').addEventListener('click', 
             await API.del('/api/admin/calendari/' + id + '/periodi/' + p.id);
             avviso('Periodo eliminato. Ora vale il calendario ordinario.');
             await caricaCalendario();
+            segnalaVerificaDaAggiornare();
         } catch (err) {
             messaggioPeriodo(err.message, true);
         }
@@ -204,6 +205,7 @@ document.getElementById('form-calendario').addEventListener('submit', async ev =
         await API.put('/api/admin/calendari/' + id, dati);
         avviso('Calendario ordinario salvato per la scuola selezionata.');
         await caricaCalendario();
+        segnalaVerificaDaAggiornare();
     } catch (err) { avviso(err.message, 'errore'); }
 });
 document.getElementById('form-eccezione-calendario').addEventListener('submit', async ev => {
@@ -234,12 +236,21 @@ document.getElementById('form-eccezione-calendario').addEventListener('submit', 
         }
         avviso('Periodo straordinario salvato.');
         await caricaCalendario();
+        segnalaVerificaDaAggiornare();
     } catch (err) {
         messaggioPeriodo(err.message, true);
     } finally {
         pulsante.disabled = false;
     }
 });
+function segnalaVerificaDaAggiornare() {
+    if (!verificaCalendarioDati) return;
+    ++verificaCalendarioRichiesta;
+    verificaCalendarioDati = null;
+    document.getElementById('calendario-verifica-pannello').hidden = true;
+    document.getElementById('calendario-verifica-esito').textContent =
+        'Calendario modificato. Premi «Controlla tutte le scuole» per aggiornare la verifica.';
+}
 /* Verifica generale, distinta dalla scuola selezionata per la modifica. */
 let verificaCalendarioDati = null;
 let verificaCalendarioPagina = 1;
