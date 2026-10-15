@@ -96,6 +96,12 @@ def controlla_foto(page):
     # Il test non salva file: utilizza la bozza locale della foto nel form.
     page.locator('[data-vista="menu"]').click()
     page.locator('#vista-menu').wait_for(state="visible")
+    # Dal giorno seguente il cutoff di oggi non limita la programmazione.
+    from datetime import date, timedelta
+    oggi = date.today()
+    prossimo_lunedi = oggi + timedelta(days=(7 - oggi.weekday()) % 7 or 7)
+    data_menu = max(prossimo_lunedi, date(2026, 10, 19)).isoformat()
+    page.locator('#menu-data').fill(data_menu)
     # Aspettare il completamento della richiesta /api/catering/menu:
     # altrimenti il caricamento asincrono azzera la foto appena selezionata.
     page.wait_for_function("""() => {
