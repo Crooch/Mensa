@@ -102,7 +102,8 @@ final class CateringController
             null, (string) $r->obbligatorio('nome'),
             (int) $r->obbligatorio('tipologia_menu_id'),
             $this->giorniMenu($r), (int) $utente['id'],
-            $this->fileGiorni(), $this->rimozioniFoto($r)
+            $this->fileGiorni(), $this->rimozioniFoto($r), [],
+            ($r->input('duplica_da_id') !== null ? (int) $r->input('duplica_da_id') : null)
         );
         return ['id' => $id];
     }
