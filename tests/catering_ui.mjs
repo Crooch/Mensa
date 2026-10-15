@@ -21,6 +21,7 @@ const richieste = [];
 const errori = [];
 const conferme = [];
 const salvataggi = [];
+const ripristini = [];
 const callbackSchede = [];
 const fotoWidget = {};
 const FotoMenuStub = {
@@ -85,6 +86,7 @@ const context = {
                 // Simula la pubblicazione reale di una nuova eccezione completa.
                 riga.foto_path = fd.has('foto') ? 'menu/2_1/2026-10-14.png' : null;
                 riga.origine = 'giornaliero';
+                riga.ha_modello_settimanale = true;
             } else if (dati.rimuovi_foto === '1') {
                 riga.foto_path = null;
             }
@@ -111,6 +113,19 @@ const context = {
                 return new Promise((resolve, reject) => richieste.push({ url, resolve, reject }));
             }
             throw new Error('API inattesa: ' + url);
+        },
+        post: (url, dati) => {
+            assert.equal(url, '/api/catering/menu/ripristina');
+            ripristini.push(dati);
+            const riga = menuPubblicati.find(m =>
+                m.plesso_id === dati.plesso_id && m.tipologia_menu_id === dati.tipologia_menu_id
+            );
+            assert.ok(riga && riga.origine === 'giornaliero');
+            riga.origine = 'settimanale';
+            riga.descrizione = 'Pesce';
+            riga.foto_path = 'menu/settimane/pesce.jpg';
+            riga.ha_modello_settimanale = false;
+            return Promise.resolve({ ripristinato: true });
         }
     },
 };
@@ -263,3 +278,23 @@ assert.equal(salvataggi.at(-1).rimuovi_foto, '0',
 assert.equal(menuPubblicati.find(m => m.id === 'modello-11').foto_path, null);
 assert.match(conferme.at(-1)[1], /foto del modello settimanale non verrà copiata/);
 console.log('OK: pollo senza foto non eredita la foto del pesce settimanale.');
+
+/* Il ripristino e' disponibile soltanto per un giornaliero che copre un
+   modello settimanale: dopo la conferma tornano testo e foto del modello. */
+assert.equal(elemento('menu-ripristina').hidden, false);
+assert.equal(elemento('menu-ripristina').disabled, false);
+await elemento('menu-ripristina').handlers.click();
+assert.equal(ripristini.length, 1);
+assert.deepEqual(ripristini[0], {
+    plesso_id: 2, tipologia_menu_id: 1, data: '2026-10-14'
+});
+assert.match(conferme.at(-1)[1], /altre giornate e gli altri plessi non cambieranno/);
+assert.equal(menuPubblicati.find(m => m.id === 'modello-11').descrizione, 'Pesce');
+assert.equal(menuPubblicati.find(m => m.id === 'modello-11').foto_path, 'menu/settimane/pesce.jpg');
+assert.equal(elemento('menu-ripristina').hidden, true);
+assert.equal(elemento('menu-descrizione').value, 'Pesce');
+elemento('menu-plesso').value = '1';
+elemento('menu-plesso').handlers.change();
+assert.equal(elemento('menu-ripristina').hidden, true,
+    'Il ripristino non va proposto ai giornalieri senza modello');
+console.log('OK: ripristino del solo menu giornaliero con modello settimanale e foto originali.');
