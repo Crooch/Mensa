@@ -324,7 +324,10 @@ def collaudo_completo_famiglia_scuola_cucina(browser):
         famiglia = apri("genitore", "genitore.staging")
         famiglia.locator('[data-vista="calendario"]').click()
         famiglia.locator('#cal-mese').fill(mese)
-        famiglia.locator('#cal-figlio').select_option(index=0)
+        famiglia.locator('#cal-figlio').select_option(label=next(
+            x for x in famiglia.locator('#cal-figlio option').all_text_contents()
+            if 'Testuno Mario' in x
+        ))
         giorno_cal = famiglia.locator('#calendario [data-data="' + giorno + '"]')
         giorno_cal.wait_for(state="visible")
         assert 'Pasto previsto' in giorno_cal.get_attribute('aria-label'), (
@@ -354,8 +357,10 @@ def collaudo_completo_famiglia_scuola_cucina(browser):
 
         cucina = apri("catering", "catering.staging")
         aggiorna_cucina(cucina)
-        assert 'Testuno Mario' in cucina.locator('#report').inner_text(), (
-            'La richiesta di pasta in bianco non e visibile alla cucina')
+        cucina.wait_for_function("""() => {
+            const el = document.querySelector('#report');
+            return el && el.textContent.includes('Testuno Mario');
+        }""", timeout=15000)
         assert '1 pasta in bianco' in cucina.locator('#report').inner_text()
         controlla_dimensioni(cucina, "Catering: pasta in bianco visibile")
 
@@ -365,17 +370,18 @@ def collaudo_completo_famiglia_scuola_cucina(browser):
         dettaglio.locator('[data-cal-stato="presente"]').wait_for(state="visible")
         assert 'Non richiesta' in dettaglio.inner_text()
         cucina.locator('#btn-report').click()
-        cucina.wait_for_function("""() =>
-            document.querySelector('#report-stato')?.textContent.includes('Pasti per il')
-        """)
-        assert 'Testuno Mario' not in cucina.locator('#report').inner_text()
-        assert '1 pasta in bianco' not in cucina.locator('#report').inner_text()
+        cucina.wait_for_function("""() => {
+            const stato = document.querySelector('#report-stato')?.textContent || '';
+            const report = document.querySelector('#report')?.textContent || '';
+            return stato.includes('Pasti per il') && !report.includes('Testuno Mario')
+                && !report.includes('1 pasta in bianco');
+        }""", timeout=15000)
         scuola.locator('#btn-carica').click()
-        scuola.wait_for_function("""() =>
-            document.querySelector('#scuola-riepilogo')?.textContent.includes('Pasti non previsti')
-        """)
-        assert 'Pasto non previsto' in scuola.locator(
-            '#presenze-corpo tr').filter(has_text='Testuno').first.inner_text()
+        scuola.wait_for_function("""() => {
+            const riga = [...document.querySelectorAll('#presenze-corpo tr')]
+                .find(n => n.textContent.includes('Testuno'));
+            return riga && riga.textContent.includes('Pasto non previsto');
+        }""", timeout=15000)
         # Ripristino della presenza; la pasta in bianco NON deve ricomparire.
         dettaglio.locator('[data-cal-stato="presente"]').click()
         dettaglio.locator('[data-cal-stato="assente"]').wait_for(state="visible")
