@@ -15,7 +15,7 @@ const FotoMenu = {
                 <button type="button" class="btn btn-outline-primary menu-foto__scegli">Aggiungi foto</button>
                 <button type="button" class="btn btn-link menu-foto__annulla" hidden>Annulla rimozione</button>
             </div>
-            <input type="file" class="menu-foto__input" accept="image/png,image/jpeg,image/webp"
+            <input type="file" id="${id}-input" class="menu-foto__input" accept="image/png,image/jpeg,image/webp"
                    aria-label="Seleziona una foto del menu" hidden>
             <p class="menu-foto__messaggio" role="status" aria-live="polite"></p>`;
         const campo = root.querySelector('.menu-foto__input');
