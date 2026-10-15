@@ -183,7 +183,8 @@ final class Container
         return $this->ottieni('s.solleciti', fn () => new S\SollecitoService(
             $this->crediti(),
             $this->comunicazioni(),
-            $this->plessi()
+            $this->plessi(),
+            $this->bambini()
         ));
     }
 
