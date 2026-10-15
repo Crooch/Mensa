@@ -67,7 +67,9 @@ require __DIR__ . '/partials/testa.php';
         <select id="calendario-plesso" data-testid="calendario-plesso-select"></select>
     </div>
     <form id="form-calendario" class="pannello admin-config admin-calendario-form" data-testid="calendario-form">
-        <h2>Quando è prevista la mensa?</h2>
+        <h2>Calendario ordinario · Anno scolastico <span id="calendario-anno-scolastico">—</span></h2>
+        <p class="nota admin-calendario-nota">Indica l'avvio del servizio per l'anno scolastico e i giorni abituali.
+            Senza data di fine, il calendario prosegue anche negli anni successivi finché non viene aggiornato.</p>
         <div class="admin-calendario-date">
             <div class="campo-filtro">
                 <label for="calendario-inizio">Primo giorno di mensa</label>
@@ -102,26 +104,46 @@ require __DIR__ . '/partials/testa.php';
             <button class="btn btn-primary" type="submit" data-testid="calendario-salva">Salva calendario</button>
         </div>
     </form>
-    <div class="area-sezione-testa"><h2>Un giorno diverso dal solito</h2></div>
-    <p class="nota">Registra una chiusura o un'apertura valida soltanto per il giorno scelto.</p>
-    <form id="form-eccezione-calendario" class="pannello admin-config admin-calendario-eccezione">
-        <div class="riga-filtri">
-            <label for="eccezione-data">Data</label><input type="date" id="eccezione-data" required>
-            <label for="eccezione-attivo">Servizio mensa</label>
-            <select id="eccezione-attivo">
-                <option value="0">La mensa sarà chiusa</option>
-                <option value="1">La mensa sarà aperta</option>
-            </select>
-            <label for="eccezione-motivazione">Motivazione</label>
-            <input type="text" maxlength="255" id="eccezione-motivazione" required placeholder="Es. sospensione attività didattiche">
+    <div class="area-sezione-testa"><h2>Chiusure e aperture straordinarie</h2></div>
+    <p class="nota">Registra una sola data o un periodo, ad esempio le vacanze scolastiche.
+        Le modifiche straordinarie prevalgono sui giorni ordinari, sulle festività e sul periodo di servizio.
+        Due periodi possono condividere una data di confine solo se sono entrambi aperture oppure entrambi chiusure.</p>
+    <form id="form-eccezione-calendario" class="pannello admin-config admin-calendario-eccezione"
+          data-testid="calendario-periodo-form">
+        <input type="hidden" id="eccezione-id">
+        <div class="admin-periodo-campi">
+            <div class="campo-filtro">
+                <label for="eccezione-data">Dal giorno</label>
+                <input type="date" id="eccezione-data" required data-testid="eccezione-inizio">
+            </div>
+            <div class="campo-filtro">
+                <label for="eccezione-fine">Al giorno (facoltativo)</label>
+                <input type="date" id="eccezione-fine" data-testid="eccezione-fine">
+                <small class="nota">Lascia vuoto per un solo giorno.</small>
+            </div>
+            <div class="campo-filtro">
+                <label for="eccezione-attivo">Tipo di modifica</label>
+                <select id="eccezione-attivo">
+                    <option value="0">Chiusura straordinaria</option>
+                    <option value="1">Apertura straordinaria</option>
+                </select>
+            </div>
+            <div class="campo-filtro admin-periodo-motivazione">
+                <label for="eccezione-motivazione">Motivazione</label>
+                <input type="text" maxlength="255" id="eccezione-motivazione" required
+                       placeholder="Es. vacanze natalizie">
+            </div>
         </div>
+        <p id="eccezione-messaggio" class="admin-periodo-messaggio" role="status" aria-live="polite" hidden></p>
         <div class="admin-form-azioni">
-            <button class="btn btn-primary" type="submit" data-testid="eccezione-salva">Salva modifica</button>
+            <button class="btn btn-primary" type="submit" data-testid="eccezione-salva">Salva periodo</button>
+            <button class="btn btn-outline-primary" type="button" id="eccezione-annulla" hidden>Annulla modifica</button>
         </div>
     </form>
+    <div class="area-sezione-testa"><h3>Periodi registrati</h3></div>
     <div class="tabella-scroll admin-tabella">
-        <table class="table">
-            <thead><tr><th>Data</th><th>Stato</th><th>Motivazione</th><th>Azioni</th></tr></thead>
+        <table class="table" data-testid="calendario-periodi-tabella">
+            <thead><tr><th>Dal</th><th>Al</th><th>Tipo</th><th>Motivazione</th><th>Azioni</th></tr></thead>
             <tbody id="eccezioni-calendario-corpo"></tbody>
         </table>
     </div>
