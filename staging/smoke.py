@@ -17,11 +17,31 @@ def token(username):
     return call("/api/auth/login",
         {"username": username, "password": "Collaudo2026!"})["token"]
 
+def verifica_distribuzione(plesso):
+    sezioni = plesso["sezioni"]
+    assert sum(int(c["pasti"]) for c in sezioni) == int(plesso["totale_pasti"])
+    assert sum(int(c["pasta_in_bianco"]) for c in sezioni) == int(plesso["totale_pasta_in_bianco"])
+    assert (int(plesso["pasti_ordinari"]) + int(plesso["totale_pasta_in_bianco"])
+            == int(plesso["totale_pasti"]))
+    assert sum(int(t["pasti"]) for t in plesso["tipologie"]) == int(plesso["totale_pasti"])
+    for classe in sezioni:
+        tipi = classe["tipologie"]
+        assert sum(int(t["pasti"]) for t in tipi) == int(classe["pasti"])
+        assert sum(int(t["pasta_in_bianco"]) for t in tipi) == int(classe["pasta_in_bianco"])
+        assert int(classe["pasti_ordinari"]) + int(classe["pasta_in_bianco"]) == int(classe["pasti"])
+        for t in tipi:
+            assert int(t["pasti_ordinari"]) + int(t["pasta_in_bianco"]) == int(t["pasti"])
+            assert len(t["richieste_pasta"]) == int(t["pasta_in_bianco"])
+            assert all(int(x["classe_id"]) == int(classe["classe_id"]) and
+                       int(x["tipologia_id"]) == int(t["tipologia_id"])
+                       for x in t["richieste_pasta"])
+
 admin = token("admin.staging")
 catering = token("catering.staging")
 assert call("/api/admin/calendari/1", token=admin)["configurazione"]["lunedi"] == 1
 report = call("/api/catering/report?data=2026-10-19", token=catering)
 infanzia = next(x for x in report["plessi"] if x["plesso_id"] == 1)
+verifica_distribuzione(infanzia)
 sezioni = {x["classe_nome"]: int(x["pasti"]) for x in infanzia["sezioni"]}
 assert set(sezioni) == {"Sezione A", "Sezione B", "Sezione C", "Sezione D"}
 assert sezioni["Sezione D"] == 0
@@ -94,6 +114,12 @@ call("/api/genitore/pasta-bianco", {
 report = call("/api/catering/report?data=" + giorno, token=catering)
 infanzia = next(x for x in report["plessi"] if x["plesso_id"] == 1)
 assert any(int(r["bambino_id"]) == figlio for r in infanzia["pasta_in_bianco"])
+verifica_distribuzione(infanzia)
+classe_con_bianco = next(c for c in infanzia["sezioni"]
+    if any(int(b["bambino_id"]) == figlio
+           for t in c["tipologie"] for b in t["richieste_pasta"]))
+assert classe_con_bianco["pasta_in_bianco"] >= 1
+assert classe_con_bianco["pasti_ordinari"] + classe_con_bianco["pasta_in_bianco"] == classe_con_bianco["pasti"]
 
 esito_assenza = call("/api/genitore/presenze/dichiarazione", {
     "bambino_id": figlio, "data": giorno, "stato": "assente"
@@ -126,6 +152,12 @@ call("/api/genitore/pasta-bianco", {
 report = call("/api/catering/report?data=" + giorno, token=catering)
 infanzia = next(x for x in report["plessi"] if x["plesso_id"] == 1)
 assert any(int(r["bambino_id"]) == figlio for r in infanzia["pasta_in_bianco"])
+verifica_distribuzione(infanzia)
+classe_con_bianco = next(c for c in infanzia["sezioni"]
+    if any(int(b["bambino_id"]) == figlio
+           for t in c["tipologie"] for b in t["richieste_pasta"]))
+assert classe_con_bianco["pasta_in_bianco"] >= 1
+assert classe_con_bianco["pasti_ordinari"] + classe_con_bianco["pasta_in_bianco"] == classe_con_bianco["pasti"]
 assert call("/api/genitore/dashboard", token=genitore)["crediti"][0]["saldo"] == saldo_iniziale
 print("OK: pasta solo se presente, cancellazione con assenza, riattivazione esplicita e saldo invariato")
 
