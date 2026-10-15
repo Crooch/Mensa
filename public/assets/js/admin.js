@@ -246,8 +246,11 @@ function mostraClasseEsistente() {
     const scelta = document.getElementById('classe-esistente');
     const classe = classiDisponibili.find(c => String(c.id) === scelta.value);
     document.getElementById('classe-esistente-dettaglio').textContent = classe
-        ? 'Anno scolastico ' + classe.anno_scolastico + '. Puoi gestirla nell’elenco qui sotto.'
+        ? 'Anno scolastico: ' + classe.anno_scolastico
         : '';
+    document.querySelectorAll('#classi-corpo tr[data-classe]').forEach(riga => {
+        riga.classList.toggle('selezionata', riga.dataset.classe === scelta.value);
+    });
 }
 function mostraCampoAltraClasse() {
     const altro = document.getElementById('classe-nome').value === 'altro';
