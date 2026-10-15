@@ -142,3 +142,70 @@ jobs:
           grep -q '07_CONTABILITA_AGGREGATA' /tmp/preflight-ci.out
           grep -q '08_POOL_NON_ALLINEATI' /tmp/preflight-ci.out
           grep -q '10_JOB_PER_ESITO' /tmp/preflight-ci.out
+      - name: Schema-only upgrade preserves existing synthetic data
+        env:
+          MYSQL_PWD: ci_root_password
+        run: |
+          set -euo pipefail
+          ROOT="mariadb --host=127.0.0.1 --port=3306 --user=root"
+          $ROOT -e "CREATE DATABASE mensa_schema_only_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+          DB="$ROOT --database=mensa_schema_only_ci --batch --skip-column-names"
+          $DB < database/migrations/001_schema.sql
+          $DB <<'SQL'
+          INSERT INTO plessi (nome) VALUES
+            ('Scuola dell''Infanzia - Via Catania'),
+            ('Scuola Secondaria di I grado');
+          INSERT INTO utenti (ruolo, username, password_hash)
+          VALUES ('genitore', 'ci_genitore_intoccabile', 'hash_sintetico');
+          INSERT INTO genitori (utente_id, nome, cognome, telefono)
+          VALUES (1, 'Dati', 'Da preservare', '0000000000');
+          INSERT INTO tipologie_menu (nome) VALUES ('Standard sintetico');
+          INSERT INTO bambini (nome, cognome, genitore_id, tipologia_menu_id)
+          VALUES ('Alunno', 'Sintetico', 1, 1);
+          INSERT INTO classi_sezioni (plesso_id, nome, anno_scolastico)
+          VALUES (1, 'CI Test', '2026/2027');
+          INSERT INTO assegnazioni_classe (bambino_id, classe_sezione_id, data_inizio)
+          VALUES (1, 1, '2026-09-01');
+          INSERT INTO pool_crediti (genitore_id, plesso_id, saldo)
+          VALUES (1, 1, 7);
+          INSERT INTO movimenti_crediti
+            (pool_id, tipo, delta, data, note)
+          VALUES (1, 'acquisto', 7, '2026-10-01', 'Movimento originale CI');
+          INSERT INTO presenze_giornaliere (bambino_id, data, stato_effettivo)
+          VALUES (1, '2026-10-12', 'presente');
+          SQL
+          # Snapshot delle righe preesistenti: confronto esatto dei campi
+          # di business; le nuove colonne NULL non compaiono nello snapshot.
+          snapshot() {
+            $DB <<'SQL'
+          SELECT CONCAT_WS('|','plessi',id,nome,cutoff_orario) FROM plessi ORDER BY id;
+          SELECT CONCAT_WS('|','utenti',id,ruolo,username,password_hash) FROM utenti ORDER BY id;
+          SELECT CONCAT_WS('|','genitori',id,utente_id,nome,cognome,telefono) FROM genitori ORDER BY id;
+          SELECT CONCAT_WS('|','bambini',id,nome,cognome,genitore_id,tipologia_menu_id) FROM bambini ORDER BY id;
+          SELECT CONCAT_WS('|','classi',id,plesso_id,nome,anno_scolastico) FROM classi_sezioni ORDER BY id;
+          SELECT CONCAT_WS('|','assegnazioni',id,bambino_id,classe_sezione_id,data_inizio) FROM assegnazioni_classe ORDER BY id;
+          SELECT CONCAT_WS('|','pool',id,genitore_id,plesso_id,saldo) FROM pool_crediti ORDER BY id;
+          SELECT CONCAT_WS('|','movimenti',id,pool_id,tipo,delta,data,note) FROM movimenti_crediti ORDER BY id;
+          SELECT CONCAT_WS('|','presenze',id,bambino_id,data,stato_effettivo) FROM presenze_giornaliere ORDER BY id;
+          SQL
+          }
+          snapshot > /tmp/schema-only-before.txt
+          # Solo CREATE/ALTER: fallisci se il file contiene DML/DROP.
+          if grep -Ei '^[[:space:]]*(INSERT|UPDATE|DELETE|REPLACE|TRUNCATE|DROP)[[:space:]]' \
+              database/deploy/upgrade_schema_only_2026_10.sql; then
+            echo "Il file schema-only contiene operazioni sui dati: STOP" >&2
+            exit 1
+          fi
+          $DB < database/deploy/upgrade_schema_only_2026_10.sql
+          snapshot > /tmp/schema-only-after.txt
+          cmp /tmp/schema-only-before.txt /tmp/schema-only-after.txt
+          test "$($DB -e 'SELECT COUNT(*) FROM calendari_servizio')" = "0"
+          test "$($DB -e 'SELECT COUNT(*) FROM menu_settimanali')" = "0"
+          test "$($DB -e "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'eccezioni_calendario' AND COLUMN_NAME = 'giorno_fine'")" = "1"
+          # La seconda esecuzione non deve introdurre alcun dato né errore.
+          $DB < database/deploy/upgrade_schema_only_2026_10.sql
+          snapshot > /tmp/schema-only-again.txt
+          cmp /tmp/schema-only-before.txt /tmp/schema-only-again.txt
+          test "$($DB -e 'SELECT COUNT(*) FROM calendari_servizio')" = "0"
+          echo "OK: DDL applicato due volte, nessun record di dominio alterato o importato"
+
