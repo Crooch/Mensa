@@ -216,7 +216,10 @@ try {
     $stmtB->execute(['Edo', 'Test', $genitore, $menuSenzaGlutine]);
     $edo = (int) $pdo->lastInsertId();
     $stmtA->execute([$edo, $classi['B'], '2026-10-01']);
-    $stmt->execute([$lia]);
+    $pdo->prepare(
+        "INSERT INTO richieste_pasta_bianco (bambino_id, data, richiesta)
+         VALUES (?, '2026-10-19', 1)"
+    )->execute([$lia]);
     $righeMiste = $repo->reportPasti('2026-10-19', (int) $infanzia);
     $perClasseMenu = [];
     foreach ($righeMiste as $r) {
