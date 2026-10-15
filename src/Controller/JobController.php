@@ -20,7 +20,9 @@ final class JobController
     public function scheduler(Request $r, array $utente): array
     {
         $this->richiediAttivazione();
-        return $this->c->job()->eseguiScheduler($r->query('data'));
+        // Lo scheduler di tutte le scuole riguarda solo la data corrente.
+        // Nessun addebito retroattivo massivo tramite parametri HTTP.
+        return $this->c->job()->eseguiScheduler();
     }
 
     /** "Esegui ora" per un singolo plesso (test/recupero manuale). */
