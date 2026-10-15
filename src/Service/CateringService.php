@@ -402,7 +402,16 @@ final class CateringService
     {
         $righe = $this->menu->elencoProgrammati(date('Y-m-d'));
         foreach ($righe as &$riga) {
-            $plesso = $this->plessi->trova((int) $riga['plesso_id']);
+            $plessoId = (int) $riga['plesso_id'];
+            $data = (string) $riga['data'];
+            $plesso = $this->plessi->trova($plessoId);
+            $riga['ha_modello_settimanale'] = false;
+            foreach ($this->settimanali->giorniDiSettimana($data, $plessoId) as $modello) {
+                if ((int) $modello['tipologia_menu_id'] === (int) $riga['tipologia_menu_id']) {
+                    $riga['ha_modello_settimanale'] = true;
+                    break;
+                }
+            }
             $riga['modificabile'] = $plesso !== null &&
                 !$this->presenzaService->oltreCutoff($plesso, (string) $riga['data']) &&
                 $this->calendario->previsto((int) $riga['plesso_id'], (string) $riga['data'])['attivo'] &&
