@@ -120,12 +120,18 @@ FROM (
     HAVING COUNT(*) > 1
 ) AS consumi_duplicati;
 
-SELECT '10_JOB_PER_ESITO' AS controllo, esito,
-       COUNT(*) AS esecuzioni,
-       SUM(concluso_il IS NULL) AS senza_data_chiusura
-FROM esecuzioni_job
-GROUP BY esito
-ORDER BY esito;
+-- Tre righe anche se il database non contiene ancora alcun job.
+SELECT '10_JOB_PER_ESITO' AS controllo, stati.esito,
+       COUNT(j.id) AS esecuzioni,
+       COALESCE(SUM(j.id IS NOT NULL AND j.concluso_il IS NULL),0) AS senza_data_chiusura
+FROM (
+    SELECT 'in_corso' AS esito
+    UNION ALL SELECT 'ok'
+    UNION ALL SELECT 'errore'
+) AS stati
+LEFT JOIN esecuzioni_job j ON j.esito=stati.esito
+GROUP BY stati.esito
+ORDER BY stati.esito;
 
 -- Informazione tecnica per valutare anomalie pregresse senza leggere dati
 -- di alunni, email o famiglie. Un job in_corso va verificato prima del deploy.
