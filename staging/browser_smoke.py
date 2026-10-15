@@ -132,6 +132,55 @@ def controlla_foto(page):
     assert preview.is_hidden(), "La X deve agire sulla bozza, senza inviare il form"
     print("OK: Catering: anteprima 280×180, X geometrica e rimozione in bozza")
 
+def controlla_pagine_variazioni(page, larghezza):
+    """23 variazioni sintetiche: 10 per pagina, date decrescenti e nessun overflow."""
+    from urllib.parse import parse_qs, urlsplit
+    variazioni = [{
+        "id": 500 + i, "plesso_id": 1, "tipologia_menu_id": 1,
+        "data": f"2030-11-{i:02d}", "plesso_nome": "Plesso di prova",
+        "tipologia_nome": "Standard", "descrizione": "Piatto " + str(i),
+        "modificabile": True, "ha_modello_settimanale": False
+    } for i in range(1, 24)]
+    variazioni.sort(key=lambda v: v["data"], reverse=True)
+
+    def risposta_pagina(route):
+        richiesta = int(parse_qs(urlsplit(route.request.url).query)["pagina"][0])
+        pagine = 3
+        pagina = max(1, min(richiesta, pagine))
+        risposta = {
+            "righe": variazioni[(pagina - 1) * 10:pagina * 10],
+            "pagina": pagina, "per_pagina": 10, "totale": 23, "pagine": pagine
+        }
+        route.fulfill(status=200, content_type="application/json",
+                      body=json.dumps({"ok": True, "dati": risposta}))
+
+    page.route("**/api/catering/menu/variazioni?pagina=*", risposta_pagina)
+    page.locator('[data-vista="menu"]').click()
+    page.wait_for_function("""() =>
+        document.querySelectorAll('#menu-variazioni-lista .catering-variazione').length === 10
+    """, timeout=12000)
+    assert "23/11/2030" in page.locator('#menu-variazioni-lista').inner_text()
+    assert page.locator('#menu-variazioni-pagine').is_visible()
+    assert page.locator('#menu-variazioni-indicatore').inner_text() == "Pagina 1 di 3"
+    assert page.locator('#menu-variazioni-precedenti').is_disabled()
+    assert page.locator('#menu-variazioni-successive').is_enabled()
+    page.locator('#menu-variazioni-successive').click()
+    page.wait_for_function("""() =>
+        document.querySelector('#menu-variazioni-indicatore').textContent === 'Pagina 2 di 3'
+    """)
+    assert page.locator('#menu-variazioni-lista .catering-variazione').count() == 10
+    page.locator('#menu-variazioni-successive').click()
+    page.wait_for_function("""() =>
+        document.querySelector('#menu-variazioni-indicatore').textContent === 'Pagina 3 di 3'
+    """)
+    assert page.locator('#menu-variazioni-lista .catering-variazione').count() == 3
+    assert page.locator('#menu-variazioni-successive').is_disabled()
+    controlla_dimensioni(page, f"variazioni paginazione@{larghezza}")
+    page.screenshot(path=str(OUTPUT / f"variazioni-paginate-{larghezza}.png"),
+                    full_page=True)
+    print(f"OK: variazioni@{larghezza}, 23 risultati, pagine da 10, date decrescenti")
+
+
 def controlla_report_distribuzione(page, larghezza):
     # Una risposta sintetica con 4 classi e 12 varianti alimentari:
     # nessuna tabella a 12 colonne, nessun overflow, somme coerenti.
@@ -270,6 +319,7 @@ with sync_playwright() as engine:
                         controlla_modali_operatore(pagina)
                     if ruolo == "catering":
                         controlla_report_distribuzione(pagina, larghezza)
+                        controlla_pagine_variazioni(pagina, larghezza)
                         if larghezza == 1366:
                             controlla_foto(pagina)
                             pagina.screenshot(path=str(OUTPUT / "catering-foto-1366.png"),
