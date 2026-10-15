@@ -1,16 +1,16 @@
 # Mensa Caltavuturo — piano di verifica e rilascio di `dev`
 
-Data preparazione: 14 ottobre 2026. **Non eseguire i passi di rilascio senza collaudo.**
+Ultimo aggiornamento: 15 ottobre 2026. **Preparazione del rilascio, non autorizzazione a eseguirlo.**
 
-> **Avviso del 15/10/2026:** questo piano è precedente alle migration
-> `005_idempotenza_acquisti.sql`, `006_menu_settimanali.sql`,
-> `007_storico_nomi_modelli.sql`, `008_foto_menu_settimanali.sql` e alle
-> ultime modifiche del Catering. Non applicarlo alla produzione così com'è:
-> prima del rilascio occorre riscrivere e collaudare la sequenza completa delle
-> migration additive contro una copia isolata del DB, verificare manualmente
-> i cinque ruoli e ottenere l'autorizzazione al deploy. La suite CI sullo staging
-> sintetico è stata superata; dettagli in `docs/COLLAUDO_DEV_2026-10-15.md`.
+Stato: **NO-GO** fino al collaudo funzionale/visivo con i cinque profili, alla
+verifica delle anagrafiche reali dei plessi, al backup e ripristino provato
+su copia isolata e all'autorizzazione esplicita del Comune e del referente
+al rilascio. `main`, database `mensa_db`, cron e VPS di produzione restano
+invariati durante questo lavoro.
 
+I test automatici aggiornati si trovano nelle pipeline di GitHub Actions
+del ramo `dev`. Il loro esito positivo riguarda esclusivamente database
+sintetici, non una migrazione già provata sui dati di produzione.
 
 ## Situazione conosciuta
 
@@ -30,13 +30,29 @@ Data preparazione: 14 ottobre 2026. **Non eseguire i passi di rilascio senza col
 4. Catering: conteggi per plesso, tipologia e classe/sezione (anche sezioni con zero pasti), prima/dopo job, elenco nominativo delle sole richieste pasta in bianco per bambini presenti.
 5. Report giorni fuori calendario: non presentare consumi del periodo preliminare come pasti da preparare.
 
-## Migrazioni, da applicare nell'ordine
+## Migrazioni necessarie, da eseguire nell'ordine soltanto dopo approvazione
 
-- `database/migrations/002_calendario_mensa.sql`: crea `calendari_servizio` ed `eccezioni_calendario`, inserisce le regole iniziali per infanzia e secondaria SOLO se il nome del plesso coincide.
-- `database/migrations/003_richieste_pasta_bianco.sql`: crea `richieste_pasta_bianco` con FK verso `bambini` e `utenti`.
-- `database/migrations/004_audit_operazioni_presenze.sql`: crea il log append-only di tutte le modifiche a presenze e richieste speciali.
+**Non eseguire `001_schema.sql` sul database comunale esistente.**
+Lo script di installazione generico non sostituisce la procedura incrementale
+per la produzione. Le modifiche da prevedere sono le seguenti:
 
-Le tre migration sono **additive** e testate per doppia applicazione su un database vuoto di CI; NON disabilitano FK e NON contengono `TRUNCATE` o cancellazioni di movimenti. Non applicare `001_schema.sql` al DB di produzione durante questa manutenzione.
+| N. | File | Effetto sul database esistente |
+|---|---|---|
+| 002 | `002_calendario_mensa.sql` | Calendari per plesso ed eccezioni; inserimento iniziale limitato ai nomi previsti |
+| 003 | `003_richieste_pasta_bianco.sql` | Tabella richieste giornaliere indipendenti dalla presenza |
+| 004 | `004_audit_operazioni_presenze.sql` | Registro operazioni su presenze/richieste |
+| 005 | `005_idempotenza_acquisti.sql` | Colonna facoltativa e indice univoco per impedire doppi acquisti/rettifiche |
+| 006 | `006_menu_settimanali.sql` | Modelli, revisioni e assegnazioni settimanali |
+| 007 | `007_storico_nomi_modelli.sql` | Nome del modello conservato nelle revisioni |
+| 008 | `008_foto_menu_settimanali.sql` | Fotografie per giorno conservate nelle revisioni |
+
+Le migrazioni 002–008 vengono eseguite **due volte** sulla base sintetica
+di GitHub CI, per verificarne la ripetibilità. La CI controlla anche che
+movimenti e saldi fittizi *preesistenti* non cambino. Ciò non sostituisce
+la prova su una copia controllata del database comunale: prima di approvare,
+verificare struttura reale, collazioni, nomi plessi, dati preesistenti e
+compatibilità MariaDB. Le operazioni DDL non vanno considerate reversibili
+con un semplice `ROLLBACK` SQL: occorre un backup ripristinabile.
 
 ### Controllo di configurazione obbligatorio
 
@@ -47,18 +63,41 @@ Dopo la migration 002, verificare su STAGING che esistano due righe in `calendar
 
 Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non esegue addebiti (fail-closed).
 
-## Sequenza consigliata
+## Sequenza consigliata (nessun passo di produzione eseguito)
 
-1. Preparare ambiente isolato (staging) con dati di prova **sintetici**. Non esportare anagrafiche di minori in servizi pubblici di CI o repository.
-2. Creare backup dello staging. Applicare 002, 003 e 004, nell'ordine, sul solo database staging.
-3. Pubblicare il codice del branch `dev` su staging; configurare SMTP per **non inviare email reali**.
-4. Eseguire `php tests/calendario.php` e il lint PHP. Verificare GitHub Actions `PHP quality checks`.
-5. Effettuare test applicativi con utenze Admin, Genitore, Catering e due classi di prova; verificare API e interfacce.
-6. Documentare risultati e predisporre Pull Request verso `main` solo dopo revisione/autorizzazione di Corrado.
-7. Eseguire nuovo backup di produzione e congelare le modifiche operative al momento del deploy.
-8. Applicare le sole migration 002/003/004 e poi i file rilasciati, con accessi e permessi coerenti. Verificare collegamenti fra config DB e codice.
-9. **Cron ancora sospeso** fino a conferma delle condizioni del 19/10 e del cutoff; verificare manualmente che il job NON addebiti fuori calendario prima di ripristinare la pianificazione.
-10. Dopo l'avvio controllare esecuzioni, conteggi, email, saldi e stato presenze; in caso di problemi fermare il job prima di correggere.
+1. Conservare una versione/tag univoco del commit `dev` collaudato; verificare
+   GitHub Actions (PHP, HTTP Docker, Chromium) e l'assenza di nuovi errori.
+2. Completare la verifica manuale sui cinque ruoli: Admin, Operatore, Scuola,
+   Catering e Genitore, sia da desktop sia da dispositivo mobile. Per Catering
+   includere il menù settimanale, la variazione giornaliera, le foto, l'annullamento
+   e le pagine con oltre dieci variazioni.
+3. Verificare i nomi effettivi dei plessi e le regole settimanali sul sistema
+   comunale, **in sola lettura**: la migration 002 non crea calendari quando
+   i nomi non corrispondono esattamente.
+4. Preparare una **copia isolata e protetta** del database, senza caricarla
+   su repository o CI pubbliche. Fare un backup della copia e verificare
+   che sia ripristinabile.
+5. Su questa copia eseguire 002, 003, 004, 005, 006, 007 e 008 in
+   ordine. Confrontare prima e dopo: numero e saldo dei pool, numero/tipo/
+   delta/importi dei movimenti, presenze, assegnazioni e utenti;
+   verificare struttura e indici creati, nonché la coerenza dei calendari.
+6. Pubblicare sulla sola installazione di staging il codice candidato;
+   verificare login, confini di accesso fra ruoli e plessi, menù di giornata,
+   foto e tutte le operazioni sui dati fittizi. Tenere la posta esterna
+   disabilitata e lo scheduler fermo.
+7. Provare il **ripristino della copia di staging** e della versione precedente
+   del codice, documentando tempi e risultato. Per database modificato non
+   presumere che il solo ritorno al vecchio codice sia sempre sufficiente.
+8. Condividere checklist ed esiti con i referenti comunali e attendere
+   l'autorizzazione esplicita prima di qualsiasi intervento su `main`,
+   VPS, database o cron di produzione.
+9. Solo durante una futura finestra autorizzata: effettuare nuovi backup
+   verificati, applicare il piano testato e controllare inizialmente endpoint
+   non distruttivi. **Non riattivare il cron automaticamente**; farlo soltanto
+   dopo una decisione specifica sui conteggi e sulle condizioni di avvio.
+10. In caso di regressioni: mettere in sicurezza le elaborazioni, usare
+    la procedura di ripristino collaudata e riconciliare contabilità/presenze
+    prima di riprendere le attività.
 
 ## Scenari minimi di collaudo
 
@@ -83,7 +122,7 @@ Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non 
 
 ## Ambiti da verificare con attenzione
 
-- La CI esegue test su MariaDB sintetico, inclusi i tentativi di modifica tardiva e il pasto eccezionale. Il collaudo browser automatizzato su staging Docker con i cinque ruoli è stato superato il 15/10/2026; rimangono da completare i collaudi manuali funzionali, di accessibilità e su dispositivi fisici.
+- La CI verifica sintassi, regressioni, idempotenza degli acquisti, migrazioni 002–008 ripetute, flussi HTTP e browser sintetico per i cinque ruoli. Rimangono i collaudi manuali funzionali, di accessibilità e su dispositivi fisici.
 - Le impostazioni settimanali oggi sono per plesso, non versionate per anno scolastico; evitare modifiche retroattive dopo le prime esecuzioni finché non si introduce una storia delle configurazioni.
 - Se un processo crasha lasciando il job in stato `in_corso`, la protezione blocca ulteriori tentativi automatici per lo stesso giorno: accertare manualmente l'esito prima di gestire un recupero, senza reinviare addebiti.
 
