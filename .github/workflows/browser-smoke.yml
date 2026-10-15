@@ -33,7 +33,7 @@ jobs:
         run: python staging/browser_smoke.py
       - name: Salva screenshot sintetici per revisione
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mensa-browser-screenshot-sintetici
           path: staging/browser-artifacts/
