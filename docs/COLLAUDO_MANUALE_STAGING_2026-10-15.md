@@ -43,6 +43,31 @@ eventuale screenshot, dispositivo e comportamento osservato.
 | Amministratore | Controllare plessi, classi, orari limite e calendario | Configurazioni coerenti; i giorni senza mensa non generano pasti |
 | Amministratore | Visualizzare utenze e risultati del job | Ruoli corretti, nessun avvio involontario dei conteggi o dello scheduler |
 
+## Scenari aggiuntivi: calendario e segnalazioni critiche
+
+Effettuare i controlli **solo sui plessi e sulle anagrafiche sintetiche**; prima di modificare un calendario annotare i suoi valori originali per ripristinarli dopo la prova.
+
+| ID | Profilo | Operazione di collaudo | Risultato atteso |
+|---|---|---|---|
+| CAL-01 | Admin | Creare una chiusura dal 12 al 14 novembre 2026 | Periodo registrato con inizio e fine corretti |
+| CAL-02 | Admin | Creare un'altra chiusura dal 14 al 16 novembre | Ammesso: la sola data di confine coincide e lo stato è uguale |
+| CAL-03 | Admin | Tentare una chiusura dal 13 al 16 novembre | Errore di sovrapposizione, senza scritture parziali |
+| CAL-04 | Admin | Tentare un'apertura il 14 novembre, confine di due chiusure | Errore: confine coincidente con stato differente |
+| CAL-05 | Admin | Aggiungere un'apertura straordinaria in un sabato e in un festivo su date **distinte e non già occupate** | Apertura prevalente rispetto a weekend/festività; il plesso disattivato resta escluso |
+| CAL-06 | Admin | Verificare una data con scuole aperte e chiuse | Conteggi per scuola/classe coerenti; filtri, ricerca e classi espandibili corretti; nessun movimento contabile |
+| CAL-07 | Admin | Modificare un periodo e poi ripetere la verifica della data | I risultati precedenti vengono invalidati e ricalcolati su richiesta |
+| MEN-01 | Catering | Creare modello settimanale e duplicarlo; assegnare la copia a un altro plesso | Originale invariato; assegnazione e tipologia corretti |
+| MEN-02 | Catering | Caricare una foto, modificarla e premere X **senza salvare**; poi riprovare salvando | Prima del salvataggio i dati persistiti non cambiano; dopo il salvataggio la foto scelta viene rimossa |
+| MEN-03 | Catering | Programmare e annullare una variazione giornaliera | La variazione prevale sul modello soltanto per data/plesso/tipologia; annullandola ritorna il modello |
+| SEC-01 | Genitore, Scuola e Catering | Usare lo stesso bambino e giorno per assenza, ripristino e pasta in bianco | La cucina mostra numeri aggiornati senza doppi pasti; nessun accesso ai saldi per la cucina |
+| SEC-02 | Altro genitore, Scuola | Tentare l'accesso a un figlio altrui o a una classe di diverso plesso | Accesso negato anche via API, non solo nell'interfaccia |
+| ECO-01 | Operatore | Ripetere la medesima richiesta di acquisto/rettifica sintetica | Un solo movimento e un solo aggiornamento del saldo |
+| ECO-02 | Admin | Consultare stato job e storico, **senza premere pulsanti di esecuzione** | Letture senza congelamento presenze, addebiti o e-mail |
+
+Per CAL-05 osservare **solo i risultati di consultazione**: non occorre eseguire il job né contabilizzare pasti durante il collaudo dell'interfaccia. Per simulare la chiusura contabile usare uno scenario dedicato sul database sintetico.
+
+Per ogni scenario registrare: **ID, PASS/FAIL/NON PROVATO, browser, dispositivo, commit, passi osservati e riferimenti a screenshot sintetici**. Le date sono esemplificative e vanno sostituite se già occupate nel calendario fittizio.
+
 ## Verifica finale di usabilità
 
 Ripetere i passaggi **Genitore e Catering** almeno su finestra desktop e
