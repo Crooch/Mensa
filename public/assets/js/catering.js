@@ -4,7 +4,7 @@ let riferimenti = { plessi: [], tipologie: [] };
 let menuPubblicati = [];
 let menuDisponibili = false;
 let numeroRichiestaMenu = 0;
-let fotoDaRimuovere = false;
+const fotoMenuGiorno = FotoMenu.crea('menu-foto-widget');
 
 /** La chiave di pubblicazione e' data + plesso + tipologia, non l'intero elenco. */
 function menuSelezionato() {
@@ -22,15 +22,7 @@ function sincronizzaMenuSelezionato() {
     const tipologia = riferimenti.tipologie.find((t) => String(t.id) === tipologiaId);
     const pulsante = document.getElementById('menu-submit');
     const stato = document.getElementById('menu-selezione-stato');
-    const fotoStato = document.getElementById('menu-foto-stato');
     const descrizione = document.getElementById('menu-descrizione');
-    const foto = document.getElementById('menu-foto');
-    const anteprima = document.getElementById('menu-foto-anteprima');
-    const immagine = document.getElementById('menu-foto-immagine');
-    const annulla = document.getElementById('menu-foto-annulla');
-    fotoDaRimuovere = false;
-    anteprima.hidden = true;
-    annulla.hidden = true;
 
     if (!menuDisponibili || !plesso || !tipologia) {
         pulsante.disabled = true;
@@ -39,22 +31,14 @@ function sincronizzaMenuSelezionato() {
         stato.textContent = menuDisponibili
             ? 'Seleziona un plesso e una tipologia di menu.'
             : 'Caricamento dei menu pubblicati…';
-        fotoStato.textContent = 'Puoi aggiungere una foto al menu.';
+        fotoMenuGiorno.imposta(null);
         return;
     }
     const esistente = menuSelezionato();
     // Cambiando plesso o tipologia, nessun testo del precedente menu
     // deve rimanere nel campo della nuova pubblicazione.
     descrizione.value = esistente?.descrizione || '';
-    foto.value = '';
-    foto.disabled = false;
-    if (esistente?.foto_path) {
-        immagine.src = BASE + '/storage/' + esc(esistente.foto_path);
-        immagine.alt = 'Foto del menu di ' + plesso.nome;
-        anteprima.hidden = false;
-    } else {
-        immagine.removeAttribute('src');
-    }
+    fotoMenuGiorno.imposta(esistente?.foto_path || null);
     pulsante.disabled = false;
     pulsante.textContent = esistente ? 'Aggiorna menu' : 'Pubblica menu';
     stato.className = 'stato-operazione catering-menu-stato stato-operazione--' +
@@ -67,11 +51,7 @@ function sincronizzaMenuSelezionato() {
               ' (oggi). Aggiornerai solo questo menu: gli altri non cambiano.')
         : 'Nessun menu ancora pubblicato per ' + plesso.nome + ' · ' + tipologia.nome +
           ' (oggi). Verrà creato solo questo menu.';
-    fotoStato.textContent = esistente
-        ? (esistente.foto_path
-            ? 'Foto già presente. Se non ne scegli una nuova, rimane quella attuale.'
-            : 'Nessuna foto presente. Puoi aggiungerne una.')
-        : 'Puoi aggiungere una foto al nuovo menu.';
+
 }
 
 
@@ -208,33 +188,6 @@ async function caricaFeedback() {
 
 document.getElementById('menu-plesso').addEventListener('change', sincronizzaMenuSelezionato);
 document.getElementById('menu-tipologia').addEventListener('change', sincronizzaMenuSelezionato);
-document.getElementById('menu-foto-elimina').addEventListener('click', () => {
-    if (!menuSelezionato()?.foto_path || !menuDisponibili) return;
-    fotoDaRimuovere = true;
-    document.getElementById('menu-foto-anteprima').hidden = true;
-    document.getElementById('menu-foto-annulla').hidden = false;
-    document.getElementById('menu-foto').value = '';
-    document.getElementById('menu-foto-stato').textContent =
-        'Foto da rimuovere. La cancellazione avverrà soltanto dopo “Aggiorna menu”.';
-});
-document.getElementById('menu-foto-annulla').addEventListener('click', () => {
-    if (!menuSelezionato()?.foto_path) return;
-    fotoDaRimuovere = false;
-    document.getElementById('menu-foto-anteprima').hidden = false;
-    document.getElementById('menu-foto-annulla').hidden = true;
-    document.getElementById('menu-foto-stato').textContent =
-        'Se non scegli una nuova foto, rimane quella pubblicata.';
-});
-document.getElementById('menu-foto').addEventListener('change', () => {
-    const file = document.getElementById('menu-foto');
-    if (file.files.length) {
-        fotoDaRimuovere = false;
-        document.getElementById('menu-foto-anteprima').hidden = true;
-        document.getElementById('menu-foto-annulla').hidden = true;
-        document.getElementById('menu-foto-stato').textContent =
-            'La nuova foto sostituirà la precedente quando salvi.';
-    }
-});
 
 document.getElementById('form-menu').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -251,7 +204,7 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
         return;
     }
     const esistente = menuSelezionato();
-    const rimuoviFoto = fotoDaRimuovere;
+    const rimuoviFoto = fotoMenuGiorno.rimuovere();
     if (esistente && !await UI.conferma(
         'Aggiorna solo questo menu',
         'Stai per aggiornare il menu ' + tipologia.nome + ' del plesso ' + plesso.nome +
@@ -263,13 +216,13 @@ document.getElementById('form-menu').addEventListener('submit', async (e) => {
     if (document.getElementById('menu-plesso').value !== plessoId ||
         document.getElementById('menu-tipologia').value !== tipologiaId ||
         menuSelezionato()?.id !== esistente?.id ||
-        fotoDaRimuovere !== rimuoviFoto) {
+        fotoMenuGiorno.rimuovere() !== rimuoviFoto) {
         avviso('La selezione è cambiata: controlla il menu prima di salvare.', 'errore');
         return;
     }
     const descrizione = document.getElementById('menu-descrizione').value.trim();
-    const foto = document.getElementById('menu-foto').files[0];
-    if (!descrizione && !foto && (rimuoviFoto || !esistente?.foto_path)) {
+    const foto = fotoMenuGiorno.file();
+    if (!descrizione && !fotoMenuGiorno.haFoto()) {
         avviso('Inserisci una descrizione oppure seleziona una foto.', 'errore');
         document.getElementById('menu-descrizione').focus();
         return;
