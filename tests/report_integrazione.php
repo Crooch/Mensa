@@ -208,6 +208,51 @@ try {
 
 
 
+    // Caso misto, con due tipologie nella stessa classe: la richiesta
+    // pasta in bianco deve restare associata alla dieta corretta.
+    $stmtB->execute(['Lia', 'Test', $genitore, $menuSenzaGlutine]);
+    $lia = (int) $pdo->lastInsertId();
+    $stmtA->execute([$lia, $classi['A'], '2026-10-01']);
+    $stmtB->execute(['Edo', 'Test', $genitore, $menuSenzaGlutine]);
+    $edo = (int) $pdo->lastInsertId();
+    $stmtA->execute([$edo, $classi['B'], '2026-10-01']);
+    $stmt->execute([$lia]);
+    $righeMiste = $repo->reportPasti('2026-10-19', (int) $infanzia);
+    $perClasseMenu = [];
+    foreach ($righeMiste as $r) {
+        $perClasseMenu[$r['classe_nome']][(int) ($r['tipologia_id'] ?? 0)] =
+            (int) $r['pasti'];
+    }
+    if (($perClasseMenu['A'][$menu] ?? -1) !== 1 ||
+        ($perClasseMenu['A'][$menuSenzaGlutine] ?? -1) !== 1 ||
+        ($perClasseMenu['B'][$menu] ?? -1) !== 1 ||
+        ($perClasseMenu['B'][$menuSenzaGlutine] ?? -1) !== 1 ||
+        array_sum($perClasseMenu['C'] ?? []) !== 0 ||
+        array_sum($perClasseMenu['D'] ?? []) !== 0) {
+        throw new RuntimeException('Distribuzione mista tra classi e tipologie errata: ' .
+            json_encode($perClasseMenu));
+    }
+    $pastaMista = $repo->elencoPastaBianco('2026-10-19', (int) $infanzia);
+    $perBambino = [];
+    foreach ($pastaMista as $p) {
+        $perBambino[$p['nome']] = [
+            'classe_id' => (int) $p['classe_id'],
+            'tipologia_id' => (int) $p['tipologia_id'],
+        ];
+    }
+    if (count($perBambino) !== 3 ||
+        ($perBambino['Mario'] ?? null) !==
+            ['classe_id' => $classi['A'], 'tipologia_id' => $menu] ||
+        ($perBambino['Lia'] ?? null) !==
+            ['classe_id' => $classi['A'], 'tipologia_id' => $menuSenzaGlutine] ||
+        ($perBambino['Gianni'] ?? null) !==
+            ['classe_id' => $classi['B'], 'tipologia_id' => $menu] ||
+        isset($perBambino['Lucia']) || isset($perBambino['Edo'])) {
+        throw new RuntimeException('Pasta in bianco associata a menu/classe errati: ' .
+            json_encode($perBambino));
+    }
+    echo "OK: tipologie miste per classe, pasta in bianco attribuita alla dieta corretta; nessun doppio conteggio.\n";
+
     $pdo->rollBack();
 } catch (Throwable $e) {
 
