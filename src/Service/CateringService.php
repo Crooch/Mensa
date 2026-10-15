@@ -118,22 +118,34 @@ final class CateringService
         if (!$giorno || $giorno->format('Y-m-d') !== $data) {
             throw HttpException::nonValido('Data del menu non valida');
         }
-        // Un menu pubblicato per il giorno è un'eccezione che prevale
-        // sulla settimana tipo. Non viene MAI riscritto dai modelli.
-        $giornalieri = $this->menu->elenco($data, $plessoId);
-        $chiavi = [];
-        foreach ($giornalieri as &$g) {
-            $g['origine'] = 'giornaliero';
-            $chiavi[$g['plesso_id'] . ':' . $g['tipologia_menu_id']] = true;
-        }
-        unset($g);
+        // Calendario e modelli valgono per una singola combinazione
+        // plesso+tipologia+data. Il giornaliero prevale come override completo.
+        $modelli = [];
         foreach ($this->settimanali->giorniDiSettimana($data, $plessoId) as $modello) {
-            $chiave = $modello['plesso_id'] . ':' . $modello['tipologia_menu_id'];
-            if (isset($chiavi[$chiave])) continue;
             if (!$this->calendario->previsto((int) $modello['plesso_id'], $data)['attivo']) continue;
-            $giornalieri[] = $modello;
+            $chiave = $modello['plesso_id'] . ':' . $modello['tipologia_menu_id'];
+            $modelli[$chiave] = $modello;
         }
-        return $giornalieri;
+
+        $menuVisibili = [];
+        $chiavi = [];
+        foreach ($this->menu->elenco($data, $plessoId) as $giornaliero) {
+            // Non proporre per i giorni correnti/futuri menu se la mensa e'
+            // chiusa. Lascia invece consultabili le pubblicazioni storiche.
+            if ($data >= date('Y-m-d') &&
+                !$this->calendario->previsto((int) $giornaliero['plesso_id'], $data)['attivo']) {
+                continue;
+            }
+            $chiave = $giornaliero['plesso_id'] . ':' . $giornaliero['tipologia_menu_id'];
+            $giornaliero['origine'] = 'giornaliero';
+            $giornaliero['ha_modello_settimanale'] = isset($modelli[$chiave]);
+            $chiavi[$chiave] = true;
+            $menuVisibili[] = $giornaliero;
+        }
+        foreach ($modelli as $chiave => $modello) {
+            if (!isset($chiavi[$chiave])) $menuVisibili[] = $modello;
+        }
+        return $menuVisibili;
     }
 
     private function dalGiornoSuccessivo(): string
@@ -293,6 +305,64 @@ final class CateringService
     }
 
     /**
+     * Rimuove un'eccezione non consolidata e torna al modello settimanale
+     * gia' assegnato per quel giorno. Non tocca le revisioni storiche.
+     */
+    public function ripristinaMenuSettimanale(int $plessoId, int $tipologiaId, string $data): void
+    {
+        $giorno = \DateTimeImmutable::createFromFormat('!Y-m-d', $data);
+        if (!$giorno || $giorno->format('Y-m-d') !== $data || $data < date('Y-m-d')) {
+            throw HttpException::nonValido('Puoi ripristinare solo il menu di oggi o di una data futura');
+        }
+        if ($this->plessi->trova($plessoId) === null || $this->tipologie->trova($tipologiaId) === null) {
+            throw HttpException::nonTrovato('Plesso o tipologia non validi');
+        }
+        if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
+            throw HttpException::nonValido('Il servizio mensa non e previsto per questa data');
+        }
+        $esecuzione = $this->job->esecuzione($plessoId, $data);
+        if ($esecuzione !== null && $esecuzione['esito'] === 'ok') {
+            throw HttpException::nonValido('La giornata e consolidata: il menu non puo essere ripristinato');
+        }
+        $precedente = $this->menu->trovaPerChiave($plessoId, $tipologiaId, $data);
+        if ($precedente === null) {
+            throw HttpException::nonValido('Non esiste un menu giornaliero da ripristinare');
+        }
+        $presente = false;
+        foreach ($this->settimanali->giorniDiSettimana($data, $plessoId) as $modello) {
+            if ((int) $modello['tipologia_menu_id'] === $tipologiaId) {
+                $presente = true;
+                break;
+            }
+        }
+        if (!$presente) {
+            throw HttpException::nonValido('Nessun menu settimanale disponibile per questa data');
+        }
+        if (!$this->menu->rimuoviPerChiave($plessoId, $tipologiaId, $data)) {
+            throw new \RuntimeException('Non e stato possibile ripristinare il menu settimanale');
+        }
+        // File giornalieri propri, non condivisi con i modelli. Mai cancellare
+        // le foto nella cartella settimane o riferimenti di altre date.
+        $this->eliminaFotoGiornalieraSePropria(
+            $plessoId, $tipologiaId, $data, $precedente['foto_path'] ?? null
+        );
+    }
+
+    /** Il file fisico viene eliminato solo se appartiene a questa data. */
+    private function eliminaFotoGiornalieraSePropria(
+        int $plessoId, int $tipologiaId, string $data, ?string $fotoPrecedente
+    ): void {
+        if (!$fotoPrecedente) return;
+        $prefisso = 'menu/' . $plessoId . '_' . $tipologiaId . '/' . $data . '.';
+        if (!str_starts_with($fotoPrecedente, $prefisso)) return;
+        $estensione = substr($fotoPrecedente, strlen($prefisso));
+        if (!in_array($estensione, ['jpg', 'png', 'webp'], true)) return;
+        $percorso = dirname((string) Config::get('storage.menu_dir')) .
+            DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $fotoPrecedente);
+        if (is_file($percorso)) @unlink($percorso);
+    }
+
+    /**
      * Pubblica/aggiorna il menu per una combinazione plesso+tipologia+data.
      * La foto e' salvata su filesystem in /storage/menu/{plesso}_{tipologia}/{data}.jpg
      *
@@ -310,6 +380,9 @@ final class CateringService
         // L'eccezione giornaliera non può cambiare i menu già somministrati.
         if ($data < date('Y-m-d')) {
             throw HttpException::nonValido('Non puoi modificare il menu di una giornata già trascorsa');
+        }
+        if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
+            throw HttpException::nonValido('Non puoi pubblicare un menu in una giornata senza servizio mensa');
         }
         $esecuzione = $this->job->esecuzione($plessoId, $data);
         if ($esecuzione !== null && $esecuzione['esito'] === 'ok') {
@@ -336,21 +409,10 @@ final class CateringService
             $fotoPath = $this->salvaFoto($plessoId, $tipologiaId, $data, $file);
         }
         $id = $this->menu->salva($plessoId, $tipologiaId, $data, $descrizione, $fotoPath, $utenteId, $rimuoviFoto);
-        // Il percorso viene disassociato anche se il file era già assente.
-        // Elimina la copia precedente dal disco solo per il percorso atteso
-        // per questo preciso plesso, tipologia e data (mai input arbitrari).
-        if ($rimuoviFoto && !empty($esistente['foto_path'])) {
-            $fotoPrecedente = (string) $esistente['foto_path'];
-            $prefisso = 'menu/' . $plessoId . '_' . $tipologiaId . '/' . $data . '.';
-            $estensione = substr($fotoPrecedente, strlen($prefisso));
-            if (str_starts_with($fotoPrecedente, $prefisso) &&
-                in_array($estensione, ['jpg', 'png', 'webp'], true)) {
-                $percorso = dirname((string) Config::get('storage.menu_dir')) .
-                    DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $fotoPrecedente);
-                if (is_file($percorso)) {
-                    @unlink($percorso);
-                }
-            }
+        if ($rimuoviFoto) {
+            $this->eliminaFotoGiornalieraSePropria(
+                $plessoId, $tipologiaId, $data, $esistente['foto_path'] ?? null
+            );
         }
         return $id;
     }
