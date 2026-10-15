@@ -38,7 +38,10 @@ final class CateringController
     /** Elenco delle variazioni programmate dalla data odierna in avanti. */
     public function variazioniProgrammate(Request $r, array $utente): array
     {
-        return $this->c->catering()->variazioniProgrammate();
+        $pagina = $r->query('pagina');
+        return $this->c->catering()->variazioniProgrammate(
+            max(1, min(100000, (int) ($pagina ?? 1)))
+        );
     }
 
     /** Annulla una variazione, ripristinando il modello ove disponibile. */
