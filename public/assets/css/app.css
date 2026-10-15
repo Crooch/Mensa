@@ -2487,3 +2487,224 @@ body[data-ruolo="admin"] #eccezione-annulla[hidden] {
         white-space: normal;
     }
 }
+
+/* Admin — verifica di una data su tutte le scuole, classi per anno scolastico.
+   Limitare a otto plessi per pagina evita elenchi verticali interminabili.
+   Ogni scuola può mostrare le classi senza cambiare lo stato del calendario. */
+body[data-ruolo="admin"] .admin-calendario-verifica {
+    grid-template-columns: minmax(0, 280px) max-content;
+    justify-content: start;
+    max-width: 650px;
+    margin-bottom: .45rem;
+}
+body[data-ruolo="admin"] .admin-calendario-verifica .btn { min-height: 44px; }
+body[data-ruolo="admin"] .admin-verifica-pannello {
+    min-width: 0;
+    padding: 0 0 1.5rem;
+}
+body[data-ruolo="admin"] .admin-verifica-pannello[hidden] { display: none !important; }
+body[data-ruolo="admin"] .admin-verifica-intestazione {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .35rem 1rem;
+    margin: 1.15rem 0 .75rem;
+}
+body[data-ruolo="admin"] .admin-verifica-intestazione h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #1d4669;
+}
+body[data-ruolo="admin"] .admin-verifica-sommario {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .65rem;
+    margin-bottom: 1rem;
+}
+body[data-ruolo="admin"] .admin-verifica-numero {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: .1rem;
+    min-width: 0;
+    padding: .75rem .9rem;
+    border: 1px solid #d8e4ed;
+    border-radius: 9px;
+    background: #f8fafc;
+}
+body[data-ruolo="admin"] .admin-verifica-numero strong {
+    font-size: 1.35rem;
+    color: #183f62;
+    line-height: 1.2;
+}
+body[data-ruolo="admin"] .admin-verifica-numero span {
+    font-size: .81rem;
+    color: #4b6174;
+    line-height: 1.3;
+}
+body[data-ruolo="admin"] .admin-verifica-filtri {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 260px);
+    gap: .7rem 1rem;
+    margin: .8rem 0 .35rem;
+    align-items: end;
+}
+body[data-ruolo="admin"] .admin-verifica-filtri .campo-filtro {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    align-items: stretch;
+}
+body[data-ruolo="admin"] .admin-verifica-filtri .campo-filtro label {
+    align-self: stretch !important;
+    width: 100%;
+    margin: 0 0 .3rem !important;
+    text-align: left !important;
+}
+body[data-ruolo="admin"] .admin-verifica-filtri :is(input, select) {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+}
+body[data-ruolo="admin"] .admin-verifica-contatore {
+    margin: .7rem 0;
+    font-size: .86rem;
+    color: #546d82;
+}
+body[data-ruolo="admin"] .admin-verifica-scuole {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem;
+    align-items: start;
+}
+body[data-ruolo="admin"] .admin-verifica-scuola {
+    min-width: 0;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #d5e2ee;
+    border-left: 4px solid #9daebc;
+    border-radius: 9px;
+}
+body[data-ruolo="admin"] .admin-verifica-scuola--aperta { border-left-color: #33885c; }
+body[data-ruolo="admin"] .admin-verifica-scuola--chiusa { border-left-color: #c86a62; }
+body[data-ruolo="admin"] .admin-verifica-scuola__testa {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .55rem .9rem;
+    padding: .85rem 1rem;
+}
+body[data-ruolo="admin"] .admin-verifica-scuola__titolo {
+    flex: 1 1 185px;
+    min-width: 0;
+}
+body[data-ruolo="admin"] .admin-verifica-scuola__titolo h4 {
+    margin: 0 0 .25rem;
+    font-size: .98rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+body[data-ruolo="admin"] .admin-verifica-scuola__titolo p {
+    margin: 0;
+    font-size: .84rem;
+    color: #526c81;
+    line-height: 1.35;
+}
+body[data-ruolo="admin"] .admin-verifica-scuola__testa .badge-stato {
+    align-self: start;
+    text-align: center;
+    white-space: normal;
+}
+body[data-ruolo="admin"] .admin-verifica-classi {
+    border-top: 1px solid #e2eaf2;
+}
+body[data-ruolo="admin"] .admin-verifica-classi summary {
+    display: list-item;
+    list-style: disclosure-closed inside;
+    padding: .6rem 1rem;
+    cursor: pointer;
+    color: #245779;
+    font-size: .87rem;
+    font-weight: 650;
+}
+body[data-ruolo="admin"] .admin-verifica-classi[open] summary {
+    border-bottom: 1px solid #e9eff4;
+}
+body[data-ruolo="admin"] .admin-verifica-classi__interno {
+    padding: .75rem 1rem;
+}
+body[data-ruolo="admin"] .admin-verifica-classi__interno p.nota {
+    margin: 0 0 .6rem;
+    line-height: 1.4;
+}
+body[data-ruolo="admin"] .admin-verifica-classi__lista {
+    list-style: none;
+    margin: 0;
+    padding: 0 .2rem .2rem 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    max-height: 220px;
+    overflow: auto;
+    align-content: flex-start;
+}
+body[data-ruolo="admin"] .admin-verifica-classi__lista li {
+    padding: .28rem .55rem;
+    font-size: .82rem;
+    color: #29485e;
+    border: 1px solid #dce6ed;
+    border-radius: 7px;
+    background: #f5f8fb;
+    overflow-wrap: anywhere;
+}
+body[data-ruolo="admin"] .admin-verifica-vuoto {
+    grid-column: 1 / -1;
+    padding: 1.2rem;
+    border: 1px dashed #bbccda;
+    border-radius: 9px;
+    color: #52687a;
+}
+body[data-ruolo="admin"] .admin-verifica-pagine {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .75rem;
+    margin-top: 1.15rem;
+    font-size: .89rem;
+}
+body[data-ruolo="admin"] .admin-verifica-pagine[hidden] { display: none !important; }
+body[data-ruolo="admin"] .admin-verifica-pagine .btn { margin: 0; min-height: 40px; }
+body[data-ruolo="admin"] .admin-verifica-pagine .btn:disabled { opacity: .45; }
+@media (max-width: 950px) {
+    body[data-ruolo="admin"] .admin-verifica-scuole {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+@media (max-width: 760px) {
+    body[data-ruolo="admin"] .admin-verifica-sommario {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 600px) {
+    body[data-ruolo="admin"] .admin-calendario-verifica,
+    body[data-ruolo="admin"] .admin-verifica-filtri {
+        grid-template-columns: minmax(0, 1fr);
+        width: 100%;
+    }
+    body[data-ruolo="admin"] .admin-calendario-verifica .btn {
+        width: 100%;
+    }
+    body[data-ruolo="admin"] .admin-verifica-scuola__testa {
+        padding: .75rem .85rem;
+    }
+    body[data-ruolo="admin"] .admin-verifica-pagine {
+        gap: .5rem;
+    }
+    body[data-ruolo="admin"] .admin-verifica-pagine .btn {
+        flex: 1 1 0;
+        padding: .55rem;
+    }
+}
