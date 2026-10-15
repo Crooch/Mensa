@@ -43,6 +43,16 @@ final class MenuGiornalieroRepository extends Repository
         return (int) $esistente['id'];
     }
 
+    /** Elimina una sola eccezione, dopo i controlli di data/stato del servizio. */
+    public function rimuoviPerChiave(int $plessoId, int $tipologiaId, string $data): bool
+    {
+        return $this->esegui(
+            'DELETE FROM menu_giornalieri
+             WHERE plesso_id = :p AND tipologia_menu_id = :t AND data = :d',
+            ['p' => $plessoId, 't' => $tipologiaId, 'd' => $data]
+        ) === 1;
+    }
+
     /** Le pubblicazioni passate non vengono mai cancellate: restano consultabili. */
     public function elenco(string $data, ?int $plessoId = null): array
     {
