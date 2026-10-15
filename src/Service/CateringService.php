@@ -132,7 +132,38 @@ final class CateringService
             $perPlesso[$pid]['tipologie'][$tid]['pasta_in_bianco']++;
             $perPlesso[$pid]['tipologie'][$tid]['pasti_ordinari']--;
         }
+        // Il report di distribuzione deve usare esattamente il menu efficace
+        // per data/plesso/tipologia: modello settimanale o override giornaliero.
+        // Non modifichiamo mai la tipologia dietetica del bambino, ne' i conteggi.
+        $menuEfficaci = [];
+        foreach ($this->menuDelGiorno($data, $plessoId) as $menuGiorno) {
+            $chiave = (int) $menuGiorno['plesso_id'] . ':' . (int) $menuGiorno['tipologia_menu_id'];
+            $menuEfficaci[$chiave] = [
+                'menu_nome' => $menuGiorno['origine'] === 'settimanale'
+                    ? (string) $menuGiorno['modello_nome'] : 'Menu del giorno',
+                'menu_descrizione' => (string) ($menuGiorno['descrizione'] ?? ''),
+                'menu_origine' => $menuGiorno['origine'],
+            ];
+        }
         foreach ($perPlesso as &$plesso) {
+            $pid = (int) $plesso['plesso_id'];
+            foreach ($plesso['tipologie'] as $tid => &$tipo) {
+                $menu = $menuEfficaci[$pid . ':' . $tid] ?? null;
+                $tipo['menu_nome'] = $menu['menu_nome'] ?? null;
+                $tipo['menu_descrizione'] = $menu['menu_descrizione'] ?? null;
+                $tipo['menu_origine'] = $menu['menu_origine'] ?? null;
+            }
+            unset($tipo);
+            foreach ($plesso['sezioni'] as &$sezione) {
+                foreach ($sezione['tipologie'] as $tid => &$tipo) {
+                    $menu = $menuEfficaci[$pid . ':' . $tid] ?? null;
+                    $tipo['menu_nome'] = $menu['menu_nome'] ?? null;
+                    $tipo['menu_descrizione'] = $menu['menu_descrizione'] ?? null;
+                    $tipo['menu_origine'] = $menu['menu_origine'] ?? null;
+                }
+                unset($tipo);
+            }
+            unset($sezione);
             $plesso['pasti_ordinari'] = $plesso['totale_pasti'] - $plesso['totale_pasta_in_bianco'];
             $plesso['tipologie'] = array_values($plesso['tipologie']);
             foreach ($plesso['sezioni'] as &$sezione) {
