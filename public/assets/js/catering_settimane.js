@@ -3,6 +3,11 @@ let catalogoSettimane = [];
 let assegnazioniSettimane = [];
 let settimanaInModifica = null;
 const nomiGiorniSettimana = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+const fotoSettimana = {};
+for (let giorno = 1; giorno <= 7; giorno++) {
+    fotoSettimana[String(giorno)] = FotoMenu.crea('settimana-foto-widget-' + giorno);
+}
+
 
 function azzeraModelloSettimana() {
     settimanaInModifica = null;
@@ -12,6 +17,7 @@ function azzeraModelloSettimana() {
     document.getElementById('settimana-salva').textContent = 'Salva menu settimanale';
     nomiGiorniSettimana.forEach((_, i) => {
         document.getElementById('settimana-giorno-' + (i + 1)).value = '';
+        fotoSettimana[String(i + 1)].imposta(null);
     });
 }
 
@@ -25,8 +31,10 @@ function compilaSettimana(modello, duplicazione = false) {
     tipo.value = String(modello.tipologia_menu_id);
     tipo.disabled = !duplicazione;
     nomiGiorniSettimana.forEach((_, i) => {
+        const giorno = String(i + 1);
         document.getElementById('settimana-giorno-' + (i + 1)).value =
-            modello.giorni?.[String(i + 1)] || '';
+            modello.giorni?.[giorno] || '';
+        fotoSettimana[giorno].imposta(modello.foto_giorni?.[giorno] || null);
     });
     document.getElementById('settimana-salva').textContent =
         duplicazione ? 'Crea copia' : 'Salva modifiche';
@@ -45,7 +53,12 @@ function mostraCatalogoSettimane() {
                 <p class="nota">${esc(m.tipologia_nome)}</p>
                 <dl>${nomiGiorniSettimana.map((giorno, i) => `
                     <dt>${esc(giorno)}</dt>
-                    <dd class="menu-descrizione">${esc(m.giorni?.[String(i + 1)] || '—')}</dd>
+                    <dd class="menu-descrizione">
+                        ${esc(m.giorni?.[String(i + 1)] || (m.foto_giorni?.[String(i + 1)] ? '' : '—'))}
+                        ${m.foto_giorni?.[String(i + 1)] ? `<img class="catering-settimana-foto"
+                          src="${BASE}/storage/${esc(m.foto_giorni[String(i + 1)])}"
+                          alt="Foto del menu di ${esc(giorno)}">` : ''}
+                    </dd>
                 `).join('')}</dl>
                 <div class="catering-settimane-azioni">
                     <button type="button" class="btn btn-outline-primary" data-settimana-modifica="${m.id}">Modifica</button>
@@ -134,8 +147,9 @@ document.getElementById('form-settimana').addEventListener('submit', async event
     nomiGiorniSettimana.forEach((_, i) => {
         giorni[String(i + 1)] = document.getElementById('settimana-giorno-' + (i + 1)).value;
     });
-    if (!nome || !tipo || !Object.values(giorni).some(g => g.trim() !== '')) {
-        avviso('Indica nome, tipologia e almeno un giorno di menu.', 'errore');
+    const haFoto = Object.values(fotoSettimana).some(campo => campo.haFoto());
+    if (!nome || !tipo || (!Object.values(giorni).some(g => g.trim() !== '') && !haFoto)) {
+        avviso('Indica nome, tipologia e almeno un giorno con descrizione o foto.', 'errore');
         return;
     }
     const modifica = settimanaInModifica;
@@ -145,12 +159,20 @@ document.getElementById('form-settimana').addEventListener('submit', async event
     const pulsante = document.getElementById('settimana-salva');
     try {
         await UI.esegui(pulsante, async () => {
-            const dati = { nome, tipologia_menu_id: tipo, giorni };
-            if (modifica) {
-                await API.put('/api/catering/menu-settimanali/' + modifica, dati);
-            } else {
-                await API.post('/api/catering/menu-settimanali', dati);
+            const dati = new FormData();
+            dati.append('nome', nome);
+            dati.append('tipologia_menu_id', String(tipo));
+            dati.append('giorni', JSON.stringify(giorni));
+            const rimozioni = [];
+            for (let g = 1; g <= 7; g++) {
+                const widget = fotoSettimana[String(g)];
+                if (widget.rimuovere()) rimozioni.push(String(g));
+                if (widget.file()) dati.append('foto_giorno_' + g, widget.file());
             }
+            dati.append('rimuovi_foto', JSON.stringify(rimozioni));
+            await API.post(modifica
+                ? '/api/catering/menu-settimanali/' + modifica + '/aggiorna'
+                : '/api/catering/menu-settimanali', dati);
             await caricaSettimane();
         }, 'Salvataggio…');
         avviso(modifica ? 'Modello aggiornato per i giorni futuri.' : 'Menu settimanale creato.');
