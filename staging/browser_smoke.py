@@ -60,6 +60,83 @@ def controlla_etichette(page, contesto):
     assert not difetti, f"{contesto}: etichette senza campo associato: {difetti}"
 
 
+def controlla_profili_riordinati(page, ruolo, larghezza):
+    """Verifica i nuovi componenti sui tre profili senza modificare i dati."""
+    if ruolo not in ("genitore", "operatore", "admin"):
+        return
+    page.locator('nav.schede [data-vista]').first.click()
+    page.locator('.vista:visible .area-intro h1').first.wait_for()
+    assert page.locator('.vista:visible .area-intro h1').count() == 1
+    if larghezza <= 760:
+        nav = page.locator('nav.schede')
+        assert nav.evaluate("(e) => getComputedStyle(e).display") == "flex", (
+            'Le schede di navigazione devono occupare una sola riga mobile'
+        )
+
+    if ruolo == "genitore":
+        page.locator('#vista-riepilogo .area-sezione-testa').first.wait_for()
+        assert page.locator('#crediti-cards .card-mensa').count() > 0
+        page.screenshot(path=str(OUTPUT / f"genitore-riepilogo-nuovo-{larghezza}.png"),
+                        full_page=True)
+        page.locator('nav.schede [data-vista="calendario"]').click()
+        page.locator('#calendario .giorno[data-data]').first.wait_for()
+        griglia = page.locator('.famiglia-calendario-layout')
+        colonne = griglia.evaluate("(e) => getComputedStyle(e).gridTemplateColumns.split(' ').length")
+        assert colonne == (1 if larghezza <= 980 else 2), (
+            f'Calendario famiglia: colonne {colonne} non adeguate a {larghezza}px'
+        )
+        page.screenshot(path=str(OUTPUT / f"genitore-calendario-nuovo-{larghezza}.png"),
+                        full_page=True)
+        page.locator('nav.schede [data-vista="pagamenti"]').click()
+        page.locator('#movimenti-corpo tr').first.wait_for()
+        controlla_tabelle_mobili(page, larghezza)
+    elif ruolo == "operatore":
+        page.locator('#ricerca-famiglie').fill('Fittizio')
+        page.locator('#btn-cerca').click()
+        page.locator('#famiglie-corpo [data-apri]').first.wait_for()
+        page.locator('#famiglie-corpo [data-apri]').first.click()
+        page.locator('#btn-acquisto').wait_for(state="visible")
+        assert page.locator('#scheda-famiglia .operatore-contatti').count() == 1
+        assert page.locator('#scheda-famiglia .operatore-storico').count() == 2
+        assert page.locator('#scheda-famiglia .operatore-storico[open]').count() == 0
+        layout = page.locator('.operatore-layout')
+        colonne = layout.evaluate("(e) => getComputedStyle(e).gridTemplateColumns.split(' ').length")
+        assert colonne == (1 if larghezza <= 980 else 2), (
+            f'Operatore: colonne {colonne} non adeguate a {larghezza}px'
+        )
+        if larghezza <= 760:
+            assert page.locator('#famiglie-corpo tr').first.evaluate(
+                "(e) => getComputedStyle(e).display") in ('flex', 'block')
+        page.screenshot(path=str(OUTPUT / f"operatore-famiglia-nuova-{larghezza}.png"),
+                        full_page=True)
+        page.locator('#scheda-famiglia .operatore-storico').first.locator('summary').click()
+        assert page.locator('#scheda-famiglia .operatore-storico[open]').count() == 1
+        controlla_tabelle_mobili(page, larghezza)
+    else:
+        page.locator('#vista-plessi .admin-form-titolo').first.wait_for()
+        assert page.locator('#vista-plessi .area-sezione-testa').count() == 1
+        page.locator('#plessi-corpo tr').first.wait_for()
+        page.screenshot(path=str(OUTPUT / f"admin-plessi-nuovo-{larghezza}.png"),
+                        full_page=True)
+        controlla_tabelle_mobili(page, larghezza)
+
+    controlla_etichette(page, ruolo + ' nuova interfaccia')
+    controlla_dimensioni(page, f"{ruolo} nuova interfaccia @{larghezza}")
+    print(f"OK: nuovo layout {ruolo}@{larghezza}, etichette, tabelle e dimensioni")
+
+
+def controlla_tabelle_mobili(page, larghezza):
+    if larghezza > 760:
+        return
+    celle = page.locator('.vista:visible .tabella-scroll table tbody td:not([colspan])')
+    if celle.count():
+        page.wait_for_function("""() => {
+            const celle = [...document.querySelectorAll('.vista:not([hidden]) .tabella-scroll table tbody td:not([colspan])')];
+            return celle.length > 0 && celle.every(c => c.dataset.etichetta);
+        }""", timeout=8000)
+        assert celle.first.evaluate("(e) => getComputedStyle(e).display") in ('grid', 'block')
+
+
 def controlla_modali_operatore(page):
     """Tutti i moduli sono aperti ma mai inviati: nessuna mutazione DB."""
     page.locator('[data-vista="famiglie"]').click()
@@ -436,6 +513,8 @@ with sync_playwright() as engine:
                         pagina.wait_for_timeout(100)
                         controlla_etichette(pagina, descrizione + "/" + vista)
                         controlla_dimensioni(pagina, descrizione + "/" + vista)
+                    if ruolo in ("genitore", "operatore", "admin"):
+                        controlla_profili_riordinati(pagina, ruolo, larghezza)
                     if ruolo == "operatore" and larghezza == 1366:
                         controlla_modali_operatore(pagina)
                     if ruolo == "catering":
