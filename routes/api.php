@@ -95,6 +95,7 @@ $router->post('/api/catering/menu-settimanali/assegnazioni', [$catering, 'assegn
 
 
 // ---------------- area admin ----------------
+$router->get('/api/admin/calendari/riepilogo', [$admin, 'riepilogoCalendario'], ['admin']);
 $router->get('/api/admin/calendari/{id}', [$admin, 'dettaglioCalendario'], ['admin']);
 $router->put('/api/admin/calendari/{id}', [$admin, 'salvaCalendario'], ['admin']);
 $router->get('/api/admin/calendari/{id}/verifica', [$admin, 'verificaCalendario'], ['admin']);
