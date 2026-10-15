@@ -23,22 +23,8 @@ require __DIR__ . '/partials/testa.php';
     </div>
     <p class="nota" id="report-stato" role="status" aria-live="polite" data-testid="report-stato">Seleziona una data per consultare i pasti.</p>
     <div id="report-riepilogo" class="riepilogo-mensa" aria-live="polite"></div>
-    <p class="nota">Per ogni classe trovi i pasti da consegnare per tipologia. La pasta in bianco è già compresa nel totale: viene separata dai pasti normali, senza contarla due volte. I numeri sono provvisori fino alla conferma.</p>
-    <div class="catering-report-filtri">
-        <div class="catering-campo">
-            <label for="report-plesso">Scuola da visualizzare</label>
-            <select id="report-plesso" data-testid="report-plesso-filtro">
-                <option value="">Tutte le scuole</option>
-            </select>
-        </div>
-        <div class="catering-campo">
-            <label for="report-classe-cerca">Cerca una classe o sezione</label>
-            <input type="search" id="report-classe-cerca" placeholder="Es. Sezione A" autocomplete="off"
-                   data-testid="report-classe-ricerca">
-        </div>
-    </div>
-    <p class="nota" id="report-filtri-stato" role="status" aria-live="polite"></p>
-    <div id="report" class="catering-distribuzione" data-testid="report-plessi"></div>
+    <p class="nota catering-distribuzione-nota">Ogni classe mostra i pasti da consegnare per tipo di menu. La pasta in bianco è compresa nel totale e si trova evidenziata nella classe interessata.</p>
+    <div id="report" class="griglia-cards catering-distribuzione" data-testid="report-plessi"></div>
 </section>
 
 <section id="vista-menu" class="vista" hidden>
