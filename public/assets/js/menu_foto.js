@@ -8,7 +8,7 @@ const FotoMenu = {
             <div class="menu-foto__preview" hidden>
                 <img alt="Anteprima della foto del menu">
                 <button type="button" class="menu-foto__x"
-                        aria-label="Rimuovi foto" title="Rimuovi foto">&times;</button>
+                        aria-label="Rimuovi foto" title="Rimuovi foto"></button>
             </div>
             <div class="menu-foto__vuoto">Nessuna foto</div>
             <div class="menu-foto__comandi">
