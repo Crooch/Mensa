@@ -50,7 +50,11 @@ require __DIR__ . '/partials/testa.php';
             <label>Foto del menu (facoltativa)</label>
             <div id="menu-foto-widget" class="menu-foto" data-testid="menu-foto-widget"></div>
         </div>
-        <button type="submit" id="menu-submit" class="btn btn-primary catering-menu-submit" disabled data-testid="menu-submit-button">Pubblica menu</button>
+        <div class="catering-menu-azioni">
+            <button type="submit" id="menu-submit" class="btn btn-primary catering-menu-submit" disabled data-testid="menu-submit-button">Pubblica menu</button>
+            <button type="button" id="menu-ripristina" class="btn btn-outline-primary" hidden disabled
+                    data-testid="menu-ripristina-button">Ripristina menu settimanale</button>
+        </div>
     </form>
     <h2>Menu già pubblicati oggi</h2>
     <p id="menu-stato" class="stato-operazione" role="status" hidden></p>
