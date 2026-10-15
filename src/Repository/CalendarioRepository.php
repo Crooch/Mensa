@@ -9,6 +9,30 @@ use App\Core\Repository;
 /** Configurazione settimanale ed eccezioni, senza modificare gli storici. */
 final class CalendarioRepository extends Repository
 {
+    /**
+     * Lettura collettiva per il riepilogo amministrativo: niente query per
+     * singolo plesso. Le configurazioni vengono poi abbinate ai plessi attivi.
+     */
+    public function configurazioni(): array
+    {
+        return $this->tutti('SELECT * FROM calendari_servizio');
+    }
+
+    /**
+     * Eventuali eccezioni attive per la data, inclusi i periodi.
+     * In corrispondenza di confini consentiti (stesso stato) viene scelta
+     * quella con data iniziale più recente, come nella verifica singola.
+     */
+    public function eccezioniPerData(string $data): array
+    {
+        return $this->tutti(
+            'SELECT * FROM eccezioni_calendario
+             WHERE giorno <= :inizio AND COALESCE(giorno_fine, giorno) >= :fine
+             ORDER BY giorno DESC, id DESC',
+            ['inizio' => $data, 'fine' => $data]
+        );
+    }
+
     public function configurazione(int $plessoId): ?array
     {
         return $this->uno(
