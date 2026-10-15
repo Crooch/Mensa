@@ -414,6 +414,30 @@ copiato_foto = call("/api/catering/menu-settimanali/" + str(modello_id) + "/dupl
 modelli_finali = call("/api/catering/menu-settimanali", token=catering)
 assert next(m for m in modelli_finali
     if int(m["id"]) == int(copiato_foto["id"]))["foto_giorni"]["1"] == foto_settimanale
+# Se il menu giornaliero modifica soltanto la descrizione, deve conservare
+# la foto del modello settimanale; la rimozione giornaliera non tocca il modello.
+campi_override = {
+    "plesso_id": plesso_menu, "tipologia_menu_id": tipologia_menu,
+    "data": "2026-10-19", "descrizione": "Variazione solo per questo plesso",
+    "rimuovi_foto": "0"
+}
+eccezione = invia_menu_multipart(campi_override)
+foto_override = call("/api/catering/menu?data=2026-10-19", token=catering)
+riga_override = next(m for m in foto_override
+    if int(m["plesso_id"]) == plesso_menu and
+       int(m["tipologia_menu_id"]) == tipologia_menu)
+assert riga_override["foto_path"] == foto_settimanale
+assert riga_override["origine"] == "giornaliero"
+campi_override["rimuovi_foto"] = "1"
+invia_menu_multipart(campi_override)
+dopo_rimozione_locale = call("/api/catering/menu?data=2026-10-19", token=catering)
+assert next(m for m in dopo_rimozione_locale
+    if int(m["plesso_id"]) == plesso_menu and
+       int(m["tipologia_menu_id"]) == tipologia_menu)["foto_path"] is None
+assert next(m for m in dopo_rimozione_locale
+    if int(m["plesso_id"]) == 3 and
+       int(m["tipologia_menu_id"]) == tipologia_menu)["foto_path"] == foto_settimanale
+
 # Rimozione senza upload: l'aggiornamento non elimina gli altri menu.
 campi_settimana["rimuovi_foto"] = '["1"]'
 aggiorna_settimana_multipart(modello_id, campi_settimana)
