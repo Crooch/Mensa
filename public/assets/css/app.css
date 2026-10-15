@@ -1841,3 +1841,319 @@ body[data-ruolo="operatore"] .operatore-modale form > button[type="submit"] {
         justify-self: stretch;
     }
 }
+
+
+/* ---------------------------------------------------------------------
+   Admin: calendario e classi — layout dedicato, senza riga-filtri generica.
+   La casella di ogni giorno conserva dimensioni normali anche in presenza
+   delle regole Bootstrap Italia per input e form.
+   --------------------------------------------------------------------- */
+body[data-ruolo="admin"] .admin-calendario-scuola {
+    display: grid;
+    gap: .3rem;
+    margin: 1rem 0 1rem;
+    max-width: 700px;
+}
+body[data-ruolo="admin"] .admin-calendario-scuola label,
+body[data-ruolo="admin"] .admin-calendario-date label,
+body[data-ruolo="admin"] .admin-calendario-verifica label,
+body[data-ruolo="admin"] .admin-classe-campi label,
+body[data-ruolo="admin"] .admin-classi-consulta label,
+body[data-ruolo="admin"] .admin-config .campo-filtro > label {
+    display: block;
+    margin: 0 0 .3rem;
+    text-align: left;
+    position: static;
+    width: auto;
+    transform: none;
+    line-height: 1.4;
+}
+body[data-ruolo="admin"] .admin-calendario-scuola select {
+    width: 100%;
+    max-width: 700px;
+}
+body[data-ruolo="admin"] .admin-calendario-form {
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.35rem 1.5rem;
+}
+body[data-ruolo="admin"] .admin-calendario-form h2 {
+    margin: 0;
+    font-size: 1.16rem;
+}
+body[data-ruolo="admin"] .admin-calendario-date {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 1.5rem;
+    width: 100%;
+    max-width: 720px;
+    align-items: start;
+}
+body[data-ruolo="admin"] .admin-calendario-date .campo-filtro {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+}
+body[data-ruolo="admin"] .admin-calendario-date input[type="date"] {
+    width: min(100%, 260px) !important;
+    max-width: 100%;
+}
+body[data-ruolo="admin"] .admin-calendario-giorni {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+body[data-ruolo="admin"] .admin-calendario-giorni legend {
+    display: block;
+    width: 100%;
+    padding: 0;
+    margin: 0 0 .7rem;
+    font-size: .98rem;
+    font-weight: 700;
+    color: #334d65;
+}
+body[data-ruolo="admin"] .admin-calendario-giorni__griglia {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .6rem;
+    width: 100%;
+}
+body[data-ruolo="admin"] .admin-calendario-giorno {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: .6rem;
+    min-width: 0;
+    min-height: 48px;
+    margin: 0;
+    padding: .55rem .7rem;
+    border: 1px solid #d5e2ee;
+    border-radius: 9px;
+    background: #f8fafc;
+    color: #263f57;
+    font-size: .94rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    position: static;
+    transform: none;
+}
+body[data-ruolo="admin"] .admin-calendario-giorno:has(input:checked) {
+    border-color: #8ab0d7;
+    background: #edf5fd;
+}
+body[data-ruolo="admin"] .admin-calendario-giorno input[type="checkbox"] {
+    appearance: auto !important;
+    -webkit-appearance: checkbox !important;
+    display: inline-block !important;
+    position: static !important;
+    flex: 0 0 19px !important;
+    width: 19px !important;
+    min-width: 19px !important;
+    max-width: 19px !important;
+    height: 19px !important;
+    min-height: 19px !important;
+    max-height: 19px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 3px !important;
+    background: initial !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    vertical-align: middle;
+    cursor: pointer;
+    accent-color: #0066cc;
+    transform: none !important;
+}
+body[data-ruolo="admin"] .admin-calendario-giorno input[type="checkbox"]::before,
+body[data-ruolo="admin"] .admin-calendario-giorno input[type="checkbox"]::after {
+    content: none !important;
+    display: none !important;
+}
+body[data-ruolo="admin"] .admin-calendario-giorno input[type="checkbox"]:focus-visible {
+    outline: 3px solid #0066cc !important;
+    outline-offset: 3px;
+}
+body[data-ruolo="admin"] .admin-calendario-giorno span {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    line-height: 1.3;
+}
+body[data-ruolo="admin"] .admin-form-azioni {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: .65rem;
+    flex-wrap: wrap;
+    margin-top: .15rem;
+}
+body[data-ruolo="admin"] .admin-calendario-form .admin-form-azioni {
+    padding-top: 1rem;
+    margin: 0;
+    border-top: 1px solid #e2eaf2;
+}
+body[data-ruolo="admin"] .admin-calendario-eccezione {
+    margin-top: .7rem;
+}
+body[data-ruolo="admin"] .admin-calendario-eccezione .riga-filtri {
+    grid-template-columns: minmax(0, 200px) minmax(0, 230px) minmax(0, 1fr);
+    align-items: end;
+}
+body[data-ruolo="admin"] .admin-calendario-eccezione .campo-filtro,
+body[data-ruolo="admin"] .admin-calendario-eccezione .campo-filtro > input,
+body[data-ruolo="admin"] .admin-calendario-eccezione .campo-filtro > select {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+body[data-ruolo="admin"] .admin-calendario-eccezione input[type="date"] {
+    width: 100% !important;
+}
+body[data-ruolo="admin"] .admin-calendario-verifica {
+    display: grid;
+    grid-template-columns: minmax(0, 220px) max-content minmax(0, 1fr);
+    gap: .8rem;
+    align-items: end;
+    margin: .75rem 0 1.5rem;
+}
+body[data-ruolo="admin"] .admin-calendario-verifica #calendario-verifica-esito {
+    align-self: center;
+    font-size: .93rem;
+    font-weight: 600;
+    color: #194d75;
+}
+body[data-ruolo="admin"] .admin-calendario-verifica #calendario-verifica-esito:empty {
+    display: none;
+}
+
+/* Classi: una scelta per la scuola, elenco dipendente e creazione separata. */
+body[data-ruolo="admin"] .admin-classi-consulta {
+    display: grid;
+    grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
+    align-items: end;
+    gap: .5rem 1rem;
+    margin-bottom: 1rem;
+}
+body[data-ruolo="admin"] .admin-classi-consulta .campo-filtro { min-width: 0; }
+body[data-ruolo="admin"] .admin-classi-consulta p { margin: 0 0 .5rem; }
+body[data-ruolo="admin"] .admin-aggiungi-sezione {
+    margin: 1rem 0 1.35rem;
+    border: 1px solid #d5e2ee;
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+}
+body[data-ruolo="admin"] .admin-aggiungi-sezione > summary {
+    cursor: pointer;
+    padding: 1rem 1.15rem;
+    font-weight: 700;
+    color: #184d76;
+}
+body[data-ruolo="admin"] .admin-aggiungi-sezione[open] > summary {
+    border-bottom: 1px solid #d5e2ee;
+}
+body[data-ruolo="admin"] .admin-aggiungi-sezione form {
+    padding: 1.1rem;
+}
+body[data-ruolo="admin"] .admin-classe-campi {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .8rem 1rem;
+    margin-bottom: 1rem;
+}
+body[data-ruolo="admin"] .admin-classe-campi .campo-filtro {
+    min-width: 0;
+    max-width: 100%;
+}
+body[data-ruolo="admin"] .admin-classe-campi input,
+body[data-ruolo="admin"] .admin-classe-campi select {
+    max-width: 100%;
+    width: 100%;
+}
+body[data-ruolo="admin"] .admin-classe-campi .campo-filtro[hidden] {
+    display: none !important;
+}
+
+/* Allineamenti delle altre configurazioni admin: nessuna etichetta isolata. */
+body[data-ruolo="admin"] .admin-config .riga-filtri {
+    align-items: end;
+    gap: .85rem 1rem;
+}
+body[data-ruolo="admin"] .admin-config .riga-filtri > .campo-filtro {
+    align-self: stretch;
+    justify-content: flex-end;
+    min-width: 0;
+    max-width: 100%;
+}
+body[data-ruolo="admin"] .admin-config .riga-filtri > .campo-filtro :is(input, select, textarea) {
+    display: block;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    min-height: 44px;
+}
+body[data-ruolo="admin"] .admin-config .riga-filtri > button[type="submit"] {
+    align-self: end;
+}
+body[data-ruolo="admin"] .admin-config .riga-filtri > label {
+    align-self: end;
+    text-align: left;
+}
+body[data-ruolo="admin"] .admin-job-azioni .campo-filtro label {
+    display: block;
+    margin-bottom: .3rem;
+    text-align: left;
+}
+
+@media (max-width: 900px) {
+    body[data-ruolo="admin"] .admin-calendario-giorni__griglia {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    body[data-ruolo="admin"] .admin-calendario-eccezione .riga-filtri {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    body[data-ruolo="admin"] .admin-calendario-eccezione .riga-filtri > .campo-filtro:last-child {
+        grid-column: 1 / -1;
+    }
+}
+@media (max-width: 600px) {
+    body[data-ruolo="admin"] .admin-calendario-form {
+        padding: 1rem;
+        gap: 1rem;
+    }
+    body[data-ruolo="admin"] .admin-calendario-date {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="admin"] .admin-calendario-giorni__griglia {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .45rem;
+    }
+    body[data-ruolo="admin"] .admin-calendario-giorno {
+        min-height: 46px;
+        padding: .5rem .55rem;
+        font-size: .9rem;
+    }
+    body[data-ruolo="admin"] .admin-calendario-eccezione .riga-filtri {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="admin"] .admin-calendario-eccezione .riga-filtri > .campo-filtro:last-child {
+        grid-column: auto;
+    }
+    body[data-ruolo="admin"] .admin-calendario-verifica {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+    }
+    body[data-ruolo="admin"] .admin-calendario-verifica .btn {
+        width: 100%;
+    }
+    body[data-ruolo="admin"] .admin-classi-consulta,
+    body[data-ruolo="admin"] .admin-classe-campi {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
