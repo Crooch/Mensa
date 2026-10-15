@@ -26,6 +26,12 @@ final class JobController
         return $this->c->job()->eseguiPerPlesso((int) $r->parametro('id'), $r->input('data'));
     }
 
+    /** Monitoraggio della chiusura odierna, nessun addebito. */
+    public function stato(Request $r, array $utente): array
+    {
+        return $this->c->job()->statoGiornata();
+    }
+
     public function esecuzioni(Request $r, array $utente): array
     {
         return $this->c->job()->ultimeEsecuzioni();
