@@ -311,6 +311,58 @@ sovrascrive il valore memorizzato.
 
 ---
 
+## Calendario mensa e periodi straordinari
+
+Il calendario ordinario (giorni settimanali, data di inizio e data di fine
+facoltativa) rimane associato al plesso. L'interfaccia identifica l'anno
+scolastico della data di avvio, ad esempio **2026/2027**: non viene creato
+automaticamente un nuovo calendario ogni settembre. Se non viene impostata
+una fine, la configurazione ordinaria rimane valida anche negli anni successivi.
+
+| Metodo | Endpoint | Ruoli | Descrizione |
+|---|---|---|---|
+| GET | `/api/admin/calendari/{id}` | admin | Configurazione e periodi per la scuola |
+| PUT | `/api/admin/calendari/{id}` | admin | Salva il calendario ordinario |
+| GET | `/api/admin/calendari/{id}/verifica?data=YYYY-MM-DD` | admin | Verifica il servizio nella data, senza addebiti |
+| POST | `/api/admin/calendari/{id}/periodi` | admin | Crea un'apertura o una chiusura di uno o più giorni |
+| PUT | `/api/admin/calendari/{id}/periodi/{periodo_id}` | admin | Modifica un periodo già registrato |
+| DELETE | `/api/admin/calendari/{id}/periodi/{periodo_id}` | admin | Elimina un periodo, ripristinando le regole ordinarie |
+
+Esempio `POST /api/admin/calendari/1/periodi`:
+
+```json
+{
+  "data_inizio": "2026-12-23",
+  "data_fine": "2027-01-06",
+  "servizio_attivo": 0,
+  "motivazione": "Vacanze natalizie"
+}
+```
+
+Per una data singola è sufficiente omettere `data_fine` o valorizzarla
+con la stessa data iniziale. In tabella i record storici a giorno singolo
+rimangono validi con `giorno_fine = NULL`; è richiesta la migrazione
+`database/migrations/009_intervalli_calendario.sql`.
+
+**Precedenza:** ogni chiusura o apertura straordinaria esplicita prevale
+sul calendario ordinario, anche su fine settimana, festività nazionali e
+date di inizio/fine servizio. Un'apertura straordinaria è dunque
+un'operazione che può autorizzare la contabilizzazione anche in giornate
+normalmente escluse. I plessi disattivati restano invece esclusi.
+
+**Sovrapposizioni:** due periodi possono condividere soltanto il giorno
+finale/inziale, e soltanto se hanno lo stesso tipo (due aperture o due
+chiusure). Qualsiasi intersezione interna, o anche il solo confine con
+stati diversi, genera HTTP `422` e un messaggio con le date del periodo
+già esistente. La verifica avviene nel servizio PHP con un lock per scuola,
+quindi non è aggirabile inviando richieste direttamente alle API.
+
+Gli endpoint storici `/eccezioni/{data}` rimangono compatibili per
+giorni singoli, ma non possono sovrascrivere o cancellare accidentalmente
+un periodo di più giorni.
+
+---
+
 ## Job giornaliero
 
 | Metodo | Endpoint | Ruoli | Descrizione |
