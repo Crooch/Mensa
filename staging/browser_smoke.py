@@ -143,6 +143,9 @@ def controlla_modali_operatore(page):
     page.locator('#btn-nuovo-genitore').click()
     page.locator('[data-testid="genitore-form"]').wait_for(state="visible")
     controlla_etichette(page, 'Operatore / nuova famiglia')
+    assert page.locator('#modale [data-testid="genitore-form"] > .campo-filtro').count() == 6
+    assert page.locator('#modale [data-testid="genitore-form"]').evaluate(
+        "(e) => getComputedStyle(e).gridTemplateColumns.split(' ').length") == 2
     page.locator('#modale-chiudi').click()
 
     # Il seed contiene famiglie fittizie; apriamo solo una scheda.
@@ -167,6 +170,24 @@ def controlla_modali_operatore(page):
         controlla_etichette(page, 'Operatore / ' + form)
         page.locator('#modale-chiudi').click()
     print("OK: 8 moduli Operatore senza label orfane (nessun salvataggio).")
+
+
+def controlla_modale_mobile(page):
+    """Un modulo completo su 375px, Escape e focus, senza salvataggi."""
+    page.locator('nav.schede [data-vista="famiglie"]').click()
+    page.locator('#btn-nuovo-genitore').click()
+    page.locator('#modale [data-testid="genitore-form"]').wait_for(state="visible")
+    assert page.locator('#modale [data-testid="genitore-form"] > .campo-filtro').count() == 6
+    assert page.locator('#modale [data-testid="genitore-form"]').evaluate(
+        "(e) => getComputedStyle(e).gridTemplateColumns.split(' ').length") == 1
+    assert page.locator('#op-genitore-nome-input').evaluate("(e) => document.activeElement === e")
+    controlla_etichette(page, 'Operatore / modulo mobile')
+    controlla_dimensioni(page, 'Operatore / modulo mobile')
+    page.screenshot(path=str(OUTPUT / 'operatore-modale-nuovo-375.png'), full_page=True)
+    page.keyboard.press('Escape')
+    assert page.locator('#modale').is_hidden()
+    assert page.locator('#btn-nuovo-genitore').evaluate("(e) => document.activeElement === e")
+    print('OK: Operatore modulo mobile, layout singola colonna, focus ed Escape')
 
 
 def controlla_foto(page):
@@ -515,6 +536,8 @@ with sync_playwright() as engine:
                         controlla_dimensioni(pagina, descrizione + "/" + vista)
                     if ruolo in ("genitore", "operatore", "admin"):
                         controlla_profili_riordinati(pagina, ruolo, larghezza)
+                    if ruolo == "operatore" and larghezza == 375:
+                        controlla_modale_mobile(pagina)
                     if ruolo == "operatore" and larghezza == 1366:
                         controlla_modali_operatore(pagina)
                     if ruolo == "catering":
