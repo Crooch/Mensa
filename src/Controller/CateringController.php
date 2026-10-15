@@ -56,6 +56,17 @@ final class CateringController
         return ['id' => $id];
     }
 
+    /** Torna alla programmazione settimanale, solo per un'eccezione non consolidata. */
+    public function ripristinaMenuSettimanale(Request $r, array $utente): array
+    {
+        $this->c->catering()->ripristinaMenuSettimanale(
+            (int) $r->obbligatorio('plesso_id'),
+            (int) $r->obbligatorio('tipologia_menu_id'),
+            (string) $r->obbligatorio('data')
+        );
+        return ['ripristinato' => true];
+    }
+
     /** Catalogo di settimane tipo riutilizzabili, una tipologia per modello. */
     public function menuSettimanali(Request $r, array $utente): array
     {
