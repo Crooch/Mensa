@@ -538,8 +538,12 @@ campi_futuri = {
     "rimuovi_foto": "0"
 }
 nuovo_programmato = invia_menu_multipart(campi_futuri)
-programmate = call("/api/catering/menu/variazioni", token=catering)
-futura = next(m for m in programmate
+programmate = call("/api/catering/menu/variazioni?pagina=1", token=catering)
+assert programmate["pagina"] == 1 and programmate["per_pagina"] == 10
+assert programmate["pagine"] >= 1 and len(programmate["righe"]) <= 10
+assert all(a["data"] >= b["data"] for a, b
+           in zip(programmate["righe"], programmate["righe"][1:]))
+futura = next(m for m in programmate["righe"]
     if int(m["id"]) == int(nuovo_programmato["id"]))
 assert futura["data"] == giorno
 assert futura["descrizione"] == "Menu senza glutine programmato"
@@ -549,13 +553,16 @@ assert any(m["descrizione"] == campi_futuri["descrizione"] for m in
            call("/api/catering/menu?data=" + giorno, token=catering))
 campi_futuri["descrizione"] = "Menu senza glutine modificato"
 invia_menu_multipart(campi_futuri)
-assert next(m for m in call("/api/catering/menu/variazioni", token=catering)
+assert next(m for m in call("/api/catering/menu/variazioni?pagina=1", token=catering)["righe"]
     if int(m["id"]) == int(nuovo_programmato["id"]))["descrizione"] == campi_futuri["descrizione"]
 call("/api/catering/menu/annulla", {
     "plesso_id": plesso_menu, "tipologia_menu_id": tipo_senza_modello, "data": giorno
 }, token=catering)
 assert not any(int(m["id"]) == int(nuovo_programmato["id"])
-               for m in call("/api/catering/menu/variazioni", token=catering))
+               for m in call("/api/catering/menu/variazioni?pagina=1", token=catering)["righe"])
+ultima_pagina = call("/api/catering/menu/variazioni?pagina=99999", token=catering)
+assert ultima_pagina["pagina"] == ultima_pagina["pagine"]
+assert len(ultima_pagina["righe"]) <= 10
 assert any(m["descrizione"] == "Menu senza glutine modificato" for m in
            call("/api/catering/menu?data=2026-10-19", token=catering)) is False
 try:
