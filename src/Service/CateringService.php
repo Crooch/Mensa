@@ -373,30 +373,69 @@ final class CateringService
         return ['valido_dal' => $dal, 'plessi' => $ids, 'menu_id' => $id];
     }
 
+    /** Data e cutoff verificati lato server per ogni modifica a un menu giornaliero. */
+    private function verificaMenuModificabile(int $plessoId, int $tipologiaId, string $data): void
+    {
+        $giorno = \DateTimeImmutable::createFromFormat('!Y-m-d', $data);
+        if (!$giorno || $giorno->format('Y-m-d') !== $data) {
+            throw HttpException::nonValido('La data del menu non è valida');
+        }
+        $plesso = $this->plessi->trova($plessoId);
+        if ($plesso === null || $this->tipologie->trova($tipologiaId) === null) {
+            throw HttpException::nonTrovato('Plesso o tipologia non validi');
+        }
+        if ($this->presenzaService->oltreCutoff($plesso, $data)) {
+            throw HttpException::nonValido('Orario limite superato per ' . $plesso['nome'] .
+                '. Puoi modificare soltanto menu di date future.');
+        }
+        if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
+            throw HttpException::nonValido('Il servizio mensa non è previsto per questa data');
+        }
+        $esecuzione = $this->job->esecuzione($plessoId, $data);
+        if ($esecuzione !== null && in_array($esecuzione['esito'], ['ok', 'in_corso'], true)) {
+            throw HttpException::nonValido('Giornata già consolidata o in consolidamento');
+        }
+    }
+
+    /** Riepilogo delle sole variazioni giornaliere, senza i modelli ripetuti. */
+    public function variazioniProgrammate(): array
+    {
+        $righe = $this->menu->elencoProgrammati(date('Y-m-d'));
+        foreach ($righe as &$riga) {
+            $plesso = $this->plessi->trova((int) $riga['plesso_id']);
+            $riga['modificabile'] = $plesso !== null &&
+                !$this->presenzaService->oltreCutoff($plesso, (string) $riga['data']) &&
+                $this->calendario->previsto((int) $riga['plesso_id'], (string) $riga['data'])['attivo'] &&
+                !in_array($this->job->esecuzione((int) $riga['plesso_id'], (string) $riga['data'])['esito'] ?? '',
+                    ['ok', 'in_corso'], true);
+        }
+        unset($riga);
+        return $righe;
+    }
+
+    /** Cancella solo la variazione scelta; se esiste, riemerge il modello. */
+    public function annullaVariazioneGiornaliera(int $plessoId, int $tipologiaId, string $data): void
+    {
+        $this->verificaMenuModificabile($plessoId, $tipologiaId, $data);
+        $precedente = $this->menu->trovaPerChiave($plessoId, $tipologiaId, $data);
+        if ($precedente === null) {
+            throw HttpException::nonValido('Nessuna variazione giornaliera da annullare');
+        }
+        if (!$this->menu->rimuoviPerChiave($plessoId, $tipologiaId, $data)) {
+            throw new \RuntimeException('Impossibile annullare la variazione giornaliera');
+        }
+        $this->eliminaFotoGiornalieraSePropria(
+            $plessoId, $tipologiaId, $data, $precedente['foto_path'] ?? null
+        );
+    }
+
     /**
      * Rimuove un'eccezione non consolidata e torna al modello settimanale
      * gia' assegnato per quel giorno. Non tocca le revisioni storiche.
      */
     public function ripristinaMenuSettimanale(int $plessoId, int $tipologiaId, string $data): void
     {
-        $giorno = \DateTimeImmutable::createFromFormat('!Y-m-d', $data);
-        if (!$giorno || $giorno->format('Y-m-d') !== $data || $data < date('Y-m-d')) {
-            throw HttpException::nonValido('Puoi ripristinare solo il menu di oggi o di una data futura');
-        }
-        if ($this->plessi->trova($plessoId) === null || $this->tipologie->trova($tipologiaId) === null) {
-            throw HttpException::nonTrovato('Plesso o tipologia non validi');
-        }
-        if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
-            throw HttpException::nonValido('Il servizio mensa non e previsto per questa data');
-        }
-        $esecuzione = $this->job->esecuzione($plessoId, $data);
-        if ($esecuzione !== null && $esecuzione['esito'] === 'ok') {
-            throw HttpException::nonValido('La giornata e consolidata: il menu non puo essere ripristinato');
-        }
-        $precedente = $this->menu->trovaPerChiave($plessoId, $tipologiaId, $data);
-        if ($precedente === null) {
-            throw HttpException::nonValido('Non esiste un menu giornaliero da ripristinare');
-        }
+        $this->verificaMenuModificabile($plessoId, $tipologiaId, $data);
         $presente = false;
         foreach ($this->settimanali->giorniDiSettimana($data, $plessoId) as $modello) {
             if ((int) $modello['tipologia_menu_id'] === $tipologiaId) {
@@ -407,14 +446,7 @@ final class CateringService
         if (!$presente) {
             throw HttpException::nonValido('Nessun menu settimanale disponibile per questa data');
         }
-        if (!$this->menu->rimuoviPerChiave($plessoId, $tipologiaId, $data)) {
-            throw new \RuntimeException('Non e stato possibile ripristinare il menu settimanale');
-        }
-        // File giornalieri propri, non condivisi con i modelli. Mai cancellare
-        // le foto nella cartella settimane o riferimenti di altre date.
-        $this->eliminaFotoGiornalieraSePropria(
-            $plessoId, $tipologiaId, $data, $precedente['foto_path'] ?? null
-        );
+        $this->annullaVariazioneGiornaliera($plessoId, $tipologiaId, $data);
     }
 
     /** Il file fisico viene eliminato solo se appartiene a questa data. */
@@ -439,24 +471,7 @@ final class CateringService
      */
     public function pubblicaMenu(int $plessoId, int $tipologiaId, string $data, ?string $descrizione, ?array $file, int $utenteId, bool $rimuoviFoto = false): int
     {
-        $giorno = \DateTimeImmutable::createFromFormat('!Y-m-d', $data);
-        if ($giorno === false || $giorno->format('Y-m-d') !== $data) {
-            throw HttpException::nonValido('La data del menu non è valida');
-        }
-        if ($this->plessi->trova($plessoId) === null || $this->tipologie->trova($tipologiaId) === null) {
-            throw HttpException::nonTrovato('Plesso o tipologia non validi');
-        }
-        // L'eccezione giornaliera non può cambiare i menu già somministrati.
-        if ($data < date('Y-m-d')) {
-            throw HttpException::nonValido('Non puoi modificare il menu di una giornata già trascorsa');
-        }
-        if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
-            throw HttpException::nonValido('Non puoi pubblicare un menu in una giornata senza servizio mensa');
-        }
-        $esecuzione = $this->job->esecuzione($plessoId, $data);
-        if ($esecuzione !== null && $esecuzione['esito'] === 'ok') {
-            throw HttpException::nonValido('La giornata è consolidata: il menu è nello storico');
-        }
+        $this->verificaMenuModificabile($plessoId, $tipologiaId, $data);
         $fotoNuova = $file !== null && ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK;
         $esistente = $this->menu->trovaPerChiave($plessoId, $tipologiaId, $data);
         if ($rimuoviFoto && $fotoNuova) {
