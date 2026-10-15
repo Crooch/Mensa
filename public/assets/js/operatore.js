@@ -82,10 +82,16 @@ async function apriFamiglia(id) {
     famigliaCorrente = s;
     const g = s.genitore;
     document.getElementById('scheda-famiglia').innerHTML = `
-        <h2 data-testid="famiglia-nome">${esc(g.cognome)} ${esc(g.nome)}</h2>
-        <p class="nota">Telefono ${esc(g.telefono)} · Email ${esc(g.email || 'non presente')} · Utenza ${esc(g.username || '-')}
-        ${Number(g.cancellato_logicamente) === 1 ? '<span class="badge-stato badge-rosso">cancellata</span>' : ''}</p>
-        <div class="riga-filtri">
+        <header class="operatore-famiglia-testa">
+            <h2 data-testid="famiglia-nome">${esc(g.cognome)} ${esc(g.nome)}</h2>
+            ${Number(g.cancellato_logicamente) === 1 ? '<span class="badge-stato badge-rosso">Disattivata</span>' : ''}
+            <dl class="operatore-contatti">
+                <div><dt>Telefono</dt><dd>${esc(g.telefono || '-')}</dd></div>
+                <div><dt>Email</dt><dd>${esc(g.email || 'Non presente')}</dd></div>
+                <div><dt>Utenza</dt><dd>${esc(g.username || '-')}</dd></div>
+            </dl>
+        </header>
+        <div class="operatore-azioni">
             <button class="btn btn-primary btn-sm" id="btn-acquisto" data-testid="acquisto-buoni-button">Registra buoni acquistati</button>
             <button class="btn btn-outline-primary btn-sm" id="btn-override" data-testid="override-tariffa-button">Tariffa agevolata</button>
             <button class="btn btn-outline-primary btn-sm" id="btn-rettifica" data-testid="rettifica-button">Correggi il saldo buoni</button>
@@ -93,7 +99,7 @@ async function apriFamiglia(id) {
             <button class="btn btn-outline-primary btn-sm" id="btn-nuovo-figlio" data-testid="nuovo-figlio-button">Aggiungi figlio</button>
         </div>
 
-        <h2>Buoni mensa disponibili per scuola</h2>
+        <div class="area-sezione-testa"><h3>Buoni disponibili</h3></div>
         <div class="griglia-cards">${s.crediti.map((c) => `
             <article class="card-mensa card-mensa--${c.stato}" data-testid="credito-${c.plesso_id}">
                 <h3>${esc(c.plesso_nome)}</h3><span class="saldo">${c.saldo}</span>
@@ -101,9 +107,9 @@ async function apriFamiglia(id) {
                 <dt>Costo di un pasto</dt><dd>${euro(c.tariffa_attiva)} (${c.origine_tariffa === 'override' ? 'tariffa agevolata' : 'tariffa ordinaria'})</dd></dl>
             </article>`).join('') || '<p class="vuoto">Nessun saldo buoni registrato per questa famiglia.</p>'}</div>
 
-        <h2>Figli</h2>
+        <div class="area-sezione-testa"><h3>Figli</h3></div>
         ${s.figli.map((f) => `
-            <div class="card-mensa" data-testid="figlio-${f.id}" style="margin-bottom:.6rem">
+            <div class="card-mensa operatore-figlio" data-testid="figlio-${f.id}">
                 <h3>${esc(f.cognome)} ${esc(f.nome)} ${Number(f.cancellato_logicamente) === 1 ? '<span class="badge-stato badge-rosso">cancellato</span>' : ''}</h3>
                 <dl>
                     <dt>Classe attuale</dt><dd>${esc(f.plesso_nome || '-')} ${esc(f.classe_nome || '')}</dd>
@@ -112,29 +118,32 @@ async function apriFamiglia(id) {
                 <details><summary>Storico classi (${f.storico_classi.length})</summary>
                     <ul class="nota">${f.storico_classi.map((a) => `<li>${esc(a.plesso_nome)} · ${esc(a.classe_nome)} (${esc(a.anno_scolastico)}) dal ${dataIt(a.data_inizio)} ${a.data_fine ? 'al ' + dataIt(a.data_fine) : '(corrente)'}</li>`).join('')}</ul>
                 </details>
-                <div class="riga-filtri" style="margin-top:.5rem">
+                <div class="operatore-figlio-azioni">
                     <button class="btn-azione" data-cambio-classe="${f.id}" data-testid="cambia-classe-${f.id}">Cambia classe</button>
                     <button class="btn-azione" data-dieta="${f.id}" data-testid="cambia-dieta-${f.id}">Cambia dieta</button>
                     <button class="btn-azione" data-cancella-figlio="${f.id}" data-testid="cancella-figlio-${f.id}">Disattiva bambino</button>
                 </div>
             </div>`).join('') || '<p class="vuoto">Nessun figlio registrato.</p>'}
 
-        <h2>Storico delle tariffe agevolate</h2>
-        <div class="tabella-scroll"><table class="table" data-testid="override-tabella">
+        <details class="operatore-storico">
+            <summary>Storico delle tariffe agevolate (${s.override_tariffe.length})</summary>
+            <div class="tabella-scroll"><table class="table" data-testid="override-tabella">
             <thead><tr><th>Data</th><th>Plesso</th><th>Tariffa</th><th>Motivazione</th><th>Inserito da</th></tr></thead>
             <tbody>${s.override_tariffe.map((o) => `<tr><td>${dataIt(o.data_inserimento)}</td><td>${esc(o.plesso_nome)}</td>
                 <td>${euro(o.tariffa)}</td><td>${esc(o.motivazione)}</td><td>${esc(o.inserito_da || '-')}</td></tr>`).join('')
                 || '<tr><td colspan="5" class="vuoto">Nessuna tariffa agevolata registrata.</td></tr>'}</tbody>
         </table></div>
-
-        <h2>Acquisti, pasti e correzioni dei buoni</h2>
-        <div class="tabella-scroll"><table class="table" data-testid="movimenti-tabella">
+        </details>
+        <details class="operatore-storico">
+            <summary>Acquisti, pasti e correzioni dei buoni (${s.movimenti.length})</summary>
+            <div class="tabella-scroll"><table class="table" data-testid="movimenti-tabella">
             <thead><tr><th>Data</th><th>Plesso</th><th>Tipo</th><th>Buoni</th><th>Importo</th><th>Alunno</th><th>Operatore</th></tr></thead>
             <tbody>${s.movimenti.map((m) => `<tr><td>${dataIt(m.data)}</td><td>${esc(m.plesso_nome)}</td><td>${esc(nomeMovimento(m.tipo))}</td>
                 <td>${m.delta > 0 ? '+' : ''}${m.delta}</td><td>${m.importo_euro === null || m.importo_euro === undefined ? '-' : euro(m.importo_euro)}</td>
                 <td>${m.bambino_nome ? esc(m.bambino_nome) : '-'}</td><td>${esc(m.operatore || 'sistema')}</td></tr>`).join('')
                 || '<tr><td colspan="7" class="vuoto">Nessun movimento.</td></tr>'}</tbody>
-        </table></div>`;
+        </table></div>
+        </details>`;
 
     collegaAzioniFamiglia(id);
 }
