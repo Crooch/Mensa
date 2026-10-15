@@ -64,8 +64,6 @@ require __DIR__ . '/partials/testa.php';
     <p id="menu-stato" class="stato-operazione" role="status" hidden></p>
     <div id="menu-lista" class="griglia-cards" data-testid="menu-lista"></div>
     <h2>Variazioni giornaliere programmate</h2>
-    <p class="nota">Dalle date più lontane alle più vicine. I menù settimanali sono nella loro sezione.</p>
-    <p id="menu-variazioni-stato" class="nota" role="status" aria-live="polite"></p>
     <div id="menu-variazioni-lista" class="catering-variazioni" data-testid="menu-variazioni-lista"></div>
     <nav id="menu-variazioni-pagine" class="catering-variazioni-pagine" aria-label="Pagine delle variazioni giornaliere" hidden>
         <button id="menu-variazioni-precedenti" type="button" class="btn btn-outline-primary" disabled>Precedenti</button>
