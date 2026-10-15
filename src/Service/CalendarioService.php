@@ -220,36 +220,35 @@ final class CalendarioService
         }
     }
 
+    /** Compatibilità con i vecchi client che salvano un giorno singolo. */
     public function salvaEccezione(int $plessoId, string $data, array $input): void
     {
-        $this->richiediPlesso($plessoId);
-        if (!self::dataValida($data)) {
-            throw HttpException::nonValido('Data non valida (YYYY-MM-DD)');
-        }
-        $attivo = $input['servizio_attivo'] ?? null;
-        if (!in_array($attivo, [0, 1, '0', '1', false, true], true)) {
-            throw HttpException::nonValido('Stato della giornata non valido');
-        }
-        $motivo = trim((string) ($input['motivazione'] ?? ''));
-        if ($motivo === '' || strlen($motivo) > 255) {
-            throw HttpException::nonValido('Indicare una motivazione (massimo 255 caratteri)');
-        }
-        if ((int) $attivo === 1) {
-            $giorno = new \DateTimeImmutable($data);
-            if ((int) $giorno->format('N') >= 6 || self::festivitaNazionale($giorno)) {
-                throw HttpException::nonValido('Non e\' consentita l\'apertura nei fine settimana o nelle festivita\' nazionali');
+        $esistente = $this->calendari->eccezione($plessoId, $data);
+        $id = null;
+        if ($esistente !== null && (string) $esistente['giorno'] === $data) {
+            $fine = (string) (($esistente['giorno_fine'] ?? null) ?: $data);
+            if ($fine !== $data) {
+                throw HttpException::nonValido('Questo giorno avvia un periodo. Modifica il periodo completo.');
             }
+            $id = (int) $esistente['id'];
         }
-        $this->calendari->salvaEccezione($plessoId, $data, (bool) $attivo, $motivo);
+        $this->salvaPeriodo($plessoId, [
+            'data_inizio' => $data,
+            'data_fine' => $data,
+            'servizio_attivo' => $input['servizio_attivo'] ?? null,
+            'motivazione' => $input['motivazione'] ?? '',
+        ], $id);
     }
 
+    /** Compatibilità: non eliminare accidentalmente un intervallo intero. */
     public function cancellaEccezione(int $plessoId, string $data): void
     {
-        $this->richiediPlesso($plessoId);
-        if (!self::dataValida($data)) {
-            throw HttpException::nonValido('Data non valida');
+        $riga = $this->calendari->eccezione($plessoId, $data);
+        if ($riga === null || (string) $riga['giorno'] !== $data ||
+            (string) (($riga['giorno_fine'] ?? null) ?: $data) !== $data) {
+            throw HttpException::nonValido('Nessuna modifica singola da eliminare. Usa la gestione dei periodi.');
         }
-        $this->calendari->cancellaEccezione($plessoId, $data);
+        $this->cancellaPeriodo($plessoId, (int) $riga['id']);
     }
 
     private function richiediPlesso(int $plessoId): void
