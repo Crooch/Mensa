@@ -198,6 +198,58 @@ try {
         if ($e->getCode() !== 422) throw $e;
     }
 
+    // Eccezione senza modello: deve comparire fra le programmate e
+    // potersi annullare, senza toccare altre date o tipologie.
+    $dataSenzaModello = $dataTest;
+    $service->pubblicaMenu($secondaria, $senza, $dataSenzaModello,
+        'Risotto senza glutine', null, $autoreTest);
+    $programmate = $service->variazioniProgrammate();
+    $trovata = false;
+    foreach ($programmate as $voce) {
+        if ((int) $voce['plesso_id'] === $secondaria &&
+            (int) $voce['tipologia_menu_id'] === $senza &&
+            $voce['data'] === $dataSenzaModello) {
+            $trovata = true;
+            if (!$voce['modificabile'] || $voce['ha_modello_settimanale'] ||
+                $voce['descrizione'] !== 'Risotto senza glutine') {
+                throw new RuntimeException('Elenco variazioni programmate inesatto');
+            }
+        }
+    }
+    if (!$trovata) throw new RuntimeException('La variazione futura non compare in elenco');
+    $service->annullaVariazioneGiornaliera($secondaria, $senza, $dataSenzaModello);
+    if ($giornaliero->trovaPerChiave($secondaria, $senza, $dataSenzaModello) !== null) {
+        throw new RuntimeException('La variazione senza modello non e stata annullata');
+    }
+
+    // Cutoff locale: oggi dopo l'orario limite il backend deve rifiutare
+    // sia la pubblicazione sia la cancellazione anche con chiamate API dirette.
+    $oggiTest = date('Y-m-d');
+    $pdo->prepare('UPDATE plessi SET cutoff_orario = ? WHERE id = ?')
+        ->execute(['00:00:00', $secondaria]);
+    try {
+        $service->pubblicaMenu($secondaria, $standard, $oggiTest,
+            'Pubblicazione tardiva', null, $autoreTest);
+        throw new RuntimeException('Menu di oggi modificato dopo il cutoff');
+    } catch (App\Core\HttpException $e) {
+        if ($e->getCode() !== 422) throw $e;
+    }
+    $giornaliero->salva($secondaria, $senza, $oggiTest,
+        'Variazione gia pubblicata', null, $autoreTest);
+    try {
+        $service->annullaVariazioneGiornaliera($secondaria, $senza, $oggiTest);
+        throw new RuntimeException('Annullamento consentito dopo il cutoff');
+    } catch (App\Core\HttpException $e) {
+        if ($e->getCode() !== 422) throw $e;
+    }
+    if ($giornaliero->trovaPerChiave($secondaria, $senza, $oggiTest) === null) {
+        throw new RuntimeException('L annullamento tardivo ha eliminato il menu');
+    }
+    // Per il futuro il cutoff odierno non blocca la programmazione.
+    $service->pubblicaMenu($secondaria, $senza, $dataSenzaModello,
+        'Programmazione futura valida', null, $autoreTest);
+    $service->annullaVariazioneGiornaliera($secondaria, $senza, $dataSenzaModello);
+
     // In una giornata non prevista non si crea un giornaliero, e le vecchie
     // pubblicazioni non vengono proposte come menu attivi.
     $senzaServizio = $giornoTest->modify('next tuesday')->format('Y-m-d');
