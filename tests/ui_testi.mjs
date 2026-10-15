@@ -241,7 +241,7 @@ for (const id of ['menu-selezione-stato', 'menu-foto-widget', 'menu-submit']) {
 }
 assert.match(cateringJs, /'Aggiorna menu'\s*:\s*'Pubblica menu'/);
 assert.match(cateringJs, /Aggiornerai solo questo menu: gli altri non cambiano/);
-assert.match(cateringJs, /Se non ne scegli una nuova, rimane quella attuale/);
+assert.match(readFileSync('public/assets/js/menu_foto.js', 'utf8'), /Sostituisci foto/);
 assert.match(cateringJs, /data-menu-modifica="/);
 assert.match(cateringJs, /UI\.conferma\(/);
 const cssCatering = css.slice(css.indexOf('/* Catering: griglie uniformi'));
