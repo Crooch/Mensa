@@ -139,6 +139,9 @@ def controlla_report_distribuzione(page, larghezza):
                 "tipologia_nome": "Dieta scolastica speciale con descrizione lunga " + str(menu + 1),
                 "pasti": 2, "pasti_ordinari": 2 - speciale,
                 "pasta_in_bianco": speciale,
+                "menu_nome": "Settimana autunnale " + str(menu + 1),
+                "menu_descrizione": "Primo: pasta\\nSecondo: verdure " + str(menu + 1),
+                "menu_origine": "settimanale",
                 "richieste_pasta": [{
                     "cognome": "CognomeDiTestMoltoLungo" + str(indice),
                     "nome": "BambinoFittizio", "classe_id": indice + 1,
@@ -153,7 +156,10 @@ def controlla_report_distribuzione(page, larghezza):
         "tipologia_id": i + 1,
         "tipologia_nome": "Dieta scolastica speciale con descrizione lunga " + str(i + 1),
         "pasti": 8, "pasti_ordinari": 4 if i == 0 else 8,
-        "pasta_in_bianco": 4 if i == 0 else 0
+        "pasta_in_bianco": 4 if i == 0 else 0,
+        "menu_nome": "Settimana autunnale " + str(i + 1),
+        "menu_descrizione": "Primo: pasta\\nSecondo: verdure " + str(i + 1),
+        "menu_origine": "settimanale"
     } for i in range(12)]
     dati = {"data": "2099-10-19", "totale_pasti": 98, "plessi": [{
         "plesso_id": 1, "plesso_nome": "Scuola di collaudo sintetico",
@@ -193,6 +199,13 @@ def controlla_report_distribuzione(page, larghezza):
     assert page.locator("#report .catering-ripartizione__altre").count() == 5
     assert page.locator("#report input, #report select").count() == 0
     assert page.locator("#report .catering-classe table").count() == 0
+    assert page.locator("#report .catering-quantita__modello").count() > 0
+    assert page.locator("#report").get_by_text("Settimana autunnale 1").count() > 0
+    piatti = page.locator('#report .catering-scuola__piatti').first
+    assert not piatti.evaluate("(nodo) => nodo.open")
+    piatti.locator('summary').click()
+    assert piatti.evaluate("(nodo) => nodo.open")
+    assert "Secondo: verdure 1" in piatti.inner_text()
     dettagli = page.locator("#report .catering-classe__riga").first
     dettagli.wait_for()
     assert page.locator("#report .catering-classe__riga").first.is_visible()
