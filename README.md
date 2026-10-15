@@ -1,222 +1,123 @@
+# Mensa Caltavuturo
 
-# Sistema di Gestione Mensa Scolastica — Comune di Caltavuturo (PA)
+Applicazione web per la gestione del **servizio di mensa scolastica del Comune di Caltavuturo (PA)**. Il sistema riunisce anagrafiche, plessi e classi, presenze, buoni mensa, menù e comunicazioni operative, con accessi distinti per Amministrazione, uffici comunali, scuole, ditta di ristorazione e famiglie.
 
-Applicazione web per la gestione del servizio di mensa scolastica di un piccolo Comune, in
-sostituzione del sistema cartaceo ("quadernetti e bigliettini"). Backend **PHP 8** a livelli,
-database **MySQL 8**, frontend responsive con palette **Bootstrap Italia**, architettura
-**API-first** (le stesse API REST potranno alimentare una futura app nativa senza modifiche
-lato server).
+Il progetto utilizza PHP, MySQL/MariaDB e JavaScript senza un framework applicativo o dipendenze Composer. L'interfaccia è responsive e le funzioni sono esposte tramite API REST.
 
-> **Principio non negoziabile**: il sistema non impedisce **mai** a un bambino di ricevere il
-> pasto per credito insufficiente. Il superamento del fido attiva solo un'escalation
-> informativa quotidiana verso gli uffici, mai un blocco del servizio né una segnalazione
-> alla ditta di ristorazione.
+> **Regola fondamentale:** un saldo insufficiente **non impedisce mai** di erogare il pasto. Eventuali debiti sono gestiti attraverso gli strumenti di controllo e comunicazione agli uffici.
 
----
+## Funzionalità principali
 
-## 1. Requisiti
+| Area | Funzioni |
+|---|---|
+| **Amministrazione** | Plessi, classi, tipologie alimentari, utenti, calendari mensa, orari limite, configurazione email e conteggi giornalieri |
+| **Operatore comunale** | Anagrafiche familiari, assegnazioni classe, acquisto e rettifica buoni, tariffe e situazione crediti |
+| **Scuola** | Elenco alunni e pasti previsti, correzioni motivate, assenze dell'intera classe |
+| **Catering** | Pasti per scuola, classe e tipologia alimentare; richieste di pasta in bianco; menù settimanali e variazioni giornaliere; valutazioni |
+| **Genitore** | Saldo e movimenti, calendario mensa, comunicazione presenza/assenza, richiesta di pasta in bianco e valutazione del pasto |
 
-| Componente | Versione minima | Note |
-|---|---|---|
-| PHP | 8.1 (testato su 8.2) | estensioni `pdo_mysql`, `json`, `openssl` (per SMTP TLS), `fileinfo` |
-| MySQL / MariaDB | MySQL 8 / MariaDB 10.4+ | charset `utf8mb4` |
-| Web server | Apache con `mod_rewrite` (o IIS/Nginx con rewrite equivalente) | tipico hosting condiviso Linux (Aruba) |
+### Menù e pasti
 
-Nessuna dipendenza da Composer, da servizi cloud, da code manager o container: l'autoloader è
-incluso nel progetto. Il codice non usa funzioni Unix-only e costruisce i percorsi con
-`DIRECTORY_SEPARATOR`, quindi funziona anche su Windows.
+- Un **menù settimanale** può essere duplicato, modificato e assegnato a uno o più plessi. Le modifiche alle settimane tipo valgono dai giorni successivi, preservando lo storico.
+- Una **variazione giornaliera** riguarda esclusivamente la data, il plesso e la tipologia scelti. Può essere programmata, modificata e annullata finché gli orari e lo stato del servizio lo consentono.
+- **Il menù del giorno prevale su quello settimanale**, quando entrambi sono previsti per la stessa data, scuola e tipologia.
+- La pasta in bianco è una richiesta riferita al singolo bambino: è già inclusa nel totale dei pasti e viene esposta separatamente alla cucina, senza contare due volte il pasto.
+- In assenza di un modello specifico, il riepilogo mostra la tipologia prevista (ad esempio **Menù standard**); non inventa l'elenco delle pietanze.
 
----
+Ogni plesso dispone di un calendario del servizio e di un **orario limite** per le variazioni. I conteggi tengono conto delle giornate senza mensa e delle modifiche già consolidate.
 
-## 2. Struttura del progetto
+## Requisiti
 
-```
-mensa-caltavuturo/
-├── bin/                       script CLI
-│   ├── install.php            crea il database (se possibile) ed esegue le migration
-│   ├── seed.php               dati di esempio realistici
-│   ├── cron_daily.php         job giornaliero (scheduler multi-cutoff)
-│   └── router_dev.php         router per il server integrato di PHP (solo sviluppo)
-├── bootstrap.php              autoloader PSR-4 + caricamento configurazione
-├── config/
-│   ├── config.php             configurazione base
-│   └── config.local.example.php  → copiare in config.local.php (credenziali hosting)
-├── database/migrations/001_schema.sql
-├── docs/API.md                documentazione delle API REST
-├── public/                    DOCUMENT ROOT
-│   ├── index.php              front controller (web + API)
-│   ├── .htaccess              rewrite verso index.php
-│   └── assets/                CSS e JS del frontend
-├── routes/api.php             tabella delle rotte API con ruoli ammessi
-├── src/
-│   ├── Core/                  infrastruttura (Config, Database, Router, Request, Response,
-│   │                          Auth, Mailer, Repository base, Container)
-│   ├── Repository/            accesso ai dati (nessun SQL fuori da qui)
-│   ├── Service/               logica di business (PHPDoc sui metodi pubblici)
-│   ├── Controller/            controller sottili (validazione minima + delega ai servizi)
-│   └── View/                  template HTML delle pagine
-└── storage/menu/{plesso}_{tipologia}/{data}.jpg   foto dei menu su filesystem
-```
+- **PHP 8.1 o successivo**, con PDO MySQL, JSON, OpenSSL e Fileinfo;
+- **MySQL 8 / MariaDB**, database con charset `utf8mb4`;
+- server web con PHP e riscrittura URL (ad esempio Apache);
+- accesso a un database dedicato e alla directory scrivibile `storage/menu`;
+- per lo **staging locale**: Git e Docker con Compose.
 
-**Architettura a livelli**: `Controller` → `Service` → `Repository` → PDO.
-I controller non contengono logica di business; i servizi non conoscono HTTP; i repository sono
-l'unico punto in cui compare SQL. L'autorizzazione è dichiarata nelle rotte (`routes/api.php`) e
-applicata dal front controller.
+Il codice non richiede Composer. I file CSS e i caratteri tipografici utilizzano anche risorse esterne: verificare la disponibilità delle rispettive CDN e le eventuali prescrizioni per la pubblicazione istituzionale.
 
----
+## Avvio locale consigliato: staging isolato
 
-## 3. Installazione su hosting condiviso (PHP + MySQL)
-
-1. **Caricare i file** via FTP nella cartella dell'hosting, ad esempio:
-   - contenuto di `public/` in `httpdocs/` (o `public_html/`)
-   - le altre cartelle (`src`, `config`, `routes`, `database`, `storage`, `bin`, `bootstrap.php`)
-     **al di fuori** della document root, se l'hosting lo consente.
-   In alternativa (setup più semplice, tipico Aruba) caricare l'intero progetto in
-   `httpdocs/mensa/` e puntare il dominio/sottodominio a `httpdocs/mensa/public`.
-2. **Creare il database** MySQL dal pannello di controllo e annotare host, nome, utente, password.
-3. **Configurare**: copiare `config/config.local.example.php` in `config/config.local.php` e
-   valorizzare la sezione `db` più `app.scheduler_key` (chiave casuale). Se l'app è pubblicata in
-   una sottocartella (es. `https://dominio/mensa`), impostare `app.base_path = '/mensa'`.
-4. **Creare lo schema**: `php bin/install.php` da shell, oppure importare
-   `database/migrations/001_schema.sql` con phpMyAdmin.
-5. **Dati di esempio** (facoltativo, solo per test): `php bin/seed.php`.
-   ⚠️ svuota e ripopola le tabelle applicative.
-6. **Permessi**: la cartella `storage/menu` deve essere scrivibile dal web server (755/775).
-7. **Primo accesso**: se non si usa il seed, creare a mano il primo utente admin:
-   ```sql
-   INSERT INTO utenti (ruolo, username, password_hash, nome_completo, attivo)
-   VALUES ('admin', 'admin', '<hash>', 'Amministratore', 1);
-   ```
-   generando l'hash con `php -r "echo password_hash('LaTuaPassword', PASSWORD_DEFAULT);"`.
-8. **Cron del job giornaliero** (vedi §5).
-
-### Server di sviluppo locale
+Per verificare l'applicazione, utilizzare l'ambiente **con dati fittizi**, separato dal database comunale:
 
 ```bash
-php bin/install.php && php bin/seed.php
-php -S 0.0.0.0:8080 -t public bin/router_dev.php
-# http://localhost:8080/login
+git clone https://github.com/ComuneDiCaltavuturo/Mensa.git
+cd Mensa
+docker compose -f compose.staging.yml up --build -d --wait
 ```
 
----
+Aprire `http://127.0.0.1:18080/login`. Le utenze dimostrative e le istruzioni per arrestare i container conservando i dati sono riportate in [staging/README.md](staging/README.md).
 
-## 4. Ruoli e credenziali di esempio (dopo `bin/seed.php`)
+**Attenzione:** `docker compose ... down -v` elimina i volumi dello staging; **non** usarlo per un normale aggiornamento. I comandi del README dello staging sono destinati soltanto all'ambiente di test.
 
-| Ruolo | Username | Password |
-|---|---|---|
-| Admin | `admin` | `Admin2026!` |
-| Operatore comunale | `operatore` | `Operatore2026!` |
-| Scuola (per plesso) | `scuola.infanzia`, `scuola.primaria`, `scuola.secondaria` | `Scuola2026!` |
-| Catering | `catering` | `Catering2026!` |
-| Genitori | `lobianco.g`, `curcio.m`, `ferrara.s`, `militello.r`, `gervasi.a`, `panzarella.c`, `dimarco.v`, `sciortino.a`, `rinaldi.f`, `vaccaro.c` | `Genitore2026!` |
+## Installazione e configurazione
 
-Nessuna auto-registrazione: le utenze sono create dall'ufficio comunale (area Admin → Utenze,
-oppure creando la famiglia dall'area Operatore, che genera anche l'utenza del genitore).
-Lo `username` è una stringa libera univoca (di norma un'email, ma non è validata come tale).
+Questa sezione descrive i componenti, **non autorizza l'aggiornamento della produzione**. Prima di qualsiasi installazione su un server comunale verificare backup, permessi, configurazione, email, scheduler e finestra di intervento.
 
-Permessi sintetici:
+1. Configurare il server web con **`public/` come document root**. Tenere `config/`, `database/`, `bin/`, `src/` e `storage/` fuori dalla document root.
+2. Creare un database e un utente dedicati, con i permessi strettamente necessari.
+3. Copiare `config/config.local.example.php` in `config/config.local.php`; impostare i collegamenti al database, la chiave dello scheduler e, se necessario, `app.base_path`. **Non pubblicare il file locale né le password su Git.**
+4. **Soltanto per un database nuovo e vuoto**, utilizzare la procedura di installazione dello schema dopo averne controllato gli effetti:
+   ```bash
+   php bin/install.php
+   ```
+   Lo script esegue **tutte** le migrazioni SQL presenti, nell'ordine: comprende anche inizializzazioni del calendario previste per Caltavuturo. Non va usato indiscriminatamente per aggiornare un database esistente.
+5. Creare l'utente amministratore iniziale con una password robusta e un hash PHP (`password_hash`), secondo una procedura autorizzata; configurare i plessi, le classi, il calendario, le tipologie e gli orari limite.
+6. Verificare i permessi della cartella `storage/menu`, l'accesso protetto alle immagini e l'esito del login prima di valutare l'avvio di operazioni automatiche.
+7. Configurare email e pianificazione **solo dopo collaudo**, con l'autorizzazione dei referenti.
 
-- **Admin** — tutto l'Operatore + plessi, classi/sezioni, tipologie menu, parametri di plesso
-  (tariffa base, fido, cutoff, email dirigente), modelli email di sollecito (uno per plesso),
-  lista unica di destinatari in CC, utenze, configurazione SMTP, esecuzione manuale del job.
-- **Operatore comunale** — anagrafiche genitori/bambini, assegnazioni classe storicizzate,
-  tipologia menu del bambino, acquisto buoni (incasso + carico crediti), rettifiche, override
-  tariffari motivati, situazione crediti di tutte le famiglie, log solleciti.
-- **Scuola** (vincolata al proprio plesso) — assenze di massa per classe, verifica e override
-  motivato delle presenze giornaliere.
-- **Catering** — report pasti per plesso/tipologia (sola lettura), pubblicazione facoltativa del
-  menu del giorno, lettura feedback. Non vede mai anagrafiche, importi o crediti.
-- **Genitore** — sola lettura di saldi/pagamenti/calendario/feedback; in scrittura dichiarazione
-  di eccezione presenza-assenza (entro il cutoff) e feedback giornaliero (stelle 1–5 + commento).
+Per un'installazione **già in uso**, non eseguire il comando precedente come scorciatoia: seguire il [piano di verifica e rilascio](docs/RILASCIO_DEV_2026-10-19.md), che prevede copia isolata del database, migrazioni incrementali, verifica della contabilità e prova di ripristino.
 
----
+### Script dimostrativi: non usare sui dati reali
 
-## 5. Job giornaliero (scheduler multi-cutoff)
+`bin/seed.php` **svuota le tabelle applicative e inserisce dati di esempio**. Deve essere riservato a un database di prova dedicato, mai al database comunale: non è un comando di installazione ordinaria. Preferire lo staging Docker protetto, il cui seed è distinto e controllato.
 
-Ogni plesso ha un proprio `cutoff_orario`: non esiste un orario unico di sistema. Lo scheduler va
-quindi invocato **frequentemente** e decide da sé quali plessi hanno superato il cutoff e non sono
-ancora stati elaborati per la giornata (idempotenza garantita dalla tabella `esecuzioni_job`).
+Anche `bin/avvia_demo.sh` è uno strumento di dimostrazione: può reimpostare il database di esempio ed è inadatto al server di produzione.
 
-Passi eseguiti per plesso:
+## Gestione quotidiana e sicurezza
 
-1. **Congelamento presenze** — fissa `stato_effettivo` per tutti gli alunni attivi in quella data.
-2. **Consumo crediti** — `-1` buono per ogni presenza effettiva, **senza alcun controllo di saldo**.
-3. **Report catering** — aggregazione per plesso e tipologia dietetica.
-4. **Verifica debiti oltre fido** — invio email di sollecito (mai al catering) e log in
-   `log_solleciti_inviati`; l'invio si ripete ogni giorno finché la condizione persiste.
+L'elaborazione giornaliera, implementata in `bin/cron_daily.php`, considera l'orario limite di ciascuna scuola. Le operazioni possono consolidare presenze, registrare consumi di buoni e produrre comunicazioni: **non avviare cron o job manuali senza verificare calendario, data e contabilità**.
 
-Cron (Linux, ogni 5 minuti):
+La configurazione delle email è disponibile nell'area Amministrazione. Prima di abilitare gli invii, controllare destinatari, indirizzi istituzionali, modelli e servizio SMTP. Un ambiente di test non deve inviare comunicazioni a destinatari reali.
 
-```
-*/5 * * * * /usr/bin/php /home/utente/mensa/bin/cron_daily.php >> /home/utente/mensa/storage/cron.log 2>&1
-```
+Per la manutenzione: effettuare un backup ripristinabile di database e immagini, aggiornare il codice soltanto dopo i test, verificare eventuali nuove migrazioni e controllare il risultato con i diversi profili. Una modifica allo schema non è necessariamente annullabile con il solo ripristino del codice precedente.
 
-Se l'hosting non offre cron su CLI, usare il cron HTTP del pannello:
+## Organizzazione del repository
 
-```
-https://dominio/scheduler?key=CHIAVE_CONFIGURATA_IN_config.local.php
+```text
+bin/                 comandi di installazione, sviluppo e pianificazione
+config/              configurazione di base ed esempio locale
+database/migrations/ schema e aggiornamenti SQL
+docs/                API, piani di verifica e verbali di collaudo
+public/              unico punto di ingresso web, CSS e JavaScript
+routes/              rotte API e autorizzazioni
+src/Core/            infrastruttura PHP
+src/Controller/      ricezione delle richieste
+src/Service/         regole applicative
+src/Repository/      accesso al database
+src/View/            pagine e componenti PHP
+staging/             ambiente Docker e test sintetici
+tests/               test di regressione e integrazione
+storage/menu/        immagini caricate, protette dall'accesso pubblico
 ```
 
-Dall'area Admin → *Job giornaliero* sono inoltre disponibili **“Esegui scheduler adesso”** e
-**“Forza esecuzione plesso”** (utili per test e recuperi manuali).
+Le API sono definite in `routes/api.php`: i controller delegano ai servizi, che utilizzano i repository per l'accesso ai dati. L'autorizzazione è basata sul ruolo dell'utente autenticato.
 
----
+## Documentazione e test
 
-## 6. Configurazione email (SMTP)
+- [API REST](docs/API.md): autenticazione, endpoint, ruoli e payload.
+- [Staging locale](staging/README.md): Docker, utenti fittizi e comandi non distruttivi.
+- [Collaudo funzionale guidato](docs/COLLAUDO_MANUALE_STAGING_2026-10-15.md): scenari per i cinque profili.
+- [Verbale tecnico](docs/COLLAUDO_DEV_2026-10-15.md): risultati dei test automatici e verifiche manuali ancora da svolgere.
+- [Piano di verifica e rilascio](docs/RILASCIO_DEV_2026-10-19.md): attività e prerequisiti specifici prima di qualsiasi aggiornamento del servizio comunale.
+- [Piano storico UX/UI](docs/PIANO_UX_UI_A_D_2026-10-14.md): decisioni e verifiche dell'interfaccia.
 
-Area Admin → *Email e solleciti* → **Configurazione invio email**: server, porta, sicurezza
-(STARTTLS/SSL/nessuna), utente, password, mittente, indirizzo del protocollo comunale.
-Il client SMTP è incluso (`src/Core/Mailer.php`, socket + AUTH LOGIN): nessuna libreria esterna.
-Se la configurazione SMTP è vuota il sistema tenta `mail()` di PHP.
+Le GitHub Actions verificano PHP e JavaScript, scenari SQL su MariaDB **sintetico**, flussi HTTP e schermate Chromium a più larghezze. **Un test CI positivo non sostituisce il collaudo manuale né autorizza il deploy.** Gli screenshot di prova possono essere consultati tra gli artifact delle pipeline.
 
-Destinatari del sollecito:
+## Licenza
 
-- **A**: email del genitore (se presente) + email del protocollo comunale
-  (per plesso, altrimenti quella globale)
-- **CC**: email del dirigente scolastico del plesso + tutti i destinatari fissi attivi
+Il repository include la [European Union Public Licence v1.2 (EUPL)](LICENSE).
 
-L'assenza dell'email del genitore **non** blocca la segnalazione agli uffici.
-Placeholder disponibili nel modello: `{genitore}`, `{alunno}`, `{plesso}`, `{saldo}`, `{fido}`, `{data}`.
+## Funzioni non incluse nell'attuale applicazione
 
----
-
-## 7. Regole di business chiave
-
-**Stato effettivo di presenza** (`src/Service/PresenzaService.php`)
-
-```
-override_scuola (entro cutoff)  >  dichiarazione_genitore (entro cutoff)  >  default_calcolato
-```
-
-- `default_calcolato` = *assente* se esiste un'assenza di massa per la classe attiva del bambino
-  in quella data, altrimenti *presente*.
-- I contributi arrivati **dopo** il cutoff vengono salvati per tracciabilità con
-  `fuori_cutoff = 1` e non modificano `stato_effettivo` né il conteggio già inviato al catering.
-- Al cutoff il record viene **congelato** (`congelato = 1`).
-
-**Tariffa applicata** = override attivo per la coppia (genitore, plesso) — record con
-`data_inserimento` massima ≤ data di riferimento — altrimenti `plessi.tariffa_base_pasto`.
-L'importo dell'acquisto (`numero_buoni × tariffa`) è calcolato dal sistema e non è modificabile
-manualmente dall'operatore.
-
-**Pool crediti** condiviso per coppia (genitore, plesso), in buoni interi, può essere negativo.
-Stato visivo: verde `saldo ≥ 0`, giallo `-fido < saldo < 0`, rosso `saldo ≤ -fido`.
-
-**Storicizzazione** — nessuna cancellazione fisica: genitori, bambini, classi, plessi e tipologie
-usano flag + data di cancellazione; assegnazioni classe, override tariffari, feedback, movimenti e
-log solleciti non vengono mai sovrascritti. Il cambio classe chiude l'assegnazione corrente
-(`data_fine`) e ne apre una nuova, così ogni presenza resta riferita alla classe corretta.
-
----
-
-## 8. Documentazione
-
-- [`docs/API.md`](docs/API.md): endpoint, metodi, payload, ruoli richiesti, formato risposte,
-  autenticazione a token Bearer.
-
----
-
-## 9. Fuori perimetro in questa versione
-
-PagoPA, SPID/CIE, app nativa mobile, notifiche push/SMS/popup, risposta del catering ai feedback,
-blocco del servizio per morosità, gestione documentale dei certificati medici.
+Pagamenti PagoPA integrati, accesso SPID/CIE, app mobile nativa e notifiche push. Non considerarle disponibili finché non sono effettivamente implementate e collaudate.
