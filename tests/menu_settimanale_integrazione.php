@@ -146,7 +146,7 @@ try {
 
     // Giorno di servizio futuro (o oggi) per i test del servizio Catering.
     // Il calendario della secondaria prevede lunedi e giovedi dal 19/10/2026.
-    $giornoTest = new DateTimeImmutable(max('2026-10-19', date('Y-m-d')));
+    $giornoTest = new DateTimeImmutable(max('2026-10-22', date('Y-m-d')));
     $calendario = (new App\Core\Container())->calendario();
     while (!$calendario->previsto($secondaria, $giornoTest->format('Y-m-d'))['attivo']) {
         $giornoTest = $giornoTest->modify('+1 day');
