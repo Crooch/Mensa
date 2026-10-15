@@ -120,6 +120,30 @@ try {
         throw new RuntimeException('La modifica di una copia ha alterato l’originale');
     }
 
+    // Un giornaliero pubblicato prima dell'assegnazione resta prioritario.
+    $giornaliero->salva($secondaria, $standard, '2026-10-19',
+        'Eccezione pubblicata prima del nuovo modello', null, null);
+    $modelloSuccessivo = $repo->crea('Modello dopo il giornaliero', $standard,
+        $giorni, '2026-10-19', 0, ['1' => $fotoNuova]);
+    $repo->assegna([$secondaria], $standard, $modelloSuccessivo, '2026-10-19', 0);
+    $precedenza = $service->menuDelGiorno('2026-10-19', $secondaria);
+    if (count($precedenza) !== 1 ||
+        $precedenza[0]['descrizione'] !== 'Eccezione pubblicata prima del nuovo modello' ||
+        $precedenza[0]['origine'] !== 'giornaliero' || $precedenza[0]['foto_path'] !== null) {
+        throw new RuntimeException('Il nuovo settimanale ha sovrascritto il giornaliero preesistente');
+    }
+
+    // Un giornaliero senza fotografia non eredita automaticamente quella del
+    // settimanale: l'eccezione sostituisce tutta la scheda del giorno.
+    $giornaliero->salva($infanzia, $standard, '2026-10-19',
+        'Eccezione manuale senza foto', null, null);
+    $precedenzaFoto = $service->menuDelGiorno('2026-10-19', $infanzia);
+    if (count($precedenzaFoto) !== 1 ||
+        $precedenzaFoto[0]['descrizione'] !== 'Eccezione manuale senza foto' ||
+        $precedenzaFoto[0]['foto_path'] !== null) {
+        throw new RuntimeException('La foto del settimanale e stata unita al giornaliero senza foto');
+    }
+
     // Blocca aggiornamenti manuali di giorni già trascorsi.
     try {
         $service->pubblicaMenu($infanzia, $standard, '2020-10-19', 'Cambio storico', null, 0);
