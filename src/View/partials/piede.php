@@ -15,6 +15,12 @@ $apiJsVersione = is_file($apiJsPath) ? (int) filemtime($apiJsPath) : 0;
 $paginaJsVersione = is_file($paginaJsPath) ? (int) filemtime($paginaJsPath) : 0;
 ?>
 <script src="<?= $basePath ?>/assets/js/api.js?v=<?= $apiJsVersione ?>"></script>
+<?php if (($scriptPagina ?? '') === 'catering'):
+    $fotoScript = APP_ROOT . '/public/assets/js/menu_foto.js';
+    $fotoVersione = is_file($fotoScript) ? (int) filemtime($fotoScript) : 0;
+?>
+<script src="<?= $basePath ?>/assets/js/menu_foto.js?v=<?= $fotoVersione ?>"></script>
+<?php endif; ?>
 <script src="<?= $basePath ?>/assets/js/<?= htmlspecialchars($scriptPagina) ?>.js?v=<?= $paginaJsVersione ?>"></script>
 <?php if (!empty($scriptExtraPagina)):
     $percorsoExtra = APP_ROOT . '/public/assets/js/' . $scriptExtraPagina . '.js';
