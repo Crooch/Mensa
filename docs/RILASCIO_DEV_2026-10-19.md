@@ -45,8 +45,9 @@ per la produzione. Le modifiche da prevedere sono le seguenti:
 | 006 | `006_menu_settimanali.sql` | Modelli, revisioni e assegnazioni settimanali |
 | 007 | `007_storico_nomi_modelli.sql` | Nome del modello conservato nelle revisioni |
 | 008 | `008_foto_menu_settimanali.sql` | Fotografie per giorno conservate nelle revisioni |
+| 009 | `009_intervalli_calendario.sql` | Estensione additiva delle eccezioni a intervalli di date (`giorno_fine` nullable); i record a giorno singolo restano invariati |
 
-Le migrazioni 002–008 vengono eseguite **due volte** sulla base sintetica
+Le migrazioni 002–009 vengono eseguite **due volte** sulla base sintetica
 di GitHub CI, per verificarne la ripetibilità. La CI controlla anche che
 movimenti e saldi fittizi *preesistenti* non cambino. Ciò non sostituisce
 la prova su una copia controllata del database comunale: prima di approvare,
@@ -77,7 +78,7 @@ Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non 
 4. Preparare una **copia isolata e protetta** del database, senza caricarla
    su repository o CI pubbliche. Fare un backup della copia e verificare
    che sia ripristinabile.
-5. Su questa copia eseguire 002, 003, 004, 005, 006, 007 e 008 in
+5. Su questa copia eseguire 002, 003, 004, 005, 006, 007, 008 e **009** in
    ordine. Confrontare prima e dopo: numero e saldo dei pool, numero/tipo/
    delta/importi dei movimenti, presenze, assegnazioni e utenti;
    verificare struttura e indici creati, nonché la coerenza dei calendari.
@@ -105,9 +106,11 @@ Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non 
 - 19/10 (lunedì): servizio attivo per infanzia e secondaria; prima delle 09:15 il job non parte; dopo cutoff deve eseguire una volta.
 - 20/10 (martedì): infanzia attiva, secondaria esclusa.
 - 22/10 (giovedì): entrambi attivi.
-- 24–25/10: nessun consumo anche con apertura straordinaria tentata.
-- 08/12: festivo nazionale escluso.
+- 24–25/10 (weekend): nessun servizio nel calendario ordinario; una **apertura straordinaria esplicita**, invece, prevale sul weekend e abilita il servizio. Controllare il comportamento di job, presenze e conteggi in entrambi i casi.
+- 08/12: festività nazionale esclusa **in assenza di eccezioni**; un'apertura straordinaria esplicita abilita il servizio anche nel festivo.
 - Chiusura straordinaria di una data futura: niente addebito né pasti.
+- Periodi straordinari: intervalli 12–14 e 14–16 con lo stesso stato ammessi; intervallo sovrapposto 13–16 rifiutato; stesso confine tra apertura e chiusura rifiutato. Nessuna modifica ai periodi già salvati quando l'API rifiuta la richiesta.
+- Admin «Verifica il servizio per una data»: risultati per tutte le scuole e classi dell'anno selezionato, ricerca per scuola o classe, filtro aperte/chiuse, paginazione, assenza di dati degli alunni. La verifica non deve produrre addebiti.
 - Genitore: dichiara oggi e in una data futura; verifica che giorni fuori servizio vengano rifiutati.
 - Pasta in bianco: due figli e due date, richiedi/annulla in modo indipendente; il catering vede nome e classe SOLO del figlio presente con richiesta attiva.
 - Infanzia: classi A/B/C/D mostrate con totali separati, anche con zero presenti.
@@ -119,6 +122,26 @@ Scuola primaria: **nessun calendario abilitato**. Un plesso non configurato non 
 - Scuola: conferma motivata di un pasto servito dopo il cutoff, una sola registrazione contabile e nessun rimborso automatico in caso di successiva segnalazione di assenza.
 - Integrità contabile: `SUM(pool_crediti.saldo) = SUM(movimenti_crediti.delta)`, acquisti e rettifiche originari invariati; nessuna modifica ai 112 movimenti precedenti e ai 70 storni.
 - Consegna: niente nomi, dati economici o crediti dei familiari fuori dalle API autorizzate.
+
+## Controlli obbligatori pre-rilascio e blocco dell'avvio
+
+**Al 15/10/2026 il cron di produzione risulta sospeso e nessuna migration 002–009 risulta applicata al DB `mensa_db`.** La data di avvio del servizio prevista per il 19/10/2026 non costituisce un'autorizzazione a distribuire codice o riattivare elaborazioni. Concordare con il Comune una procedura operativa per le giornate eventualmente gestite prima del rilascio; non creare contabilizzazioni retroattive non verificate.
+
+### Preflight di sola lettura
+
+- Identificare esattamente commit, ambiente e utente operativo; controllare stato cron **dall'host**, perché `GET /api/job/stato` non attesta che lo scheduler esterno sia acceso.
+- Verificare i nomi e gli ID dei plessi esistenti, gli anni scolastici delle classi e i cutoff applicati. La migration 002 usa **corrispondenze esatte dei nomi**: se divergono, fermarsi e concordare la configurazione, senza modifiche automatiche ai dati.
+- Registrare conteggi e checksum del dump protetto; confrontare `pool_crediti`, `movimenti_crediti`, `presenze_giornaliere`, `esecuzioni_job` e le assegnazioni prima/dopo la prova su copia isolata.
+- Verificare separatamente i file in `storage/menu`: il backup del solo DB non è sufficiente a ripristinare le fotografie.
+- Accertare che i test di sicurezza fra ruoli/plessi e i test di calendario sulle festività e sulle eccezioni abbiano esito positivo.
+
+### Job `in_corso` e recupero dopo errore
+
+In caso di stato `in_corso` persistente o `errore`, **non** eliminare la riga di esecuzione, non riavviare ripetutamente il job e non correggere direttamente crediti o presenze per farlo passare. Prima esaminare log, record di presenza congelati, movimenti di consumo per bambino/data, stato dei solleciti e bilanci dei pool. Il codice impedisce alcuni duplicati ma il recupero va verificato come scenario dedicato su una copia protetta. Se non è possibile riconciliare completamente i dati, mantenere il job sospeso e richiedere una valutazione tecnica prima di qualsiasi ripresa.
+
+### Esito delle verifiche
+
+Registrare per ciascun scenario `PASS`, `FAIL` o `NON PROVATO` con data, ruolo, dispositivo, ambiente, versione/commit e prova sintetica. L'esito automatico della CI **non equivale** al collaudo manuale. Un solo caso critico `FAIL` o `NON PROVATO` (contabilità, sicurezza ruoli, calendario, ripristino DB) mantiene lo stato **NO-GO**.
 
 ## Ambiti da verificare con attenzione
 
