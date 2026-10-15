@@ -46,70 +46,121 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-calendario" class="vista" hidden>
     <header class="area-intro"><h1>Calendario del servizio mensa</h1></header>
-    <p class="nota">Imposta i giorni di mensa. Fine settimana e festività sono esclusi.</p>
-    <div class="riga-filtri">
-        <label for="calendario-plesso">Scegli la scuola</label>
+    <p class="nota">Scegli la scuola e imposta i giorni in cui viene servito il pasto.</p>
+    <div class="admin-calendario-scuola">
+        <label for="calendario-plesso">Scuola</label>
         <select id="calendario-plesso" data-testid="calendario-plesso-select"></select>
     </div>
-    <form id="form-calendario" class="pannello admin-config" data-testid="calendario-form">
+    <form id="form-calendario" class="pannello admin-config admin-calendario-form" data-testid="calendario-form">
         <h2>Quando è prevista la mensa?</h2>
-        <div class="riga-filtri">
-            <label for="calendario-inizio">Primo giorno di mensa</label>
-            <input type="date" id="calendario-inizio" required>
-            <label for="calendario-fine">Ultimo giorno (facoltativo)</label>
-            <input type="date" id="calendario-fine">
+        <div class="admin-calendario-date">
+            <div class="campo-filtro">
+                <label for="calendario-inizio">Primo giorno di mensa</label>
+                <input type="date" id="calendario-inizio" required>
+            </div>
+            <div class="campo-filtro">
+                <label for="calendario-fine">Ultimo giorno (facoltativo)</label>
+                <input type="date" id="calendario-fine">
+            </div>
         </div>
-        <div class="riga-filtri">
-            <label><input type="checkbox" id="calendario-lunedi"> Lunedì</label>
-            <label><input type="checkbox" id="calendario-martedi"> Martedì</label>
-            <label><input type="checkbox" id="calendario-mercoledi"> Mercoledì</label>
-            <label><input type="checkbox" id="calendario-giovedi"> Giovedì</label>
-            <label><input type="checkbox" id="calendario-venerdi"> Venerdì</label>
+        <fieldset class="admin-calendario-giorni">
+            <legend>Giorni della settimana</legend>
+            <div class="admin-calendario-giorni__griglia">
+                <label class="admin-calendario-giorno" for="calendario-lunedi">
+                    <input type="checkbox" id="calendario-lunedi"><span>Lunedì</span>
+                </label>
+                <label class="admin-calendario-giorno" for="calendario-martedi">
+                    <input type="checkbox" id="calendario-martedi"><span>Martedì</span>
+                </label>
+                <label class="admin-calendario-giorno" for="calendario-mercoledi">
+                    <input type="checkbox" id="calendario-mercoledi"><span>Mercoledì</span>
+                </label>
+                <label class="admin-calendario-giorno" for="calendario-giovedi">
+                    <input type="checkbox" id="calendario-giovedi"><span>Giovedì</span>
+                </label>
+                <label class="admin-calendario-giorno" for="calendario-venerdi">
+                    <input type="checkbox" id="calendario-venerdi"><span>Venerdì</span>
+                </label>
+            </div>
+        </fieldset>
+        <div class="admin-form-azioni">
+            <button class="btn btn-primary" type="submit" data-testid="calendario-salva">Salva calendario</button>
         </div>
-        <button class="btn btn-primary" type="submit" data-testid="calendario-salva">Salva giorni della mensa</button>
     </form>
-
-    <h2>Un giorno diverso dal solito</h2>
-    <p class="nota">Aperture o chiusure valide per un solo giorno.</p>
-    <form id="form-eccezione-calendario" class="pannello">
+    <div class="area-sezione-testa"><h2>Un giorno diverso dal solito</h2></div>
+    <p class="nota">Registra una chiusura o un'apertura valida soltanto per il giorno scelto.</p>
+    <form id="form-eccezione-calendario" class="pannello admin-config admin-calendario-eccezione">
         <div class="riga-filtri">
-            <label for="eccezione-data">Giorno da modificare</label><input type="date" id="eccezione-data" required>
-            <label for="eccezione-attivo">Cosa succede?</label>
+            <label for="eccezione-data">Data</label><input type="date" id="eccezione-data" required>
+            <label for="eccezione-attivo">Servizio mensa</label>
             <select id="eccezione-attivo">
                 <option value="0">La mensa sarà chiusa</option>
                 <option value="1">La mensa sarà aperta</option>
             </select>
-            <label for="eccezione-motivazione">Perché cambia il servizio?</label>
+            <label for="eccezione-motivazione">Motivazione</label>
             <input type="text" maxlength="255" id="eccezione-motivazione" required placeholder="Es. sospensione attività didattiche">
         </div>
-        <button class="btn btn-primary" type="submit" data-testid="eccezione-salva">Salva questa modifica</button>
+        <div class="admin-form-azioni">
+            <button class="btn btn-primary" type="submit" data-testid="eccezione-salva">Salva modifica</button>
+        </div>
     </form>
-    <div class="tabella-scroll">
+    <div class="tabella-scroll admin-tabella">
         <table class="table">
             <thead><tr><th>Data</th><th>Stato</th><th>Motivazione</th><th>Azioni</th></tr></thead>
             <tbody id="eccezioni-calendario-corpo"></tbody>
         </table>
     </div>
-    <h2>La mensa è prevista in un giorno?</h2>
-    <div class="riga-filtri">
-        <label for="calendario-verifica-data">Data</label><input type="date" id="calendario-verifica-data">
-        <button type="button" class="btn btn-outline-primary" id="calendario-verifica">Controlla la data</button>
-        <span id="calendario-verifica-esito" role="status"></span>
+    <div class="area-sezione-testa"><h2>Verifica una data</h2></div>
+    <div class="admin-calendario-verifica">
+        <div class="campo-filtro">
+            <label for="calendario-verifica-data">Giorno da verificare</label>
+            <input type="date" id="calendario-verifica-data">
+        </div>
+        <button type="button" class="btn btn-outline-primary" id="calendario-verifica">Controlla</button>
+        <span id="calendario-verifica-esito" role="status" aria-live="polite"></span>
     </div>
 </section>
 
 <section id="vista-classi" class="vista" hidden>
     <header class="area-intro"><h1>Classi e sezioni delle scuole</h1></header>
-    <h2 class="admin-form-titolo">Aggiungi una classe</h2>
-    <form id="form-classe" class="pannello admin-config" data-testid="classe-form">
-        <div class="riga-filtri">
-            <label for="classe-plesso">Plesso</label><select id="classe-plesso" data-testid="classe-plesso-select"></select>
-            <label for="classe-nome">Nome</label><input type="text" id="classe-nome" placeholder="Es. 3ª B" data-testid="classe-nome-input">
-            <label for="classe-anno">Anno scolastico (es. 2026/2027)</label><input type="text" id="classe-anno" placeholder="2026/2027" data-testid="classe-anno-input">
+    <div class="admin-calendario-scuola">
+        <label for="classe-plesso">Scuola</label>
+        <select id="classe-plesso" data-testid="classe-plesso-select"></select>
+    </div>
+    <div class="admin-classi-consulta">
+        <div class="campo-filtro">
+            <label for="classe-esistente">Classi e sezioni della scuola</label>
+            <select id="classe-esistente" data-testid="classe-esistente-select">
+                <option value="">Seleziona prima una scuola</option>
+            </select>
         </div>
-        <button type="submit" class="btn btn-primary" data-testid="classe-submit-button">Aggiungi classe</button>
-    </form>
-    <div class="area-sezione-testa"><h2>Classi registrate</h2></div>
+        <p id="classe-esistente-dettaglio" class="nota" role="status" aria-live="polite"></p>
+    </div>
+    <details class="admin-aggiungi-sezione">
+        <summary>Aggiungi una nuova classe o sezione</summary>
+        <form id="form-classe" class="admin-config" data-testid="classe-form">
+            <div class="admin-classe-campi">
+                <div class="campo-filtro">
+                    <label for="classe-nome">Classe o sezione</label>
+                    <select id="classe-nome" data-testid="classe-nome-input" required>
+                        <option value="">Seleziona una classe</option>
+                    </select>
+                </div>
+                <div class="campo-filtro" id="classe-altro-gruppo" hidden>
+                    <label for="classe-altro">Nome della nuova classe o sezione</label>
+                    <input type="text" id="classe-altro" placeholder="Es. Sezione G" maxlength="100">
+                </div>
+                <div class="campo-filtro">
+                    <label for="classe-anno">Anno scolastico</label>
+                    <input type="text" id="classe-anno" placeholder="Es. 2026/2027" data-testid="classe-anno-input" required>
+                </div>
+            </div>
+            <div class="admin-form-azioni">
+                <button type="submit" class="btn btn-primary" data-testid="classe-submit-button">Aggiungi classe</button>
+            </div>
+        </form>
+    </details>
+    <div class="area-sezione-testa"><h2>Classi registrate nella scuola</h2></div>
     <div class="tabella-scroll">
         <table class="table" data-testid="classi-tabella">
             <thead><tr><th>Plesso</th><th>Classe</th><th>Anno</th><th></th></tr></thead>
@@ -221,7 +272,10 @@ require __DIR__ . '/partials/testa.php';
     <p class="banner banner--rosso"><strong>Attenzione:</strong> questa funzione non è una semplice verifica. Se è il giorno di mensa ed è passato l'orario limite, l'esecuzione può confermare i pasti e scalare i buoni alle famiglie. Usala solo se sai che il conteggio è pronto. L'esecuzione automatica può essere programmata ogni 5 minuti.</p>
     <div class="riga-filtri admin-job-azioni">
         <button class="btn btn-primary btn-sm" id="btn-scheduler" data-testid="job-scheduler-button">Conferma pasti di tutte le scuole</button>
-        <select id="job-plesso" data-testid="job-plesso-select"></select>
+        <div class="campo-filtro">
+            <label for="job-plesso">Scuola</label>
+            <select id="job-plesso" data-testid="job-plesso-select"></select>
+        </div>
         <button class="btn btn-outline-primary btn-sm" id="btn-job-plesso" data-testid="job-plesso-button">Conferma pasti della scuola scelta</button>
     </div>
     <div id="job-esito" class="pannello" aria-live="polite" data-testid="job-esito"><p class="nota">Qui vedrai l’esito dell’ultima operazione eseguita manualmente.</p></div>
