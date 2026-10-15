@@ -660,7 +660,7 @@ assert call(cal + "/verifica?data=2026-10-17", token=admin) == {
 try:
     call(cal + "/eccezioni/2027-02-12", {
         "servizio_attivo": 1, "motivazione": "Modifica impropria"
-    }, token=admin)
+    }, token=admin, method="PUT")
     raise AssertionError("Endpoint legacy ha alterato un periodo pluriennale")
 except urllib.error.HTTPError as exc:
     assert exc.code == 422
