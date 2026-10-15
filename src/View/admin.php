@@ -21,18 +21,33 @@ require __DIR__ . '/partials/testa.php';
     <h2 class="admin-form-titolo">Dati della scuola</h2>
     <form id="form-plesso" class="pannello admin-config" data-testid="plesso-form">
         <input type="hidden" id="plesso-id">
-        <div class="riga-filtri">
-            <label for="plesso-nome">Nome</label><input type="text" id="plesso-nome" data-testid="plesso-nome-input">
-            <label for="plesso-tariffa">Tariffa base (€)</label><input type="number" step="0.01" min="0" id="plesso-tariffa" data-testid="plesso-tariffa-input">
-            <label for="plesso-fido">Fido concesso (buoni)</label><input type="number" max="0" placeholder="-5" id="plesso-fido" data-testid="plesso-fido-input">
-            <label for="plesso-cutoff">Orario limite</label><input type="time" id="plesso-cutoff" data-testid="plesso-cutoff-input">
+        <div class="admin-plesso-sezioni">
+            <fieldset class="admin-sezione-campi">
+                <legend>Scuola</legend>
+                <div class="riga-filtri">
+                    <label for="plesso-nome">Denominazione</label><input type="text" id="plesso-nome" data-testid="plesso-nome-input">
+                </div>
+            </fieldset>
+            <fieldset class="admin-sezione-campi">
+                <legend>Tariffa, fido e orario</legend>
+                <div class="riga-filtri">
+                    <label for="plesso-tariffa">Tariffa base (€)</label><input type="number" step="0.01" min="0" id="plesso-tariffa" data-testid="plesso-tariffa-input">
+                    <label for="plesso-fido">Fido concesso (buoni)</label><input type="number" max="0" placeholder="-5" id="plesso-fido" data-testid="plesso-fido-input">
+                    <label for="plesso-cutoff">Orario limite per le comunicazioni</label><input type="time" id="plesso-cutoff" data-testid="plesso-cutoff-input">
+                </div>
+            </fieldset>
+            <fieldset class="admin-sezione-campi">
+                <legend>Contatti</legend>
+                <div class="riga-filtri">
+                    <label for="plesso-dirigente">Email dirigente</label><input type="text" id="plesso-dirigente" data-testid="plesso-dirigente-input">
+                    <label for="plesso-protocollo">Email protocollo (facoltativa)</label><input type="text" id="plesso-protocollo" data-testid="plesso-protocollo-input">
+                </div>
+            </fieldset>
         </div>
-        <div class="riga-filtri">
-            <label for="plesso-dirigente">Email dirigente</label><input type="text" id="plesso-dirigente" data-testid="plesso-dirigente-input">
-            <label for="plesso-protocollo">Email protocollo (opzionale)</label><input type="text" id="plesso-protocollo" data-testid="plesso-protocollo-input">
+        <div class="admin-form-azioni">
+            <button type="submit" class="btn btn-primary" data-testid="plesso-submit-button">Salva scuola</button>
+            <button type="button" class="btn btn-outline-primary" id="plesso-annulla" data-testid="plesso-annulla-button">Aggiungi un'altra scuola</button>
         </div>
-        <button type="submit" class="btn btn-primary" data-testid="plesso-submit-button">Salva plesso</button>
-        <button type="button" class="btn btn-outline-primary" id="plesso-annulla" data-testid="plesso-annulla-button">Aggiungi un'altra scuola</button>
     </form>
     <div class="area-sezione-testa"><h2>Scuole configurate</h2></div>
     <div class="tabella-scroll">
@@ -173,10 +188,12 @@ require __DIR__ . '/partials/testa.php';
     <header class="area-intro"><h1>Tipi di menu</h1></header>
     <p class="nota">Ogni bambino ha un menu assegnato.</p>
     <h2 class="admin-form-titolo">Aggiungi una tipologia</h2>
-    <form id="form-tipologia" class="pannello admin-config" data-testid="tipologia-form">
+    <form id="form-tipologia" class="pannello admin-config admin-modulo-breve" data-testid="tipologia-form">
         <div class="riga-filtri">
-            <label for="tipologia-nome">Nome</label><input type="text" id="tipologia-nome" data-testid="tipologia-nome-input">
-            <button type="submit" class="btn btn-primary" data-testid="tipologia-submit-button">Aggiungi</button>
+            <label for="tipologia-nome">Nome della tipologia</label><input type="text" id="tipologia-nome" data-testid="tipologia-nome-input">
+        </div>
+        <div class="admin-form-azioni">
+            <button type="submit" class="btn btn-primary" data-testid="tipologia-submit-button">Aggiungi tipologia</button>
         </div>
     </form>
     <div class="area-sezione-testa"><h2>Tipologie registrate</h2></div>
@@ -199,15 +216,17 @@ require __DIR__ . '/partials/testa.php';
         <label for="modello-testo">Testo della comunicazione (puoi usare: {genitore} {alunno} {plesso} {saldo} {fido} {data})</label>
         <p class="nota">Le parole tra { } sono compilate automaticamente.</p>
         <textarea id="modello-testo" rows="6" data-testid="modello-testo-input"></textarea>
-        <button type="submit" class="btn btn-primary" data-testid="modello-submit-button">Salva modello</button>
+        <div class="admin-form-azioni"><button type="submit" class="btn btn-primary" data-testid="modello-submit-button">Salva modello</button></div>
     </form>
 
     <h2>Altri indirizzi che ricevono una copia</h2>
     <form id="form-destinatario" class="pannello admin-config" data-testid="destinatario-form">
         <div class="riga-filtri">
-            <label for="dest-etichetta">Etichetta</label><input type="text" id="dest-etichetta" data-testid="destinatario-etichetta-input">
-            <label for="dest-email">Email</label><input type="text" id="dest-email" data-testid="destinatario-email-input">
-            <button type="submit" class="btn btn-primary" data-testid="destinatario-submit-button">Aggiungi</button>
+            <label for="dest-etichetta">Descrizione del destinatario</label><input type="text" id="dest-etichetta" data-testid="destinatario-etichetta-input">
+            <label for="dest-email">Indirizzo email</label><input type="text" id="dest-email" data-testid="destinatario-email-input">
+        </div>
+        <div class="admin-form-azioni">
+            <button type="submit" class="btn btn-primary" data-testid="destinatario-submit-button">Aggiungi destinatario</button>
         </div>
     </form>
     <div class="tabella-scroll">
@@ -234,8 +253,10 @@ require __DIR__ . '/partials/testa.php';
             <label for="smtp-from">Mittente</label><input type="text" id="smtp-from" data-testid="smtp-from-input">
             <label for="email-protocollo">Email protocollo</label><input type="text" id="email-protocollo" data-testid="email-protocollo-input">
         </div>
-        <button type="submit" class="btn btn-primary" data-testid="smtp-submit-button">Salva configurazione</button>
-        <button type="button" class="btn btn-outline-primary" id="btn-email-prova" data-testid="smtp-prova-button">Invio di prova</button>
+        <div class="admin-form-azioni">
+            <button type="submit" class="btn btn-primary" data-testid="smtp-submit-button">Salva configurazione</button>
+            <button type="button" class="btn btn-outline-primary" id="btn-email-prova" data-testid="smtp-prova-button">Invio di prova</button>
+        </div>
     </form>
 </section>
 
@@ -256,7 +277,7 @@ require __DIR__ . '/partials/testa.php';
             <label for="ut-password">Password iniziale (minimo 8 caratteri)</label><input type="password" id="ut-password" data-testid="utente-password-input">
             <label for="ut-plesso">Plesso (scuola)</label><select id="ut-plesso" data-testid="utente-plesso-select"></select>
         </div>
-        <button type="submit" class="btn btn-primary" data-testid="utente-submit-button">Crea utenza</button>
+        <div class="admin-form-azioni"><button type="submit" class="btn btn-primary" data-testid="utente-submit-button">Crea utenza</button></div>
     </form>
     <div class="area-sezione-testa"><h2>Utenze registrate</h2></div>
     <div class="tabella-scroll">
@@ -279,7 +300,7 @@ require __DIR__ . '/partials/testa.php';
         <button class="btn btn-outline-primary btn-sm" id="btn-job-plesso" data-testid="job-plesso-button">Conferma pasti della scuola scelta</button>
     </div>
     <div id="job-esito" class="pannello" aria-live="polite" data-testid="job-esito"><p class="nota">Qui vedrai l’esito dell’ultima operazione eseguita manualmente.</p></div>
-    <h2>Ultime esecuzioni</h2>
+    <div class="area-sezione-testa"><h2>Ultime esecuzioni</h2></div>
     <div class="tabella-scroll">
         <table class="table" data-testid="job-esecuzioni-tabella">
             <thead><tr><th>Data</th><th>Plesso</th><th>Esito</th><th>Dettaglio</th></tr></thead>
