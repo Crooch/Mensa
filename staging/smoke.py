@@ -397,6 +397,27 @@ ricorrenti = [m for m in menus_19
 assert len(ricorrenti) == 2
 assert all(m["descrizione"] == "Primo: pasta\\nSecondo: verdure" for m in ricorrenti)
 
+# Il report "Pasti da preparare" deve riportare anche il nome del modello
+# e i piatti giornalieri, a parita' di plesso, data e tipologia.
+for plesso_assegnato in (1, 3):
+    report_con_modello = call(
+        "/api/catering/report?data=2026-10-19&plesso_id=" + str(plesso_assegnato),
+        token=catering
+    )
+    scuola = next(p for p in report_con_modello["plessi"]
+        if int(p["plesso_id"]) == plesso_assegnato)
+    tipo = next(t for t in scuola["tipologie"]
+        if int(t["tipologia_id"]) == tipologia_menu)
+    assert tipo["menu_nome"] == "Settimana base - collaudo"
+    assert tipo["menu_descrizione"] == "Primo: pasta\\nSecondo: verdure"
+    assert tipo["menu_origine"] == "settimanale"
+    for classe in scuola["sezioni"]:
+        for t in classe["tipologie"]:
+            if int(t["tipologia_id"]) == tipologia_menu:
+                assert t["menu_nome"] == "Settimana base - collaudo"
+                assert t["menu_descrizione"] == tipo["menu_descrizione"]
+    verifica_distribuzione(scuola)
+
 menu_genitore = call("/api/genitore/menu?data=2026-10-19", token=genitore)
 assert any(m.get("origine") == "settimanale" for m in menu_genitore)
 assert call("/api/catering/menu?data=2026-10-15", token=catering) == []
@@ -475,6 +496,14 @@ riga_override = next(m for m in foto_override
 assert riga_override["foto_path"] is None
 assert riga_override["descrizione"] == "Pollo"
 assert riga_override["origine"] == "giornaliero"
+report_override = call("/api/catering/report?data=2026-10-19&plesso_id=" +
+    str(plesso_menu), token=catering)
+tipo_override = next(t for p in report_override["plessi"]
+    if int(p["plesso_id"]) == plesso_menu for t in p["tipologie"]
+    if int(t["tipologia_id"]) == tipologia_menu)
+assert tipo_override["menu_nome"] == "Menu del giorno"
+assert tipo_override["menu_origine"] == "giornaliero"
+assert tipo_override["menu_descrizione"] == "Pollo"
 invia_menu_multipart(campi_override, png_1x1)
 campi_override["rimuovi_foto"] = "1"
 invia_menu_multipart(campi_override)
