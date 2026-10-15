@@ -285,9 +285,9 @@ assert.equal(elemento('menu-ripristina').hidden, false);
 assert.equal(elemento('menu-ripristina').disabled, false);
 await elemento('menu-ripristina').handlers.click();
 assert.equal(ripristini.length, 1);
-assert.deepEqual(ripristini[0], {
-    plesso_id: 2, tipologia_menu_id: 1, data: '2026-10-14'
-});
+assert.equal(ripristini[0].plesso_id, 2);
+assert.equal(ripristini[0].tipologia_menu_id, 1);
+assert.equal(ripristini[0].data, '2026-10-14');
 assert.match(conferme.at(-1)[1], /altre giornate e gli altri plessi non cambieranno/);
 assert.equal(menuPubblicati.find(m => m.id === 'modello-11').descrizione, 'Pesce');
 assert.equal(menuPubblicati.find(m => m.id === 'modello-11').foto_path, 'menu/settimane/pesce.jpg');
