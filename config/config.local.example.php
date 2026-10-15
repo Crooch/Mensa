@@ -4,6 +4,9 @@ return [
     'app' => [
         'debug'         => false,
         'base_path'     => '',
+        // Abilitare solo dopo verifica dati, calendario, cutoff, cron e Comune.
+        'scheduler_enabled' => false,
+        // Necessaria solo se il cron invoca /scheduler via HTTP.
         'scheduler_key' => 'una-chiave-lunga-e-casuale',
     ],
     'db' => [
