@@ -301,6 +301,20 @@ assert int(riga_con_foto["id"]) == int(pubblicato["id"])
 assert riga_con_foto["descrizione"] == descrizione_menu
 assert riga_con_foto["foto_path"] and riga_con_foto["foto_path"].endswith(".png")
 
+# Le immagini non devono essere scaricabili da utenti anonimi.
+url_foto = base + "/storage/" + riga_con_foto["foto_path"]
+try:
+    urllib.request.urlopen(url_foto, timeout=10)
+    raise AssertionError("Immagine privata accessibile senza autenticazione")
+except urllib.error.HTTPError as exc:
+    assert exc.code == 401
+con_token = urllib.request.Request(url_foto, headers={"Authorization": "Bearer " + catering})
+with urllib.request.urlopen(con_token, timeout=10) as risposta:
+    assert risposta.status == 200
+    assert risposta.headers.get_content_type() == "image/png"
+    assert risposta.read() == png_1x1
+print("OK: foto private non accessibili senza token; Catering autenticato puo visualizzarle.")
+
 campi_menu["rimuovi_foto"] = "1"
 rimosso = invia_menu_multipart(campi_menu)
 assert int(rimosso["id"]) == int(pubblicato["id"])
