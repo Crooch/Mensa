@@ -5,13 +5,17 @@ Ambiente **di test**: non importare dati del Comune e non usare per produzione.
 ## Requisiti
 Docker Desktop con `docker compose` e Git.
 
-## Avvio (dal Mac)
+## Avvio locale (Mac, Linux o Windows con Docker)
+
+Utilizzare il ramo ufficiale che contiene la versione da provare.
+Se si sta collaudando una modifica non ancora integrata nel repository comunale,
+eseguire gli stessi comandi nel clone e nel ramo della relativa proposta.
+**Non** collegare questo ambiente al database di produzione.
 
 ```bash
-git clone https://github.com/Crooch/Mensa.git
+git clone https://github.com/ComuneDiCaltavuturo/Mensa.git
 cd Mensa
-git switch dev
-docker compose -f compose.staging.yml up --build -d
+docker compose -f compose.staging.yml up --build -d --wait
 ```
 
 Aprire **http://127.0.0.1:18080**.
@@ -58,7 +62,7 @@ docker compose -f compose.staging.yml down
 
 ### Ripulire soltanto i menu di prova (senza azzerare lo staging)
 
-Dal clone locale sul ramo `dev`, dopo aver aggiornato i file e i container:
+Dalla cartella del clone locale, dopo aver aggiornato i file e i container:
 
 ```bash
 git pull --ff-only origin dev
@@ -93,7 +97,8 @@ Docker `database` con variabili di staging abilitate.
 
 **Attenzione:** lo script `python3 staging/smoke.py` effettua scritture vere
 sul database fittizio; se lo esegui dopo la pulizia, ritroverai menu di
-collaudo e nuove assegnazioni.
+collaudo e nuove assegnazioni. Non fa parte della normale procedura di avvio o aggiornamento:
+è uno strumento riservato ai test automatizzati su una copia isolata.
 
 Per **cancellare soltanto il database fittizio locale** e ripartire da zero:
 
@@ -103,7 +108,7 @@ docker compose -f compose.staging.yml down -v
 
 `down -v` elimina **il database staging e il volume delle foto** e non deve essere usato su una
 configurazione Docker diversa. Accertarsi sempre di essere nella cartella
-del clone `Crooch/Mensa`, branch `dev`.
+del clone di Mensa Caltavuturo e di usare esclusivamente i servizi Docker di staging.
 
 ## Casi minimi da provare via browser
 
@@ -130,10 +135,8 @@ Le implementazioni del pacchetto E (stampa cucina, tour avanzati, ecc.) restano 
 Per aggiornare lo staging **senza cancellare le prove**:
 
 ```bash
-cd ~/Projects/mensa-staging
-git pull --ff-only origin dev
+git pull --ff-only
 docker compose -f compose.staging.yml up --build -d --wait
-python3 staging/smoke.py
 ```
 
 Non utilizzare `down -v`: elimina il volume contenente i dati sintetici.
