@@ -125,6 +125,110 @@ final class CalendarioService
         $this->calendari->salvaConfigurazione($plessoId, $dati);
     }
 
+    /**
+     * Restituisce true se due intervalli si sovrappongono oltre il solo giorno
+     * di confine. Esempio: 12-14 e 14-16 ammessi; 12-14 e 13-16 vietati.
+     * Un singolo giorno è sempre consentito se libero, ma non può duplicare
+     * una giornata già coperta da un altro intervallo.
+     */
+    public static function intervalliInConflitto(string $inizio1, string $fine1, string $inizio2, string $fine2): bool
+    {
+        $dal = max($inizio1, $inizio2);
+        $al = min($fine1, $fine2);
+        if ($dal > $al) {
+            return false;
+        }
+        if ($dal < $al) {
+            return true;
+        }
+        return !(($fine1 === $inizio2 && $inizio1 !== $fine1 && $inizio2 !== $fine2)
+            || ($fine2 === $inizio1 && $inizio2 !== $fine2 && $inizio1 !== $fine1));
+    }
+
+    /** Crea oppure modifica un periodo salvato, includendo il caso data singola. */
+    public function salvaPeriodo(int $plessoId, array $input, ?int $periodoId = null): int
+    {
+        $this->richiediPlesso($plessoId);
+        $inizio = (string) ($input['data_inizio'] ?? '');
+        $fine = (string) (($input['data_fine'] ?? null) ?: $inizio);
+        if (!self::dataValida($inizio) || !self::dataValida($fine) || $fine < $inizio) {
+            throw HttpException::nonValido('Intervallo non valido: controlla le date di inizio e fine.');
+        }
+        $giorni = (new \DateTimeImmutable($inizio))->diff(new \DateTimeImmutable($fine))->days;
+        if ($giorni > 730) {
+            throw HttpException::nonValido('L’intervallo non può superare due anni.');
+        }
+        $attivo = $input['servizio_attivo'] ?? null;
+        if (!in_array($attivo, [0, 1, '0', '1', true, false], true)) {
+            throw HttpException::nonValido('Seleziona se la mensa sarà aperta o chiusa.');
+        }
+        $motivo = trim((string) ($input['motivazione'] ?? ''));
+        if ($motivo === '' || strlen($motivo) > 255) {
+            throw HttpException::nonValido('Indica una motivazione (massimo 255 caratteri).');
+        }
+        if ((int) $attivo === 1) {
+            for ($d = new \DateTimeImmutable($inizio), $ultimo = new \DateTimeImmutable($fine);
+                 $d <= $ultimo; $d = $d->modify('+1 day')) {
+                if ((int) $d->format('N') >= 6 || self::festivitaNazionale($d)) {
+                    throw HttpException::nonValido(
+                        'Un’apertura straordinaria non può comprendere sabati, domeniche o festività nazionali. '
+                        . 'Seleziona soltanto giorni consentiti.'
+                    );
+                }
+            }
+        }
+        if (!$this->calendari->acquisisciLockPeriodi($plessoId)) {
+            throw HttpException::nonValido('Il calendario è già in modifica. Riprova tra pochi istanti.');
+        }
+        try {
+            if ($periodoId !== null && $this->calendari->trovaPeriodo($plessoId, $periodoId) === null) {
+                throw HttpException::nonTrovato('Periodo non trovato per questa scuola.');
+            }
+            foreach ($this->calendari->periodiIntersecanti($plessoId, $inizio, $fine, $periodoId) as $p) {
+                if (self::intervalliInConflitto(
+                    $inizio, $fine, (string) $p['giorno'], (string) $p['giorno_fine']
+                )) {
+                    throw HttpException::nonValido(
+                        'Il periodo si sovrappone a quello dal '
+                        . date('d/m/Y', strtotime((string) $p['giorno']))
+                        . ' al ' . date('d/m/Y', strtotime((string) $p['giorno_fine']))
+                        . '. Modifica le date oppure modifica il periodo già registrato.'
+                    );
+                }
+            }
+            try {
+                return $this->calendari->salvaPeriodo(
+                    $plessoId, $inizio, $fine, (bool) $attivo, $motivo, $periodoId
+                );
+            } catch (\PDOException $e) {
+                if ($e->getCode() === '23000') {
+                    throw HttpException::nonValido(
+                        'Esiste già un periodo con questa data di inizio. Modifica quello esistente.'
+                    );
+                }
+                throw $e;
+            }
+        } finally {
+            $this->calendari->rilasciaLockPeriodi($plessoId);
+        }
+    }
+
+    public function cancellaPeriodo(int $plessoId, int $periodoId): void
+    {
+        $this->richiediPlesso($plessoId);
+        if (!$this->calendari->acquisisciLockPeriodi($plessoId)) {
+            throw HttpException::nonValido('Il calendario è già in modifica. Riprova.');
+        }
+        try {
+            if ($this->calendari->trovaPeriodo($plessoId, $periodoId) === null) {
+                throw HttpException::nonTrovato('Periodo non trovato.');
+            }
+            $this->calendari->cancellaPeriodo($plessoId, $periodoId);
+        } finally {
+            $this->calendari->rilasciaLockPeriodi($plessoId);
+        }
+    }
+
     public function salvaEccezione(int $plessoId, string $data, array $input): void
     {
         $this->richiediPlesso($plessoId);
