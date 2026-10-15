@@ -138,6 +138,86 @@ def controlla_tabelle_mobili(page, larghezza):
         assert celle.first.evaluate("(e) => getComputedStyle(e).display") in ('grid', 'block')
 
 
+def controlla_monitoraggio_job(page, larghezza):
+    """Solo letture GET, senza toccare presenze, credito o scheduler."""
+    import json
+    scuole = [
+        {"plesso_id": 1, "plesso_nome": "Scuola Infanzia",
+         "orario_limite": "09:15", "stato": "completata",
+         "pasti_confermati": 90, "buoni_utilizzati": 90,
+         "solleciti_inviati": 2, "errori_comunicazioni": 0,
+         "concluso_il": "2026-10-15 09:16:00"},
+        {"plesso_id": 2, "plesso_nome": "Scuola Primaria",
+         "orario_limite": "09:30", "stato": "in_attesa",
+         "pasti_confermati": None, "buoni_utilizzati": None,
+         "solleciti_inviati": None, "errori_comunicazioni": None,
+         "concluso_il": None},
+        {"plesso_id": 3, "plesso_nome": "Scuola Secondaria",
+         "orario_limite": "09:15", "stato": "completata",
+         "pasti_confermati": 41, "buoni_utilizzati": 41,
+         "solleciti_inviati": 1, "errori_comunicazioni": 1,
+         "concluso_il": "2026-10-15 09:20:00"}
+    ]
+    elenco = [
+        {"id": 1, "data": "2026-10-15", "plesso_nome": "Scuola Infanzia",
+         "esito": "ok", "dettaglio": json.dumps({
+             "pasti_report": 90, "consumi": 90,
+             "solleciti": {"inviati": 2, "errori": 0}})},
+        {"id": 2, "data": "2026-10-15", "plesso_nome": "Scuola Secondaria",
+         "esito": "ok", "dettaglio": json.dumps({
+             "pasti_report": 41, "consumi": 41,
+             "solleciti": {"inviati": 1, "errori": 1,
+                          "dettagli": [{"genitore_id": 999, "stato": "errore"}]}})},
+        {"id": 3, "data": "2026-10-14", "plesso_nome": "Scuola Primaria",
+         "esito": "errore", "dettaglio": json.dumps({
+             "messaggio": "messaggio tecnico riservato"})}
+    ]
+    richieste_post = []
+
+    def risposta_stato(route):
+        route.fulfill(status=200, content_type="application/json",
+                      body=json.dumps({"ok": True, "dati": {
+                          "data": "2026-10-15", "scuole": scuole}}))
+
+    def risposta_storico(route):
+        route.fulfill(status=200, content_type="application/json",
+                      body=json.dumps({"ok": True, "dati": elenco}))
+
+    def blocca_scritture(route):
+        richieste_post.append(route.request.url)
+        route.fulfill(status=403, content_type="application/json",
+                      body=json.dumps({"ok": False, "errore": "Test: operazione vietata"}))
+
+    page.route("**/api/job/stato", risposta_stato)
+    page.route("**/api/job/esecuzioni", risposta_storico)
+    page.route("**/api/job/scheduler", blocca_scritture)
+    page.route("**/api/job/plessi/*", blocca_scritture)
+    page.locator('nav.schede [data-vista="job"]').click()
+    page.locator('#job-aggiorna').click()
+    page.wait_for_function("""() =>
+        document.querySelectorAll('#job-scuole .admin-job-scuola').length === 3 &&
+        document.querySelectorAll('#job-corpo tr').length === 3
+    """, timeout=12000)
+    assert page.locator('#job-manuale').evaluate("(e) => !e.open")
+    assert page.locator('#job-esito').is_hidden()
+    assert page.locator('#job-scuole').inner_text().count("90") >= 2
+    assert "email da verificare" in page.locator('#job-scuole').inner_text()
+    assert "messaggio tecnico riservato" not in page.locator('#job-corpo').inner_text()
+    assert "genitore_id" not in page.locator('#job-corpo').inner_text()
+    assert page.locator('#job-corpo').inner_text().count("41") >= 2
+    assert richieste_post == [], "Aprire e aggiornare lo stato non deve lanciare addebiti"
+    controlla_dimensioni(page, f"Monitoraggio job Admin {larghezza}")
+    page.screenshot(path=str(OUTPUT / f"admin-monitoraggio-job-{larghezza}.png"),
+                    full_page=True)
+    page.locator('#job-manuale summary').click()
+    assert page.locator('#job-plesso').is_visible()
+    assert page.locator('#btn-scheduler').is_visible()
+    assert richieste_post == [], "Espandere gli interventi manuali non deve lanciare il job"
+    page.locator('#job-manuale summary').click()
+    assert page.locator('#btn-scheduler').is_hidden()
+    print(f"OK: Admin @{larghezza}: stato e storico leggibili, email in errore, manuale secondario senza POST")
+
+
 def controlla_admin_calendario_classi(page, larghezza):
     """Nessun salvataggio: misure reali checkbox, date, etichette e classi per scuola."""
     page.locator('nav.schede [data-vista="calendario"]').click()
@@ -243,6 +323,7 @@ def controlla_admin_calendario_classi(page, larghezza):
         )
         controlla_etichette(page, f'Admin {vista}@{larghezza}')
         controlla_dimensioni(page, f'Admin {vista}@{larghezza}')
+    controlla_monitoraggio_job(page, larghezza)
     print(f"OK: Admin @{larghezza}: checkbox, date, classi per scuola, 7 schede allineate")
 
 
