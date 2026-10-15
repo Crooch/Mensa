@@ -419,7 +419,7 @@ campi_settimana["rimuovi_foto"] = '["1"]'
 aggiorna_settimana_multipart(modello_id, campi_settimana)
 modelli_senza = call("/api/catering/menu-settimanali", token=catering)
 senza = next(m for m in modelli_senza if int(m["id"]) == modello_id)
-assert not senza["foto_giorni"].get("1")
+assert not senza["foto_giorni"]
 assert next(m for m in modelli_senza
     if int(m["id"]) == int(copiato_foto["id"]))["foto_giorni"]["1"] == foto_settimanale
 print("OK: foto settimanale aggiunta, condivisa, duplicata e rimossa via multipart; copia preservata.")
