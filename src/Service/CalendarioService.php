@@ -49,10 +49,13 @@ final class CalendarioService
             return ['attivo' => false, 'motivo' => 'plesso_non_attivo'];
         }
         $config = $this->calendari->configurazione($plessoId);
-        if ($config === null) {
+        $eccezione = $this->calendari->eccezione($plessoId, $data);
+        if ($config === null && $eccezione === null) {
             return ['attivo' => false, 'motivo' => 'calendario_non_configurato'];
         }
-        return self::valutaRegole($config, $this->calendari->eccezione($plessoId, $data), $data);
+        // Un'apertura esplicita prevale anche se il calendario ordinario non
+        // è ancora configurato. Un plesso disattivato resta però escluso.
+        return self::valutaRegole($config ?? [], $eccezione, $data);
     }
 
     /** Funzione pura, utilizzabile nei test senza collegarsi al database. */
