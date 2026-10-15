@@ -207,7 +207,8 @@ def controlla_admin_calendario_classi(page, larghezza):
     page.locator('#classe-nome').select_option('altro')
     assert page.locator('#classe-altro-gruppo').is_visible()
     assert page.locator('#classe-altro').get_attribute('required') is not None
-    page.locator('#classe-nome').select_option('Sezione A')
+    primo_nome = page.locator('#classe-nome option').nth(1).get_attribute('value')
+    page.locator('#classe-nome').select_option(primo_nome)
     assert page.locator('#classe-altro-gruppo').is_hidden()
     assert page.locator('#classe-anno').input_value()
     controlla_etichette(page, f'Classi Admin {larghezza}')
