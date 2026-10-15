@@ -1795,3 +1795,49 @@ body[data-ruolo="admin"] .admin-job-azioni .btn { min-height: 46px; }
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* Moduli Operatore: coppie etichetta/campo e azioni sempre leggibili. */
+body[data-ruolo="operatore"] .operatore-modale {
+    width: min(760px, 100%);
+    max-width: 100%;
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+body[data-ruolo="operatore"] .operatore-modale .modale__testa {
+    border-bottom: 1px solid #d5e2ee;
+    padding-bottom: .7rem;
+    margin-bottom: 1rem;
+}
+body[data-ruolo="operatore"] .operatore-modale .modale__testa h2 {
+    font-size: 1.18rem;
+    margin: 0;
+}
+body[data-ruolo="operatore"] .operatore-modale form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .85rem 1rem;
+    align-items: end;
+}
+body[data-ruolo="operatore"] .operatore-modale form .campo-filtro {
+    min-width: 0;
+}
+body[data-ruolo="operatore"] .operatore-modale form > :is(p, .banner, .stato-operazione, .riga-filtri) {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+body[data-ruolo="operatore"] .operatore-modale form > button[type="submit"] {
+    grid-column: 1 / -1;
+    justify-self: end;
+    min-width: min(100%, 220px);
+    margin-top: .3rem;
+}
+@media (max-width: 600px) {
+    body[data-ruolo="operatore"] .operatore-modale { padding: .85rem; }
+    body[data-ruolo="operatore"] .operatore-modale form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="operatore"] .operatore-modale form > button[type="submit"] {
+        width: 100%;
+        justify-self: stretch;
+    }
+}
