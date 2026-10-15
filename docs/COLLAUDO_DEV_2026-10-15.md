@@ -26,6 +26,7 @@ la produzione non è stata modificata.
 | MariaDB CI | Migrazioni 002–008 applicate due volte; saldi e movimenti preesistenti sintetici invariati | SUPERATO |
 | Docker CI | Backup dello staging con ripristino in un **secondo** database sintetico, verifica struttura e conteggi, eliminazione copia temporanea | SUPERATO |
 | Catering | Variazioni giornaliere: ordinamento data futura per prima, 10 per pagina, annullamento e nessun messaggio ridondante | SUPERATO |
+| Percorso browser | Genitore → Scuola → Catering: richiesta pasta in bianco, assenza e ripristino, conteggi plesso sintetico **4→3→4** senza doppi pasti | SUPERATO |
 
 ### Evidenze più recenti
 
@@ -33,8 +34,9 @@ la produzione non è stata modificata.
   controlli PHP/JS, integrazione e migrazioni sul database sintetico.
 - [Staging Docker HTTP e ripristino backup](https://github.com/Crooch/Mensa/actions/runs/38719791629):
   prova HTTP, dump e ripristino in una seconda base; confronto tabelle e saldi.
-- [Browser Chrome/Chromium — cinque ruoli](https://github.com/Crooch/Mensa/actions/runs/38718493124):
-  test automatico precedente al solo aggiornamento delle procedure di rilascio.
+- [Browser Chrome/Chromium — cinque ruoli e percorso incrociato](https://github.com/Crooch/Mensa/actions/runs/38721219047):
+  test automatici su 375, 768 e 1366 px; Genitore, Scuola e Catering con modifiche
+  su bambino sintetico e verifica dei conteggi aggiornati.
 - Screenshot dei test browser disponibili negli artifact delle relative
   pipeline GitHub, con conservazione limitata; nessun dato reale di minori.
 
@@ -52,6 +54,9 @@ leggibilità, dell'accessibilità o del corretto flusso operativo.
 
 - Il messaggio `A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received` è spesso emesso da un'estensione del browser. Non è stato riprodotto nel browser Chromium senza estensioni usato in CI.
 - Controllare eventualmente in una finestra senza estensioni prima di attribuirlo al codice applicativo. Nessuna modifica arbitraria all'app è stata introdotta per tale avviso.
+
+Per la prova visiva/operativa con utenti, seguire la
+[guida di collaudo manuale dello staging](COLLAUDO_MANUALE_STAGING_2026-10-15.md).
 
 ## Verifiche manuali ancora aperte
 
