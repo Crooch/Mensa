@@ -304,23 +304,20 @@ async function caricaMenu() {
 /** Elenco breve e cronologico delle sole eccezioni; un clic apre il giorno. */
 async function caricaVariazioniProgrammate(pagina = paginaVariazioni) {
     const richiesta = ++numeroRichiestaVariazioni;
-    const stato = document.getElementById('menu-variazioni-stato');
     const precedente = document.getElementById('menu-variazioni-precedenti');
     const successivo = document.getElementById('menu-variazioni-successive');
     precedente.disabled = true;
     successivo.disabled = true;
-    stato.textContent = 'Caricamento delle variazioni…';
     try {
         const risultato = await API.get('/api/catering/menu/variazioni?pagina=' + pagina);
         if (richiesta !== numeroRichiestaVariazioni) return;
+        if (!risultato || !Array.isArray(risultato.righe)) {
+            throw new Error('Risposta delle variazioni non valida');
+        }
         const righe = risultato.righe;
         paginaVariazioni = Number(risultato.pagina);
         totalePagineVariazioni = Number(risultato.pagine);
-        const totale = Number(risultato.totale);
         variazioniProgrammate = righe;
-        stato.textContent = totale === 0
-            ? 'Nessuna variazione giornaliera programmata.'
-            : totale + ' variazioni programmate · 10 per pagina.';
         const navigazione = document.getElementById('menu-variazioni-pagine');
         navigazione.hidden = totalePagineVariazioni <= 1;
         precedente.disabled = paginaVariazioni <= 1;
@@ -339,7 +336,7 @@ async function caricaVariazioniProgrammate(pagina = paginaVariazioni) {
                     <button type="button" class="btn btn-link" data-variazione-annulla="${Number(m.id)}">Annulla</button>
                 </div>` : ''}
             </article>`).join('')
-            : '<p class="vuoto">Nessuna variazione giornaliera programmata.</p>';
+            : '';
         document.querySelectorAll('[data-variazione-apri]').forEach(pulsante =>
             pulsante.addEventListener('click', async () => {
                 const m = variazioniProgrammate.find(r => Number(r.id) === Number(pulsante.dataset.variazioneApri));
@@ -360,7 +357,7 @@ async function caricaVariazioniProgrammate(pagina = paginaVariazioni) {
         if (richiesta !== numeroRichiestaVariazioni) return;
         document.getElementById('menu-variazioni-pagine').hidden = true;
         document.getElementById('menu-variazioni-lista').innerHTML = '';
-        stato.textContent = 'Impossibile caricare le variazioni: ' + errore.message;
+        avviso('Non è stato possibile caricare le variazioni: ' + errore.message, 'errore');
     }
 }
 
