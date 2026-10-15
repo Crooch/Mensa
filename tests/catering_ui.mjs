@@ -241,9 +241,8 @@ console.log('OK: descrizione multilinea visibile e rimozione immagine isolata e 
 
 /* Una foto sul modello settimanale non viene preselezionata nell'override.
    Pesce con foto sul modello -> Pollo senza foto sul giornaliero. */
-menuPubblicati.push({
-    id: 'modello-11', plesso_id: 2, tipologia_menu_id: 1,
-    plesso_nome: 'Secondaria', tipologia_nome: 'Standard', descrizione: 'Pesce',
+Object.assign(menuPubblicati.find(m => m.id === 9), {
+    id: 'modello-11', descrizione: 'Pesce',
     foto_path: 'menu/settimane/pesce.jpg', origine: 'settimanale', modello_nome: 'Settimana base'
 });
 elemento('menu-plesso').value = '2';
