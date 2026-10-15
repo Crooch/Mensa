@@ -25,7 +25,8 @@ eseguito sulla VPS o su `mensa_db`.
   presenze: non aggiungerlo al cron di produzione senza analisi separata.
 - Le API Admin di chiusura sono anch'esse operazioni reali; il nuovo
   interruttore blocca sia scheduler automatico sia esecuzioni manuali,
-  lasciando leggibili stato e storico.
+  lasciando leggibili stato e storico. Il comando massivo Admin non
+  accetta piu' una data da URL: elabora solo la giornata corrente.
 
 ## 2. Interruttore di sicurezza — disattivo per default
 
@@ -100,7 +101,7 @@ di un cron esistente: confrontare e sostituire.
 **Importante:** se lo switch viene abilitato **dopo il cutoff di una
 giornata aperta**, la prima esecuzione può consolidare e addebitare
 **quella stessa giornata**. Pianificare attivazione e controllo degli
-orari per evitare un'addebito non voluto. Il CLI automatico **non accetta
+orari per evitare un addebito non voluto. Il CLI automatico **non accetta
 date retroattive**.
 
 ## 5. Sequenza di rilascio concordata
