@@ -513,7 +513,8 @@ await ricaricaPagine(1);
 const primaPagina = elemento('menu-variazioni-lista').innerHTML;
 assert.equal((primaPagina.match(/class="catering-variazione"/g) || []).length, 10);
 assert.match(primaPagina, /Variazione fittizia 23/);
-assert.ok(!primaPagina.includes('Variazione fittizia 1'));
+assert.ok(!primaPagina.includes('data-testid="variazione-101"'),
+    'La variazione più vicina non deve comparire nella prima pagina');
 assert.equal(elemento('menu-variazioni-pagine').hidden, false);
 assert.equal(elemento('menu-variazioni-indicatore').textContent, 'Pagina 1 di 3');
 assert.equal(elemento('menu-variazioni-precedenti').disabled, true);
