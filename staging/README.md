@@ -161,3 +161,38 @@ Questa branch non è direttamente pubblicata sulla VPS. Prima del rilascio reale
 servono backup verificato, piano di rollback, autorizzazione del Comune e
 collaudo manuale per ruolo. Lo scheduler di produzione resta spento finché
 non viene espressamente deciso di attivarlo.
+
+
+## Collaudo browser dei cinque ruoli
+
+La workflow CI `Staging Browser 5 ruoli` testa automaticamente Chromium
+in ambiente Docker sintetico per **Admin, Operatore, Scuola, Catering e Genitore**
+alle larghezze 375, 768 e 1366 pixel. Controlla accesso, schede, overflow
+orizzontale, errori JavaScript e dimensioni della foto del menu.
+Gli screenshot sintetici sono negli artifact della run GitHub Actions,
+senza riferimenti ad alunni o famiglie reali.
+
+Il test non sostituisce l'esame visivo su Mac e smartphone reali.
+Da fare sul Mac, nello staging locale già avviato
+(`http://127.0.0.1:18080`), **senza usare la VPS**:
+
+1. Accedere con i cinque account di staging indicati sopra; verificare tutte le schede,
+   anche a larghezza circa 375 px (telefono), 768 px (tablet) e desktop.
+2. **Genitore**: consultare il calendario completo; distinguere il 19/10
+   (mensa prevista) dal 17/10 (senza servizio); verificare assenza e pasta in bianco.
+3. **Scuola**: verificare classe/data, totali, sezione senza pasti,
+   motivazione di una correzione e caso gita (solo sui dati sintetici).
+4. **Catering**: controllare report pasti e classi a zero;
+   creare un modello settimanale, duplicarlo, aggiungere/rimuovere foto e
+   verificare le anteprime e la X, anche da smartphone.
+5. **Operatore**: cercare una famiglia sintetica, aprire la scheda e
+   verificare conferme e messaggi; non usare dati reali.
+6. **Amministratore**: verificare plessi, calendario, classi e utenze.
+   Non avviare i job finanziari per il collaudo UI.
+7. Da tastiera verificare Tab, Shift+Tab, Escape sui dialoghi,
+   focus visibile e nessuno scorrimento orizzontale della pagina.
+
+I risultati vanno classificati come **Passato**, **Da correggere** o
+**Non verificato**, distinguendo CI automatica da collaudo manuale.
+Non effettuare merge su `main` o deploy in produzione prima di
+completare le verifiche e autorizzare espressamente il rilascio.
