@@ -3,6 +3,8 @@
 return [
     'app' => [
         'debug'         => false,
+        // Per il cutover T0 mettere temporaneamente true.
+        'maintenance_mode' => false,
         'base_path'     => '',
         // Abilitare solo dopo verifica dati, calendario, cutoff, cron e Comune.
         'scheduler_enabled' => false,
