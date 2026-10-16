@@ -44,8 +44,11 @@ if (!$dryRun && (!$execute || count($args) !== 3
     fwrite(STDERR, "Uso: --dry-run OPPURE --execute --t0=YYYY-MM-DD --backup=/var/backups/mensa/FILE.sql.gz\n");
     exit(2);
 }
-if ((string) Config::get('db.database') !== 'mensa_db') {
-    fwrite(STDERR, "STOP: database diverso da mensa_db.\n");
+$dbName = (string) Config::get('db.database');
+$ci = getenv('CI') === 'true' && getenv('MENSA_TEST_DATABASE') === 'mensa_ci'
+    && $dbName === 'mensa_ci';
+if ($dbName !== 'mensa_db' && !$ci) {
+    fwrite(STDERR, "STOP: database non autorizzato per il T0.\n");
     exit(2);
 }
 
@@ -65,7 +68,7 @@ $statistiche = static function (PDO $db): array {
 
 if ($dryRun) {
     $s = $statistiche($pdo);
-    echo "DRY-RUN (nessuna scrittura): DB=mensa_db; pool={$s['pool']}; ",
+    echo "DRY-RUN (nessuna scrittura): DB=$dbName; pool={$s['pool']}; ",
          "movimenti={$s['movimenti']}; somma_saldi={$s['saldo_totale']}; ",
          "T0_precedente=", ($marker === false ? 'nessuno' : (string) $marker), "\n";
     exit(0);
@@ -86,7 +89,9 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/D', $t0)
 }
 $backup = (string) $values['backup'];
 $reale = realpath($backup);
-if ($reale === false || !str_starts_with($reale, '/var/backups/mensa/')
+if ($reale === false
+    || !($ci ? str_starts_with($reale, '/tmp/mensa-t0-ci-')
+             : str_starts_with($reale, '/var/backups/mensa/'))
     || !is_file($reale) || !is_readable($reale)
     || (int) filesize($reale) < 1024
     || !str_ends_with($reale, '.sql.gz')) {
