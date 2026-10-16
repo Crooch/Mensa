@@ -28,6 +28,8 @@ jobs:
         run: |
           find src routes bin tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l bootstrap.php
+          php -l public/index.php
+          php -l bin/reset_ticket_t0.php
       - name: Browser script syntax and asynchronous report regression
         run: |
           node --check public/assets/js/api.js
@@ -226,3 +228,71 @@ jobs:
           test "$($DB -e 'SELECT COUNT(*) FROM calendari_servizio')" = "0"
           echo "OK: DDL applicato due volte, nessun record di dominio alterato o importato"
 
+
+      - name: T0 reset is transactional, once-only, and preserves synthetic users
+        env:
+          CI: "true"
+          MENSA_TEST_DATABASE: mensa_ci
+          MYSQL_PWD: ci_root_password
+        run: |
+          set -euo pipefail
+          DB="mariadb --host=127.0.0.1 --port=3306 --user=root --database=mensa_ci"
+          # T0 deve essere il test finale: elimina SOLO dati economici fittizi.
+          before_users="$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM utenti')"
+          before_bambini="$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM bambini')"
+          before_presenze="$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM presenze_giornaliere')"
+          before_pools="$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM pool_crediti')"
+          $DB -e "INSERT INTO pool_crediti (genitore_id, plesso_id, saldo)
+                 SELECT g.id, p.id, 7 FROM genitori g CROSS JOIN plessi p
+                 WHERE NOT EXISTS (
+                     SELECT 1 FROM pool_crediti pc WHERE pc.genitore_id=g.id AND pc.plesso_id=p.id
+                 ) LIMIT 1"
+          $DB -e "INSERT INTO movimenti_crediti (pool_id, tipo, delta, data, note)
+                 SELECT pc.id, 'acquisto', 5, CURRENT_DATE, 'CI t0 da cancellare'
+                 FROM pool_crediti pc LIMIT 1"
+          # La prova verifica che il reset NON richieda inizializzazioni di demo.
+          cat > config/config.local.php <<'PHP'
+          <?php
+          return [
+              'app' => ['maintenance_mode' => true, 'scheduler_enabled' => false],
+              'db' => [
+                  'host' => '127.0.0.1', 'port' => 3306, 'database' => 'mensa_ci',
+                  'username' => 'root', 'password' => 'ci_root_password',
+              ],
+          ];
+          PHP
+          mariadb-dump --host=127.0.0.1 --port=3306 --user=root \
+            --single-transaction --quick --routines --triggers --events \
+            mensa_ci | gzip -c > /tmp/mensa-t0-ci-before.sql.gz
+          test -s /tmp/mensa-t0-ci-before.sql.gz
+          php bin/reset_ticket_t0.php --dry-run > /tmp/mensa-t0-dry.txt
+          grep -q 'DRY-RUN' /tmp/mensa-t0-dry.txt
+          php bin/reset_ticket_t0.php --execute \
+            --t0="$(TZ=Europe/Rome date +%F)" \
+            --backup=/tmp/mensa-t0-ci-before.sql.gz
+          test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM movimenti_crediti')" = "0"
+          test "$($DB --batch --skip-column-names -e 'SELECT COALESCE(SUM(saldo),0) FROM pool_crediti')" = "0"
+          test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM pool_crediti')" = "$before_pools"
+          test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM utenti')" = "$before_users"
+          test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM bambini')" = "$before_bambini"
+          test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM presenze_giornaliere')" = "$before_presenze"
+          if php bin/reset_ticket_t0.php --execute \
+            --t0="$(TZ=Europe/Rome date +%F)" \
+            --backup=/tmp/mensa-t0-ci-before.sql.gz; then
+            echo 'ERRORE: secondo azzeramento consentito' >&2
+            exit 1
+          fi
+          php -r '
+            require "bootstrap.php";
+            $r = new App\Repository\CreditoRepository();
+            try {
+                $r->registraMovimento([
+                    "pool_id" => 1, "tipo" => "consumo_pasto",
+                    "delta" => -1, "data" => "2000-01-01",
+                ]);
+                throw new RuntimeException("Movimento pre-T0 accettato");
+            } catch (App\Core\HttpException $e) {
+                echo "OK: movimenti pre-T0 bloccati.\n";
+            }
+          '
+          echo "OK: T0 su dati sintetici, nessuna perdita anagrafica"
