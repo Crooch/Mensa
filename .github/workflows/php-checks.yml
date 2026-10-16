@@ -242,11 +242,6 @@ jobs:
           before_bambini="$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM bambini')"
           before_presenze="$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM presenze_giornaliere')"
           before_pools="$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM pool_crediti')"
-          $DB -e "INSERT INTO pool_crediti (genitore_id, plesso_id, saldo)
-                 SELECT g.id, p.id, 7 FROM genitori g CROSS JOIN plessi p
-                 WHERE NOT EXISTS (
-                     SELECT 1 FROM pool_crediti pc WHERE pc.genitore_id=g.id AND pc.plesso_id=p.id
-                 ) LIMIT 1"
           $DB -e "INSERT INTO movimenti_crediti (pool_id, tipo, delta, data, note)
                  SELECT pc.id, 'acquisto', 5, CURRENT_DATE, 'CI t0 da cancellare'
                  FROM pool_crediti pc LIMIT 1"
