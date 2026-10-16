@@ -39,7 +39,7 @@ $container = new Container();
 if ($percorso === '/scheduler') {
     // Cron CLI preferito in produzione. L'endpoint web e' disattivato
     // per default e non puo' avviare addebiti durante un semplice deploy.
-    if (Config::get('app.scheduler_enabled', false) !== true) {
+    if (!Config::schedulerAbilitato()) {
         Response::errore(503, 'Scheduler non abilitato');
         return;
     }
