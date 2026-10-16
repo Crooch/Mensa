@@ -63,6 +63,9 @@ echo "[4/8] Aggiungo SOLO le strutture mancanti, nessun seed/import"
 mariadb --database=mensa_db < "$SOURCE/database/deploy/upgrade_schema_only_2026_10.sql"
 
 echo "[5/8] Pubblico codice PHP/JS con esclusione di configurazione e dati"
+# Per i nuovi file applicativi usare permessi leggibili dal server web.
+# I backup hanno invece gia' permessi 0600 in directory riservata.
+umask 022
 rsync -rlt --no-perms --no-owner --no-group \
   --exclude='config/config.local.php' \
   --exclude='storage/' \
@@ -71,6 +74,7 @@ rsync -rlt --no-perms --no-owner --no-group \
   --exclude='compose.staging.yml' \
   --exclude='*.sql.gz' \
   "$SOURCE/" "$DEST/"
+umask 077
 
 # Svuotamento opcache del pool PHP, senza spegnere Apache.
 if systemctl is-active --quiet php8.5-fpm; then
