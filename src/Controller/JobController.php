@@ -45,7 +45,7 @@ final class JobController
 
     private function richiediAttivazione(): void
     {
-        if (Config::get('app.scheduler_enabled', false) !== true) {
+        if (!Config::schedulerAbilitato()) {
             throw new HttpException(503, 'Le chiusure giornaliere non sono ancora abilitate.');
         }
     }
