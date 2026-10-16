@@ -31,6 +31,7 @@ jobs:
           php -l public/index.php
           php -l bin/reset_ticket_t0.php
           bash -n bin/rilascio_prod_t0.sh
+          bash -n bin/attiva_prod_t0.sh
       - name: Browser script syntax and asynchronous report regression
         run: |
           node --check public/assets/js/api.js
