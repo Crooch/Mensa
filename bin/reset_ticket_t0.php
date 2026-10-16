@@ -74,8 +74,9 @@ if ($dryRun) {
     exit(0);
 }
 
-if (Config::get('app.maintenance_mode', false) !== true
-    || Config::get('app.scheduler_enabled', false) === true) {
+$inManutenzione = Config::get('app.maintenance_mode', false) === true
+    || is_file(APP_ROOT . '/storage/maintenance.flag');
+if (!$inManutenzione || Config::get('app.scheduler_enabled', false) === true) {
     fwrite(STDERR, "STOP: app.maintenance_mode deve essere true e scheduler_enabled false.\n");
     exit(2);
 }
