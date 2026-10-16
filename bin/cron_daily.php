@@ -25,7 +25,7 @@ use App\Core\Config;
 
 if (($argv[1] ?? '') === '--check' && count($argv) === 2) {
     echo 'Scheduler: ',
-        Config::get('app.scheduler_enabled', false) === true ? 'ABILITATO' : 'DISABILITATO',
+        Config::schedulerAbilitato() ? 'ABILITATO' : 'DISABILITATO',
         PHP_EOL;
     echo 'Fuso applicativo: ', date_default_timezone_get(), PHP_EOL;
     echo 'Data odierna: ', date('Y-m-d'), PHP_EOL;
@@ -41,7 +41,7 @@ if (count($argv) !== 1) {
     exit(2);
 }
 
-if (Config::get('app.scheduler_enabled', false) !== true) {
+if (!Config::schedulerAbilitato()) {
     fwrite(STDERR, "Scheduler disabilitato da config locale: nessun addebito eseguito.\n");
     exit(2);
 }
