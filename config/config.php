@@ -13,6 +13,9 @@ $config = [
         'base_path' => '',          // sottocartella di pubblicazione, es. '/mensa'
         'debug'     => false,
         'timezone'  => 'Europe/Rome',
+        // Permette un cutover contabile a T0 senza fermare altri siti della VPS.
+        // Quando true blocca ogni richiesta web all'app Mensa (503).
+        'maintenance_mode' => false,
         // Lo scheduler e' disattivato dopo ogni nuovo deploy fino ad attivazione
         // esplicita nell'override locale (config.local.php, mai versionato).
         // Vale per bin/cron_daily.php e /scheduler?key=...
