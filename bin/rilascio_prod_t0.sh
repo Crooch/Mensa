@@ -48,7 +48,12 @@ tar -czf "$BACKUP_APP" -C /srv/www/mensa app
 echo "[2/8] Attivo la manutenzione solo per Mensa"
 touch "$MAINT"
 cp "$SOURCE/public/index.php" "$DEST/public/index.php"
-sleep 3
+# Ricarica OPcache subito, evitando che il front controller precedente
+# continui a consentire accessi mentre si effettua il dump.
+if systemctl is-active --quiet php8.5-fpm; then
+  systemctl reload php8.5-fpm
+fi
+sleep 5
 
 echo "[3/8] Backup MariaDB dei dati reali: mai importare dump di prova"
 bash -o pipefail -c '
