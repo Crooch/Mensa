@@ -18,7 +18,8 @@ use App\Core\Response;
 
 // La manutenzione è limitata al sito Mensa: non spegne Apache o altri siti.
 // Blocca login, API, scheduler HTTP e scritture durante il cutover contabile.
-if (Config::get('app.maintenance_mode', false) === true) {
+if (Config::get('app.maintenance_mode', false) === true
+    || is_file(APP_ROOT . '/storage/maintenance.flag')) {
     http_response_code(503);
     header('Retry-After: 300');
     header('Cache-Control: no-store');
