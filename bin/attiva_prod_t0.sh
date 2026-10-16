@@ -80,7 +80,8 @@ install -d -m 0700 "$BACKUPS"
 printf '%s\n' "$before" > "$BACKUPS/crontab_mensa_pre_t0_$(date +%Y%m%d_%H%M%S).txt"
 temp="$(mktemp)"
 trap 'rm -f "$temp"' EXIT
-printf '%s\n' "$before" | sed "s@^# \*/5 \* \* \* \* /usr/bin/php /srv/www/mensa/app/bin/cron_daily.php >> /srv/www/mensa/logs/cron.log 2>&1$@\*/5 * * * * /usr/bin/php /srv/www/mensa/app/bin/cron_daily.php >> /srv/www/mensa/logs/cron.log 2>\&1@" > "$temp"
+printf '%s\n' "$before" | awk -v old="$OLD" -v new="$NEW" \
+  '{ if ($0 == old) print new; else print; }' > "$temp"
 [[ "$(grep -Fxc "$NEW" "$temp")" == 1 ]] ||
   die "la riga cron nuova non corrisponde a quella prevista"
 crontab -u mensa "$temp"
