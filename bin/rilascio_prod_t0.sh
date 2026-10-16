@@ -37,6 +37,16 @@ if printf '%s\n' "$CRON" | grep -Ev '^[[:space:]]*(#|$)' |
   die "nel crontab mensa e' presente un job attivo"
 fi
 
+# Blocco minimo prima del reset: senza plessi attesi non si potra'
+# configurare/attivare il calendario dopo T0.
+read -r inf sec < <(mariadb -N --database=mensa_db -e "
+  SELECT
+    SUM(nome='Scuola dell''Infanzia - Via Catania' AND cancellato_logicamente=0),
+    SUM(nome='Scuola Secondaria di I grado' AND cancellato_logicamente=0)
+  FROM plessi")
+[[ "$inf" == 1 && "$sec" == 1 ]] ||
+  die "plessi reali non corrispondono al piano: nessun reset eseguito"
+
 install -d -m 0700 "$BACKUP_DIR"
 echo "[1/8] Backup integrale dell'applicazione di produzione"
 tar -czf "$BACKUP_APP" -C /srv/www/mensa app
