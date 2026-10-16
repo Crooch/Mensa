@@ -20,6 +20,9 @@ $config = [
         // esplicita nell'override locale (config.local.php, mai versionato).
         // Vale per bin/cron_daily.php e /scheduler?key=...
         'scheduler_enabled' => false,
+        // Prima giornata a saldo zero: nessun invio massivo di solleciti.
+        // Attivare separatamente solo dopo conferma con il Comune.
+        'solleciti_automatici_enabled' => false,
         // Senza chiave locale casuale l'endpoint HTTP non e' accessibile.
         'scheduler_key' => '',
     ],
