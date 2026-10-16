@@ -16,6 +16,17 @@ use App\Core\HttpException;
 use App\Core\Request;
 use App\Core\Response;
 
+// La manutenzione è limitata al sito Mensa: non spegne Apache o altri siti.
+// Blocca login, API, scheduler HTTP e scritture durante il cutover contabile.
+if (Config::get('app.maintenance_mode', false) === true) {
+    http_response_code(503);
+    header('Retry-After: 300');
+    header('Cache-Control: no-store');
+    header('Content-Type: text/plain; charset=utf-8');
+    echo 'Mensa temporaneamente in manutenzione. Riprova piu tardi.';
+    exit;
+}
+
 $richiesta = new Request();
 $percorso = $richiesta->percorso();
 $container = new Container();
