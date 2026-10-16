@@ -209,7 +209,7 @@ final class JobGiornalieroService
         }
         return [
             'data' => $data,
-            'scheduler_abilitato' => \App\Core\Config::get('app.scheduler_enabled', false) === true,
+            'scheduler_abilitato' => \App\Core\\App\Core\Config::schedulerAbilitato(),
             'scuole' => $scuole,
         ];
     }
