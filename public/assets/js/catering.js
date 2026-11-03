@@ -179,17 +179,23 @@ function rigaDistribuzioneClasse(classe) {
 
 function distribuzionePersonale(plesso) {
     const categorie = {insegnanti: 'Docenti', ata: 'Personale ATA', assistenti: 'Assistenti'};
-    const righe = plesso.personale || [];
+    const gruppi = {};
+    for (const r of plesso.personale || []) {
+        gruppi[r.categoria] ??= {categoria:r.categoria, pasti:0, tipologie:[]};
+        gruppi[r.categoria].pasti += Number(r.pasti);
+        gruppi[r.categoria].tipologie.push(r);
+    }
+    const righe = Object.values(gruppi);
     return `<div class="catering-scuola__personale" data-testid="report-personale-${Number(plesso.plesso_id)}">
         <h4>Pasti del personale · ${Number(plesso.totale_personale || 0)}</h4>
         <p class="nota">${plesso.personale_disponibile === false
             ? 'Quantità da configurare: il totale potrebbe essere incompleto.'
             : esc(plesso.fonte_personale || 'Quantità della data selezionata') +
-              ' · Oggi e futuro modificabili dalla scuola, senza cutoff; passato dal Comune.'}</p>
+              ' · Scuola: oggi e futuro senza cutoff; passato: Comune.'}</p>
         ${righe.length ? `<ul class="catering-scuola__classi">${righe.map(r => `<li class="catering-classe">
             <div class="catering-classe__riga"><h4>${esc(categorie[r.categoria] || r.categoria)}</h4>
             <strong class="catering-classe__totale">${Number(r.pasti)} <small>pasti</small></strong></div>
-            ${ripartizioneCompatta([r])}</li>`).join('')}</ul>`
+            ${ripartizioneCompatta(r.tipologie)}</li>`).join('')}</ul>`
             : plesso.personale_disponibile !== false ? '<p class="nota">Nessun pasto del personale previsto.</p>' : ''}
     </div>`;
 }
@@ -210,7 +216,7 @@ function schedaDistribuzioneScuola(plesso) {
             </span>
         </div>
         <p class="catering-scuola__sintesi">${Number(plesso.totale_alunni ?? totale)} alunni · ${Number(plesso.totale_personale || 0)} personale</p>
-        <p class="nota">Alunni: modifiche fino alle ${esc(plesso.cutoff_orario)}.</p>
+        <p class="nota catering-scuola__cutoff">Alunni: modifiche fino alle ${esc(plesso.cutoff_orario)}.</p>
         <p class="catering-scuola__sintesi">${totale - bianchi} da menu
             ${bianchi ? ` · <strong>${bianchi} pasta in bianco</strong>` : ''}</p>
         <div class="catering-scuola__tipologie">
@@ -218,8 +224,8 @@ function schedaDistribuzioneScuola(plesso) {
             ${ripartizioneCompatta(plesso.tipologie)}
             ${dettaglioPiattiScuola(plesso)}
         </div>
-        <h4 class="catering-scuola__titolo-classi">Pasti per classe o sezione</h4>
-        <ul class="catering-scuola__classi">${classi.map(rigaDistribuzioneClasse).join('')}</ul>
+        ${classi.length ? `<h4 class="catering-scuola__titolo-classi">Pasti per classe o sezione</h4>
+        <ul class="catering-scuola__classi">${classi.map(rigaDistribuzioneClasse).join('')}</ul>` : ''}
         ${distribuzionePersonale(plesso)}
     </article>`;
 }

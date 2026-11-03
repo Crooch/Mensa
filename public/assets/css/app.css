@@ -2938,3 +2938,5 @@ body[data-ruolo="admin"] #vista-email .email-opzione input[type="checkbox"] { ap
 .catering-scuola__personale { border-top: 1px solid #d5e2ee; margin-top: .75rem; padding-top: .65rem; }
 .catering-scuola__personale h4 { margin: 0 0 .35rem; }
 .catering-scuola__personale > .nota { margin: .25rem 0 .5rem; }
+
+.catering-scuola__cutoff { margin: .2rem 0 .45rem; font-size: .83rem; }
