@@ -179,9 +179,18 @@
   });});
   id('aut-servizio-filtro').addEventListener('submit',ev=>{ev.preventDefault();operazione(ev.target,'aut-servizio-stato',caricaServizio);});
  }
- function invalidaDatiServizio(){invalidaReport();++versionePersonale;personale=null;id('aut-personale-corpo').innerHTML='';id('aut-programmazione').hidden=true;}
+ let servizioDaAggiornare=false, versioneServizio=0;
+ // Admin e Comune condividono lo stesso calendario: invalidare tutte le viste aperte.
+ function invalidaDatiServizio(){document.dispatchEvent(new Event('mensa:calendario-modificato'));}
+ document.addEventListener('mensa:calendario-modificato',()=>{
+  invalidaReport();++versionePersonale;personale=null;id('aut-personale-corpo').innerHTML='';id('aut-programmazione').hidden=true;
+  if(ufficio){++versioneServizio;servizioDaAggiornare=true;id('aut-servizio-corpo').innerHTML='';}
+ });
+ if(ufficio)document.querySelectorAll('[data-vista="servizio"]').forEach(b=>b.addEventListener('click',()=>{
+  if(servizioDaAggiornare&&id('aut-servizio-filtro').elements.plesso_id.value)caricaServizio(dati(id('aut-servizio-filtro'))).catch(err=>stato('aut-servizio-stato',err.message,true));
+ }));
  async function caricaServizio(v) {
-  id('aut-servizio-corpo').innerHTML=''; const s=await API.get(`/api/servizio/plessi/${v.plesso_id}`);const pid=s.plesso.id;
+  const versione=++versioneServizio;id('aut-servizio-corpo').innerHTML=''; const s=await API.get(`/api/servizio/plessi/${v.plesso_id}`);if(versione!==versioneServizio)return;const pid=s.plesso.id;servizioDaAggiornare=false;
   stato('aut-servizio-stato',`${s.plesso.nome} · ID ${pid}`);
   id('aut-servizio-corpo').innerHTML=`<form id="aut-config"><h2>Impostazioni del servizio</h2><label>Ordine scolastico <select name="ordine_scolastico" required><option value="">Seleziona</option>${['infanzia','primaria','secondaria'].map(o=>`<option value="${o}" ${s.servizio.ordine_scolastico===o?'selected':''}>${o}</option>`).join('')}</select></label><label>Fido concesso (buoni) <input type="number" min="0" max="1000" name="fido_buoni" value="${s.plesso.fido_buoni}" required></label><p>Inserisci 20 per la soglia -20. Il fido non impedisce l’erogazione dei pasti.</p><label>Primo giorno di sospensione <input type="date" name="primo_giorno_sospensione" value="${s.servizio.primo_giorno_sospensione||''}"></label><p>Da questa data non si generano nuovi pasti, anche in presenza di aperture straordinarie. Storico e attività amministrative restano accessibili.</p><label>Motivazione <input name="motivazione" maxlength="255" required></label><button class="btn btn-primary">Salva impostazioni</button></form><hr><h2>Chiusure straordinarie</h2><form id="aut-chiusura"><label>Dal <input name="data_inizio" type="date" required></label><label>Al (compreso) <input name="data_fine" type="date" required></label><label>Motivazione <input name="motivazione" maxlength="255" required></label><button class="btn btn-primary">Inserisci chiusura</button></form><h3>Periodi registrati</h3>${s.calendario.eccezioni.map(x=>`<p>${e(x.giorno)} – ${e(x.giorno_fine||x.giorno)}: ${Number(x.servizio_attivo)?'Apertura':'Chiusura'} · ${e(x.motivazione)} ${!Number(x.servizio_attivo)&&x.giorno>oggi()?`<button type="button" class="btn btn-outline-primary" data-chiusura="${x.id}">Modifica / elimina</button>`:''}</p>`).join('')||'<p>Nessun periodo.</p>'}<div id="aut-chiusura-editor"></div>`;
   id('aut-servizio-corpo').querySelectorAll('[data-chiusura]').forEach(button=>button.addEventListener('click',()=>{

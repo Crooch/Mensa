@@ -94,8 +94,10 @@ const log=[];function pass(s){console.log('PASS '+s);log.push(s);}
   await editDay(7,{'insegnanti:1':0,'insegnanti:2':0,'ata:1':0},'Nessun pasto necessario');await check(7,0,17,true,'zero esplicito in giorno aperto');await reset(7);
   assert.equal((await editDay(7,{},'Nessun cambiamento')).modificato,false);assert.equal(sql(`SELECT COUNT(*) FROM pasti_personale_giorni WHERE plesso_id=${pid}`),'0');
   await editDay(7,{'insegnanti:1':13},'Variazione da conservare in chiusura');const dailyHash=hash(`SELECT * FROM pasti_personale_giorni WHERE plesso_id=${pid} ORDER BY data`);
+  await p.locator('[data-vista=calendario]').click();await p.locator('#calendario-verifica-data').fill(D(7));await p.locator('#calendario-verifica').click();await p.locator('#calendario-verifica-pannello').waitFor();
   await officeCalendar();await p.locator('#aut-chiusura [name=data_inizio]').fill(D(7));await p.locator('#aut-chiusura [name=data_fine]').fill(D(9));await p.locator('#aut-chiusura [name=motivazione]').fill('Chiusura ciclo');
   const closure=await submit('#aut-chiusura button',`/api/servizio/plessi/${pid}/chiusure`);await p.locator('#aut-servizio-stato').filter({hasText:'Chiusura registrata'}).waitFor();
+  assert(await p.locator('#calendario-verifica-pannello').isHidden(),'Comune closure invalidates Admin calendar verification');
   assert.equal(sql(`SELECT CONCAT(giorno,'|',COALESCE(giorno_fine,giorno),'|',servizio_attivo) FROM eccezioni_calendario WHERE id=${closure.id}`),`${D(7)}|${D(9)}|0`);
   await check(7,0,17,false,'chiusura: aggiornamento automatico entrando nei pasti',false);await check(9,0,16,false,'ultimo giorno della chiusura incluso');await check(10,16,16,true,'giorno successivo alla chiusura');
   await officeCalendar();await p.locator(`[data-chiusura="${closure.id}"]`).click();await p.locator('#aut-modifica-chiusura [name=data_inizio]').fill(D(8));await p.locator('#aut-modifica-chiusura [name=data_fine]').fill(D(10));await p.locator('#aut-modifica-chiusura [name=motivazione]').fill('Chiusura spostata');
@@ -109,6 +111,7 @@ const log=[];function pass(s){console.log('PASS '+s);log.push(s);}
   await selectStaff(5);const opening=await adminPeriod(5,6,true);
   await check(5,14,14,true,'apertura Admin: aggiornamento automatico entrando nei pasti',false);await check(6,14,14,true,'domenica aperta straordinariamente');
   assert(await p.locator('#aut-export').isDisabled(),'report invalidated after Admin calendar write');await p.locator('[data-vista=riepilogo-pasti]').click();await p.locator('#aut-export:not([disabled])').waitFor();assert.equal(await p.locator('#aut-report-corpo tr td').nth(4).innerText(),'14');pass(`${width}px riepilogo già aperto aggiornato dopo apertura Admin`);
+  await p.locator('[data-vista=servizio]').click();await p.locator('#aut-servizio-corpo p').filter({hasText:'Apertura · Periodo ciclo'}).waitFor();pass(`${width}px calendario Comune riletto dopo apertura Admin`);
   await adminPeriod(6,6,true,opening);await check(5,0,14,false,'spostamento apertura');await check(6,14,14,true,'apertura singola inclusiva');
   await p.locator('[data-vista=calendario]').click();await submit(`[data-cancella-periodo="${opening}"]`,`/api/admin/calendari/${pid}/periodi/${opening}`,'DELETE');await p.locator(`[data-cancella-periodo="${opening}"]`).waitFor({state:'detached'});
   await check(6,0,14,false,'eliminazione apertura: ritorno al calendario',false);
