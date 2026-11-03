@@ -57,6 +57,12 @@ jobs:
         run: |
           python3 staging/personale_coerenza_smoke.py
           node staging/personale_coerenza_browser.cjs
+      - name: Full staff and calendar lifecycle, real forms versus API and SQL
+        env:
+          MENSA_TICKET2_BASE: http://127.0.0.1:18080
+          MENSA_TICKET2_DB_CONTAINER: mensa-ticket2-database-1
+          NODE_PATH: /tmp/ticket2-browser/node_modules
+        run: node staging/personale_calendario_ciclo.cjs
       - name: Consolidation, repeated job, historical diets and service end
         run: docker exec mensa-ticket2-app-1 php tests/ticket2_consolidamento.php
       - name: Admin email activation, SMTP transport and selected-template tests
