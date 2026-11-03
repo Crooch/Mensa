@@ -92,13 +92,17 @@ Il Comune deve confermare che il ticket richieda la fine dell'erogazione mensa, 
 
 ### T04 — Programmare i pasti del personale
 
-Percorso: **Pasti del personale → Programmazione ricorrente**.
+Percorso: **Pasti del personale → Programmazione abituale**.
 
-1. Aprire **Programmazione ricorrente** e selezionare **Plesso**, **Decorrenza**, **Giorni della settimana**, **Categoria**, **Tipologia menù**, **Quantità** e **Motivazione**.
+Selezionare una sola volta **Scuola** e **Data di riferimento**. La schermata si aggiorna automaticamente; **Mostra pasti personale** consente anche un aggiornamento manuale. Due pulsanti separano **Programmazione abituale** e **Pasti della data scelta**.
+
+La programmazione mostra sette schede, con totale e categorie per ogni giorno della settimana. **Dettaglio** espande le quantità per menù. Le regole mostrate sono quelle in vigore alla data di riferimento: non rappresentano i pasti effettivi delle singole date, che dipendono anche dal calendario e dalle variazioni. **0 pasti** indica una quantità esplicitamente impostata; **non impostato** indica assenza di regole. Le **Modifiche successive alla data scelta** riportano decorrenza, giorni e voci che cambieranno.
+
+1. Aprire **Modifica programmazione abituale**. La scuola è quella già selezionata. Compilare **Da quando**, **Categoria**, **Menù**, **Pasti per ciascun giorno selezionato**, **In quali giorni** e **Motivazione**.
 2. La decorrenza può essere oggi o futura. Selezionare insieme tutti i giorni interessati (per esempio lunedì–venerdì). La quantità si ripete automaticamente ogni settimana fino a una nuova regola: non va reinserita giorno per giorno o settimana per settimana.
 3. Premere **Salva ricorrenza** e confermare plesso, decorrenza, giorno, categoria, menù e quantità.
 4. Ripetere soltanto per le altre categorie/menù o per giorni con quantità diverse. La programmazione si applica soltanto quando il calendario prevede servizio.
-5. Nel filtro superiore selezionare il plesso e una data dalla decorrenza in poi, quindi premere **Mostra pasti personale**. Controllare le quantità, il totale e **Settimana abituale alla data**.
+5. Dopo il salvataggio la vista viene riletta automaticamente: controllare le schede dei giorni oppure le modifiche future. Per verificare un pasto effettivo scegliere la data e aprire **Pasti della data scelta**.
 6. Per terminare una voce, salvarla con **Quantità: 0** dalla nuova decorrenza. Non riscrivere le ricorrenze pregresse.
 
 Quantità indicate nel ticket, da verificare e inserire dal Comune:
@@ -114,7 +118,7 @@ Quantità indicate nel ticket, da verificare e inserire dal Comune:
 
 Il lunedì della Secondaria, uno dei cinque insegnanti è vegetariano: inserire **4 insegnanti Standard + 1 insegnante Vegetariano**, non 5+1. Se la tipologia Vegetariano manca, richiederne la predisposizione all'Admin tramite la gestione tipologie esistente. Verificare i giorni effettivi del servizio prima di creare le altre ricorrenze. Nessuna anagrafica nominativa del personale è richiesta.
 
-Per correggere una giornata: **Pasti del personale → Plesso → Data → Mostra pasti personale**; modificare le quantità, compilare **Motivazione**, premere **Salva pasti del giorno**, controllare il totale nella conferma e confermare. Verificare il messaggio e i valori riletti. Il personale non ha cutoff. Scuola, Comune e Admin possono correggere oggi e le date future di servizio; soltanto Comune e Admin possono rettificare il passato. La variazione prevale sulle regole per quella sola data. Quando compare **Ripristina programmazione**, indicare una motivazione e premere il pulsante per rimuovere la variazione di oggi o futura e tornare alle regole abituali. L'operazione modifica solo il personale, senza consumi o rimborsi di buoni familiari.
+Per correggere una giornata: **Pasti del personale → Scuola → Data di riferimento → Pasti della data scelta → Modifica solo questa data**; modificare le quantità totali necessarie (non la differenza), compilare **Motivazione**, premere **Salva pasti del giorno**, controllare il totale nella conferma e confermare. Verificare il messaggio e i valori riletti. Il personale non ha cutoff. Scuola, Comune e Admin possono correggere oggi e le date future di servizio; soltanto Comune e Admin possono rettificare il passato. La variazione prevale sulle regole per quella sola data. Quando compare **Ripristina programmazione**, indicare una motivazione e premere il pulsante per rimuovere la variazione di oggi o futura e tornare alle regole abituali. L'operazione modifica solo il personale, senza consumi o rimborsi di buoni familiari.
 
 Se compare «I conteggi sono cambiati», ricaricare la giornata prima di correggere. Per giornate pregresse prive di regole valide alla data e registrazioni compare **Da configurare / Non disponibile**: verificare le quantità effettive prima della rettifica. **Da programmazione** indica i valori ricorrenti validi alla data; **Variazione giornaliera** una correzione specifica; **Registrato** identifica le registrazioni della versione precedente. Nei giorni chiusi compare **Fuori servizio** e non occorre confermare nulla.
 
@@ -149,9 +153,9 @@ La sezione non invia email e non abilita nuovi automatismi. Per errori di invio 
 
 Percorso: **Pasti del personale**.
 
-1. Selezionare il proprio plesso e una data odierna o futura; premere **Mostra pasti personale**.
-2. Controllare stato del servizio, origine dei conteggi, categorie e tipologie. Non occorre salvare se le quantità programmate sono corrette.
-3. In caso di assenze o personale aggiuntivo, modificare le **Quantità** delle singole righe. Il totale vegetariano è compreso nel numero complessivo, non aggiuntivo.
+1. La vista **Programmazione abituale** mostra le regole della propria scuola e le modifiche future. Scegliere una data odierna o futura e aprire **Pasti della data scelta**.
+2. Confrontare **Totale per questa data** e **Quantità abituale**, verificando origine, categorie e menù. Non occorre salvare se le quantità programmate sono corrette.
+3. In caso di assenze o personale aggiuntivo, aprire **Modifica solo questa data**. Inserire i totali necessari nei gruppi per categoria; il totale da salvare si aggiorna mentre si scrive. Il totale vegetariano è compreso nel numero complessivo, non aggiuntivo.
 4. Compilare **Motivazione**, premere **Salva pasti del giorno** e confermare data, plesso e totale.
 5. Verificare **Pasti del personale salvati** e i valori riletti.
 
@@ -174,7 +178,7 @@ Per una rendicontazione mensile attendere che le giornate interessate siano comp
 
 ### T04 — Consultare il personale
 
-Percorso: **Pasti del personale → Plesso → Data → Mostra pasti personale**.
+Percorso: **Pasti del personale → Scuola → Data di riferimento**. **Programmazione abituale** mostra i sette giorni e le modifiche future; **Pasti della data scelta** mostra i conteggi effettivi e il confronto con la quantità abituale.
 
 Verificare categorie, menù, quantità e totale. Il Catering non può modificare le quantità o le ricorrenze. Le rettifiche sono di competenza della Scuola per oggi e futuro, senza cutoff, e del Comune anche per il passato.
 

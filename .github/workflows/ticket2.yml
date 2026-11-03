@@ -40,6 +40,7 @@ jobs:
           node staging/ticket2_browser.cjs
           node staging/ticket2_excel_browser.cjs
           node staging/ticket2_revision_browser.cjs
+          node staging/personale_ui_browser.cjs
       - name: Family pagination and mobile workflow with 220 synthetic records
         env:
           MENSA_TICKET2_BASE: http://127.0.0.1:18080

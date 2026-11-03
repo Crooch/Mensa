@@ -2776,3 +2776,72 @@ body[data-ruolo="operatore"] .operatore-risultati .table tbody tr.famiglia-selez
     body[data-ruolo="operatore"] .operatore-ricerca > .btn { padding:.5rem; font-size:.85rem; }
     .famiglie-stato select { font-size:.85rem; }
 }
+
+/* Personale: consultazione della settimana distinta dalle variazioni del giorno. */
+#vista-personale .personale-contesto { background:#fff; border:1px solid var(--grigio-bordo); border-radius:10px; padding:1rem; align-items:end; }
+.personale-viste { display:flex; gap:.5rem; margin:1rem 0; }
+.personale-viste button { flex:1; padding:.9rem; min-height:48px; border:1px solid #b8cbdc; background:white; border-radius:8px; color:#174a70; font-weight:700; }
+.personale-viste button.attiva { background:#0066cc; border-color:#0066cc; color:white; }
+.personale-sezione { background:white; border:1px solid var(--grigio-bordo); border-radius:12px; padding:1.25rem; margin-bottom:1rem; }
+.personale-sezione-testa { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; }
+.personale-sezione-testa h2 { margin:.15rem 0; font-size:1.4rem; }
+.personale-sezione-testa > span { font-size:.9rem; max-width:100%; }
+.personale-sopratitolo { margin:0; font-size:.8rem; font-weight:700; color:#526d82; text-transform:uppercase; letter-spacing:.04em; }
+.personale-settimana { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:.6rem; margin:1.25rem 0; align-items:start; }
+.personale-giorno { min-width:0; border:1px solid #c3d6e5; border-radius:10px; background:#f5f9fd; padding:.7rem; }
+.personale-giorno summary { cursor:pointer; list-style:none; padding:0; }
+.personale-giorno summary::-webkit-details-marker { display:none; }
+.personale-giorno summary::after { content:'Dettaglio ⌄'; display:block; font-size:.75rem; color:#0066cc; margin-top:.5rem; }
+.personale-giorno[open] summary::after { content:'Chiudi ⌃'; }
+.personale-giorno h3 { margin:0; font-size:.9rem; }
+.personale-numero { margin:.45rem 0 0; font-size:1.6rem; font-weight:700; line-height:1.1; }
+.personale-numero span { display:block; font-size:.8rem; font-weight:400; margin-top:.3rem; }
+.personale-da-impostare { background:#f7f7f7; border-style:dashed; color:#536575; }
+.personale-voci { list-style:none; padding:0; margin:.8rem 0 0; }
+.personale-voci li { display:flex; align-items:baseline; justify-content:space-between; gap:.4rem; border-top:1px solid #dce5ed; padding:.6rem 0; font-size:.85rem; }
+.personale-voci small { display:block; color:#526575; font-size:.75rem; }
+.personale-voci strong { flex-shrink:0; }
+.personale-editor { margin-top:1rem; border-top:1px solid #dce5ed; padding-top:1rem; }
+.personale-editor > summary { color:#0066cc; font-weight:700; cursor:pointer; padding:.6rem 0; min-height:44px; }
+.personale-editor form { margin-top:1rem; }
+.personale-form-nota { grid-column:1/-1; margin:.25rem 0; }
+.personale-futura { border-left:3px solid #0878ca; background:#f5f9fd; padding:.75rem 1rem; margin:.75rem 0; }
+.personale-futura h4 { margin:0 0 .5rem; }
+.personale-futura ul { margin:0; padding-left:1.2rem; }
+.personale-futura li { padding:.3rem 0; }
+.personale-avviso { border-left:3px solid #d7941e; background:#fff8e8; padding:1rem; }
+.personale-fonte { padding:.4rem .7rem; background:#e8f3ed; color:#24543a; border-radius:6px; }
+.personale-fonte-variazione { background:#fff0ce; color:#745207; }
+.personale-confronto { display:grid; grid-template-columns:1fr 1fr; border:1px solid #dce5ed; border-radius:10px; margin:1rem 0; overflow:hidden; }
+.personale-confronto > div { padding:1rem; background:#f5f9fd; }
+.personale-confronto > div:first-child { background:#eaf3fc; }
+.personale-confronto span { display:block; font-size:.85rem; }
+.personale-confronto strong { display:block; font-size:2rem; margin-top:.3rem; }
+.personale-confronto small { font-size:.9rem; font-weight:400; }
+.personale-categorie, .personale-campi { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+.personale-categorie article { padding:1rem; border:1px solid #dce5ed; border-radius:8px; }
+.personale-categorie h3 { display:flex; justify-content:space-between; margin:0; font-size:1rem; }
+.personale-campi fieldset { min-width:0; border:1px solid #b8cbdc; padding:1rem; border-radius:8px; }
+.personale-campi legend { width:auto; padding:0 .3rem; font-size:1rem; font-weight:700; }
+#vista-personale .personale-campi label { display:grid; grid-template-columns:minmax(0,1fr) 6rem; align-items:center; margin-bottom:.5rem; }
+.personale-totale-bozza { font-weight:700; background:#eaf3fc; border-radius:6px; padding:.8rem; }
+.personale-salvataggio { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1rem; }
+@media(max-width:1100px) { .personale-settimana { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+@media(max-width:640px) {
+ .personale-sezione { padding:.85rem; }
+ .personale-sezione-testa h2 { font-size:1.2rem; }
+ .personale-viste button { padding:.65rem .4rem; font-size:.9rem; }
+ .personale-settimana { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .personale-categorie, .personale-campi { grid-template-columns:minmax(0,1fr); }
+ .personale-confronto > div { padding:.75rem; }
+ .personale-confronto strong { font-size:1.6rem; }
+ .personale-confronto small { display:block; }
+ .personale-salvataggio .btn { width:100%; min-height:44px; }
+ #vista-personale .aut-giorni { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; padding:.75rem; }
+}
+
+#aut-personale-stato:empty { display:none; }
+.personale-sintesi { display:block; margin-top:.65rem; font-size:.8rem; }
+.personale-sintesi > span { display:flex; justify-content:space-between; gap:.4rem; margin-top:.25rem; }
+#aut-programmazione-futura > h3 { font-size:1.1rem; margin:1.5rem 0 .7rem; }
+.personale-futura h4 { font-size:1rem; }

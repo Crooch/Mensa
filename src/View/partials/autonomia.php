@@ -19,20 +19,30 @@
  <div class="tabella-scroll"><table class="table"><thead><tr><th>Data</th><th>Plesso / ordine</th><th>Stato</th><th>Alunni</th><th>Personale</th><th>Totale</th><th>Tipologie</th></tr></thead><tbody id="aut-report-corpo"></tbody></table></div>
 </section>
 <section id="vista-personale" class="vista" hidden>
- <header class="area-intro"><h1>Pasti del personale</h1><p>Le quantità settimanali si ripetono automaticamente nei giorni di servizio: intervieni solo per assenze o personale aggiuntivo. Le variazioni riguardano una sola data. Oggi e le date future sono modificabili dalla Scuola senza limite orario; per il passato interviene il Comune. Nessun consumo di buoni delle famiglie. Il vegetariano è compreso nel totale: per 5 insegnanti di cui uno vegetariano, inserire 4 ordinari e 1 vegetariano.</p></header>
- <form id="aut-personale-filtro" class="riga-filtri"><label>Plesso <select name="plesso_id" class="aut-plessi" required></select></label><label>Data <input name="data" type="date" required></label><button class="btn btn-primary">Mostra pasti personale</button></form>
- <p id="aut-personale-stato" role="status"></p><div id="aut-personale-corpo"></div>
- <?php if (in_array($ruoloPagina,['operatore','admin'],true)): ?>
- <details class="pannello"><summary>Programmazione ricorrente</summary>
- <p>Imposta una volta le quantità abituali per scuola e giorni della settimana: restano valide tutte le settimane, fino a una nuova modifica. La decorrenza può essere oggi o futura. Per terminare una voce, salva quantità zero. Una variazione giornaliera ha precedenza e non modifica queste regole.</p>
- <form id="aut-regola" class="griglia-form">
-  <label>Plesso <select name="plesso_id" class="aut-plessi" required></select></label><label>Decorrenza <input type="date" name="dal" required></label>
-  <fieldset class="aut-giorni"><legend>Giorni della settimana</legend><?php foreach ([1=>'Lunedì',2=>'Martedì',3=>'Mercoledì',4=>'Giovedì',5=>'Venerdì',6=>'Sabato',7=>'Domenica'] as $g=>$nome): ?><label><input type="checkbox" name="giorni" value="<?= $g ?>" <?= $g<=5?'checked':'' ?>> <?= $nome ?></label><?php endforeach; ?></fieldset>
-  <label>Categoria <select name="categoria"><option value="insegnanti">Insegnanti</option><option value="ata">ATA</option><option value="assistenti">Assistenti mensa</option><option value="asacom">ASACOM</option></select></label>
-  <label>Tipologia menù <select name="tipologia_menu_id" class="aut-tipologie"></select></label><label>Quantità <input type="number" name="quantita" min="0" max="1000" required></label>
-  <label>Motivazione <input name="motivazione" maxlength="255" required></label><button class="btn btn-primary">Salva ricorrenza</button>
- </form><p id="aut-regola-stato" role="status"></p><div id="aut-regole"></div></details>
- <?php endif; ?>
+ <header class="area-intro"><h1>Pasti del personale</h1><p>Consulta le quantità abituali della scuola. Intervieni sulla singola giornata solo quando il personale cambia.</p></header>
+ <form id="aut-personale-filtro" class="riga-filtri personale-contesto"><label>Scuola <select name="plesso_id" class="aut-plessi" required></select></label><label>Data di riferimento <input name="data" type="date" required></label><button class="btn btn-primary">Mostra pasti personale</button></form>
+ <nav class="personale-viste" aria-label="Vista pasti personale"><button type="button" id="aut-vista-programma" class="attiva" aria-pressed="true">Programmazione abituale</button><button type="button" id="aut-vista-giorno" aria-pressed="false">Pasti della data scelta</button></nav>
+ <p id="aut-personale-stato" role="status" aria-live="polite"></p>
+ <div id="aut-programmazione" class="personale-sezione" hidden>
+  <div class="personale-sezione-testa"><div><p class="personale-sopratitolo">Si ripete ogni settimana</p><h2>Programmazione abituale</h2></div><span id="aut-programmazione-scuola"></span></div>
+  <p id="aut-programmazione-data" class="nota"></p>
+  <div id="aut-regole"></div>
+  <?php if (in_array($ruoloPagina,['operatore','admin'],true)): ?>
+  <details id="aut-editor-regola" class="personale-editor"><summary>Modifica programmazione abituale</summary>
+   <p>Questa modifica si ripete ogni settimana dalla decorrenza scelta. Per un’assenza occasionale usa invece «Modifica solo questa data» nella sezione sottostante.</p>
+   <form id="aut-regola" class="griglia-form">
+    <input type="hidden" name="plesso_id"><label>Da quando <input type="date" name="dal" required></label>
+    <label>Categoria <select name="categoria"><option value="insegnanti">Insegnanti</option><option value="ata">ATA</option><option value="assistenti">Assistenti mensa</option><option value="asacom">ASACOM</option></select></label>
+    <label>Menù <select name="tipologia_menu_id" class="aut-tipologie"></select></label><label>Pasti per ciascun giorno selezionato <input type="number" name="quantita" min="0" max="1000" required></label>
+    <fieldset class="aut-giorni"><legend>In quali giorni</legend><?php foreach ([1=>'Lunedì',2=>'Martedì',3=>'Mercoledì',4=>'Giovedì',5=>'Venerdì',6=>'Sabato',7=>'Domenica'] as $g=>$nome): ?><label><input type="checkbox" name="giorni" value="<?= $g ?>" <?= $g<=5?'checked':'' ?>> <?= $nome ?></label><?php endforeach; ?></fieldset>
+    <p class="personale-form-nota">La quantità sostituisce quella della stessa categoria e menù nei giorni selezionati. Inserisci 0 per interrompere quella voce. Gli altri giorni e le variazioni già registrate restano validi.</p>
+    <label>Motivazione <input name="motivazione" maxlength="255" required></label><button class="btn btn-primary">Salva ricorrenza</button>
+   </form><p id="aut-regola-stato" role="status"></p>
+  </details>
+  <?php else: ?><p class="nota">La programmazione abituale è gestita dal Comune.</p><?php endif; ?>
+  <div id="aut-programmazione-futura"></div>
+ </div>
+ <div id="aut-personale-corpo"></div>
 </section>
 <?php endif; ?>
 <?php if (in_array($ruoloPagina,['admin','operatore'],true)): ?>

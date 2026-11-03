@@ -166,7 +166,10 @@ final class AutonomiaService
   return ['plesso_id'=>$id,'data'=>$data,'attivo'=>$attivo,'righe'=>$righe,'disponibile'=>$disponibile,'fonte'=>$fonte,
    'consolidato'=>$g?(bool)$g['consolidato']:false,'modificabile'=>$modificabile,
    'ripristinabile'=>$modificabile && $data>=date('Y-m-d') && $g && $g['origine']!=='programmazione',
-   'regole'=>$ufficio?$this->r->regole($id):[]];
+   'regole'=>$ufficio?$this->r->regole($id):[],
+   // Quantità aggregate consultabili anche da Scuola (nel proprio ambito) e Catering.
+   'programmazione'=>array_map(static fn($r)=>array_intersect_key($r,array_flip(['dal','giorno','categoria','tipologia_menu_id','quantita'])),$this->r->regole($id)),
+   'programmate'=>$base];
  }
  private function ricorrenti(int $id,string $data): array {
   $out=[]; $giorno=(int)(new \DateTimeImmutable($data))->format('N');

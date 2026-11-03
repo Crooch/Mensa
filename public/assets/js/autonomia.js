@@ -19,6 +19,7 @@
  document.querySelectorAll('.aut-tipologie').forEach(s=>s.innerHTML=tipi.map(t=>`<option value="${t.id}">${e(t.nome)}</option>`).join(''));
  id('aut-report').elements.dal.value=oggi().slice(0,7)+'-01'; id('aut-report').elements.al.value=oggi();
  id('aut-personale-filtro').elements.data.value=oggi();
+ for(const option of id('aut-personale-filtro').elements.plesso_id.options) option.textContent=nomePlesso(Number(option.value));
  id('aut-mese').addEventListener('change',ev=>{const mese=ev.target.value;if(!mese)return;const [y,m]=mese.split('-').map(Number);id('aut-report').elements.dal.value=mese+'-01';id('aut-report').elements.al.value=mese+'-'+new Date(y,m,0).getDate();});
  async function operazione(form,target,fn) {
   const b=form.querySelector('button[type=submit],button:not([type])'); if(b?.disabled)return;
@@ -53,39 +54,91 @@
   catch(err) {avviso(err.message||'Esportazione Excel non riuscita. Riprova.','errore');}
   finally {id('aut-export-excel').disabled=!report;id('aut-export-excel').textContent='Esporta Excel';}
  });
- let personale=null;
- async function caricaPersonale(v) {
-  personale=null;id('aut-personale-corpo').innerHTML='';
-  const p=await API.get(`/api/personale/plessi/${v.plesso_id}?data=${encodeURIComponent(v.data)}`);personale=p;
-  const puo=p.modificabile;
-  stato('aut-personale-stato',`${nomePlesso(p.plesso_id)} · ${p.data} · ${p.attivo?'Servizio previsto':'Fuori servizio'} · ${p.fonte}${!puo?' · Sola lettura':''}`);
-  const righe=[];for(const [categoria,label] of Object.entries(categorie))for(const t of tipi)righe.push({categoria,label,tid:Number(t.id),nome:t.nome,q:p.righe.find(r=>r.categoria===categoria&&Number(r.tipologia_menu_id)===Number(t.id))?.quantita||0});
-  id('aut-personale-corpo').innerHTML=`<form id="aut-giorno"><div class="tabella-scroll"><table class="table"><thead><tr><th>Categoria</th><th>Menù</th><th>Quantità</th></tr></thead><tbody>${righe.map(r=>`<tr><td>${e(r.label)}</td><td>${e(r.nome)}</td><td>${puo?`<input aria-label="${e(r.label+' '+r.nome)}" type="number" min="0" max="1000" name="${r.categoria}:${r.tid}" value="${r.q}" required>`:r.q}</td></tr>`).join('')}</tbody></table></div><p>Totale: ${p.disponibile?p.righe.reduce((s,r)=>s+Number(r.quantita),0):'Non disponibile: impostare le regole o registrare le quantità effettive.'}</p>${puo?'<label>Motivazione <input name="motivazione" maxlength="255" required></label><button class="btn btn-primary">Salva pasti del giorno</button>':''}${p.ripristinabile?'<button type="button" id="aut-ripristina" class="btn btn-outline-primary">Ripristina programmazione</button>':''}</form>`;
-  etichetteTabella(id('aut-personale-corpo'));
-  if(ufficio) {
-   const attive={};p.regole.filter(r=>r.dal<=p.data).forEach(r=>{const key=r.categoria+':'+r.tipologia_menu_id;attive[key]??={categoria:r.categoria,tipo:r.tipologia_menu_id,q:{}};attive[key].q[r.giorno]=r.quantita;});
-   id('aut-regole').innerHTML=`<h3>Settimana abituale alla data ${e(p.data)}</h3><p>Quantità ripetute ogni settimana nei soli giorni di servizio. Le variazioni di una singola data non compaiono in questa tabella.</p><div class="tabella-scroll"><table class="table"><thead><tr><th>Categoria / menù</th>${giorni.slice(1).map(g=>`<th>${g}</th>`).join('')}</tr></thead><tbody>${Object.values(attive).map(r=>`<tr><td>${e(categorie[r.categoria])} · ${e(nomeTipo(r.tipo))}</td>${giorni.slice(1).map((_,i)=>`<td>${r.q[i+1]??'—'}</td>`).join('')}</tr>`).join('')}</tbody></table></div><details><summary>Storico e modifiche programmate</summary>${p.regole.map(r=>`<p>Dal ${e(r.dal)} · ${giorni[r.giorno]} · ${e(categorie[r.categoria])} · ${e(nomeTipo(r.tipologia_menu_id))}: ${r.quantita}</p>`).join('')||'<p>Nessuna regola.</p>'}</details>`;
-   etichetteTabella(id('aut-regole'));
-  }
-  if(p.ripristinabile)id('aut-ripristina').addEventListener('click',async()=>{
-   const form=id('aut-giorno');if(!form.reportValidity())return;
-   if(!conferma(`${nomePlesso(p.plesso_id)} · ${p.data}\nRimuovere la variazione di questa data e usare le quantità programmate?`))return;
-   try {await API.put(`/api/personale/plessi/${p.plesso_id}/giorno`,{data:p.data,ripristina:true,precedente:p.righe,motivazione:form.elements.motivazione.value,conferma:true});await caricaPersonale({plesso_id:p.plesso_id,data:p.data});stato('aut-personale-stato','Programmazione ripristinata per la data scelta.');}catch(err){stato('aut-personale-stato',err.message,true);}
-  });
-  if(puo)id('aut-giorno').addEventListener('submit',ev=>{ev.preventDefault();operazione(ev.target,'aut-personale-stato',async v=>{
-   const righe=Object.entries(v).filter(([k])=>k.includes(':')).map(([k,q])=>({categoria:k.split(':')[0],tipologia_menu_id:Number(k.split(':')[1]),quantita:Number(q)})).filter(r=>r.quantita>0);
-   if(!conferma(`${nomePlesso(p.plesso_id)} · ${p.data}\nTotale personale: ${righe.reduce((s,r)=>s+r.quantita,0)}\nMotivo: ${v.motivazione}`))return;
-   await API.put(`/api/personale/plessi/${p.plesso_id}/giorno`,{data:p.data,righe,precedente:p.righe,motivazione:v.motivazione,conferma:true});
-   await caricaPersonale({plesso_id:p.plesso_id,data:p.data});stato('aut-personale-stato','Pasti del personale salvati. Nessun buono delle famiglie modificato.');
-  });});
+ let personale=null, versionePersonale=0, vistaPersonale='programma';
+ function scegliVistaPersonale(vista) {
+  vistaPersonale=vista;
+  for(const v of ['programma','giorno']){id('aut-vista-'+v).classList.toggle('attiva',v===vista);id('aut-vista-'+v).setAttribute('aria-pressed',String(v===vista));}
+  id('aut-programmazione').hidden=!personale||vista!=='programma';id('aut-personale-corpo').hidden=vista!=='giorno';
  }
- id('aut-personale-filtro').addEventListener('submit',ev=>{ev.preventDefault();operazione(ev.target,'aut-personale-stato',caricaPersonale);});
+ id('aut-vista-programma').onclick=()=>scegliVistaPersonale('programma');
+ id('aut-vista-giorno').onclick=()=>scegliVistaPersonale('giorno');
+ const dataLeggibile = value => new Date(value+'T12:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'});
+ const somma = righe => righe.reduce((s,r)=>s+Number(r.quantita),0);
+ function vociPersonale(righe) {
+  const positive=righe.filter(r=>Number(r.quantita)>0);
+  return positive.map(r=>`<li><span>${e(categorie[r.categoria])}<small>${e(nomeTipo(r.tipologia_menu_id))}</small></span><strong>${Number(r.quantita)}</strong></li>`).join('');
+ }
+ function mostraProgrammazione(p) {
+  id('aut-programmazione').hidden=false;
+  id('aut-programmazione-scuola').textContent=nomePlesso(p.plesso_id);
+  id('aut-programmazione-data').textContent=`Regole in vigore al ${dataLeggibile(p.data)}. Le quantità si applicano nei soli giorni di servizio; chiusure e variazioni si verificano nel dettaglio della data.`;
+  const attive={};
+  for(const r of p.programmazione) if(r.dal<=p.data) attive[`${r.giorno}:${r.categoria}:${r.tipologia_menu_id}`]=r;
+  const valori=Object.values(attive);
+  id('aut-regole').innerHTML=`<div class="personale-settimana">${giorni.slice(1).map((g,i)=>{
+   const righe=valori.filter(r=>Number(r.giorno)===i+1),totale=somma(righe);
+   return `<details class="personale-giorno ${righe.length?'':'personale-da-impostare'}"><summary><h3>${g}</h3><p class="personale-numero">${righe.length?totale:'—'} <span>${righe.length?'pasti':'non impostato'}</span></p><span class="personale-sintesi">${Object.entries(categorie).map(([k,label])=>{const q=somma(righe.filter(r=>r.categoria===k));return q?`<span>${e(label)} <b>${q}</b></span>`:'';}).join('')}</span></summary><ul class="personale-voci">${vociPersonale(righe)}</ul>${righe.length&&!totale?'<p class="nota">Zero pasti impostati</p>':''}${!righe.length?'<p class="nota">Nessuna quantità abituale configurata per questo giorno.</p>':''}</details>`;
+  }).join('')}</div>${!valori.length?'<p class="personale-avviso">Nessuna programmazione abituale in vigore a questa data. I giorni non impostati non equivalgono a zero pasti.</p>':''}`;
+  const future={};for(const r of p.programmazione.filter(r=>r.dal>p.data)) (future[r.dal]??=[]).push(r);
+  id('aut-programmazione-futura').innerHTML=Object.keys(future).length?`<h3>Modifiche successive alla data scelta</h3>${Object.entries(future).map(([dal,righe])=>{
+   const gruppi={};for(const r of righe){const k=`${r.categoria}:${r.tipologia_menu_id}:${r.quantita}`;(gruppi[k]??={...r,giorni:[]}).giorni.push(giorni[Number(r.giorno)]);}
+   return `<div class="personale-futura"><h4>Dal ${dataLeggibile(dal)}</h4><ul>${Object.values(gruppi).map(r=>`<li><strong>${Number(r.quantita)} ${e(categorie[r.categoria])}</strong> · ${e(nomeTipo(r.tipologia_menu_id))}<br><span>${r.giorni.join(', ')}</span></li>`).join('')}</ul></div>`;
+  }).join('')}`:'<p class="nota personale-futuro-vuoto">Nessuna modifica successiva programmata.</p>';
+  if(ufficio){id('aut-regola').elements.plesso_id.value=p.plesso_id;id('aut-regola').elements.dal.min=oggi();id('aut-regola').elements.dal.value=p.data<oggi()?oggi():p.data;}
+ }
+ async function caricaPersonale(v) {
+  const versione=++versionePersonale;
+  personale=null;id('aut-personale-corpo').innerHTML='';id('aut-programmazione').hidden=true;
+  if(ufficio)id('aut-editor-regola').open=false;
+  if(!v.plesso_id||!v.data){stato('aut-personale-stato','Seleziona scuola e data per consultare i pasti.');return false;}
+  stato('aut-personale-stato','Caricamento programmazione…');
+  let p;
+  try{p=await API.get(`/api/personale/plessi/${v.plesso_id}?data=${encodeURIComponent(v.data)}`);}
+  catch(err){if(versione===versionePersonale)stato('aut-personale-stato',err.message,true);return false;}
+  if(versione!==versionePersonale)return false;
+  personale=p;mostraProgrammazione(p);scegliVistaPersonale(vistaPersonale);
+  const puo=p.modificabile;
+  stato('aut-personale-stato',!puo?'Sola lettura per la data scelta.':'');
+  const righe=[];for(const [categoria,label] of Object.entries(categorie))for(const t of tipi)righe.push({categoria,label,tid:Number(t.id),nome:t.nome,q:p.righe.find(r=>r.categoria===categoria&&Number(r.tipologia_menu_id)===Number(t.id))?.quantita||0});
+  const spiegazione=p.fonte==='Variazione giornaliera'?'Questa data ha quantità diverse dalla programmazione abituale. Le altre giornate non cambiano.':p.fonte==='Fuori servizio'?'Il calendario non prevede il servizio in questa data. Le quantità abituali non vengono conteggiate.':!p.disponibile?'Mancano le quantità per questa data. Il Comune può impostare la programmazione o registrare i pasti effettivi.':p.fonte==='Registrato'?'Quantità registrate per questa data.':'Si applicano automaticamente le quantità programmate. Non occorre confermarle ogni giorno.';
+  const categoriePresenti=Object.entries(categorie).filter(([k])=>p.righe.some(r=>r.categoria===k&&Number(r.quantita)>0));
+  id('aut-personale-corpo').innerHTML=`<section class="personale-sezione personale-data"><div class="personale-sezione-testa"><div><p class="personale-sopratitolo">Una sola giornata</p><h2>Pasti del ${dataLeggibile(p.data)}</h2></div><span class="personale-fonte ${p.fonte==='Variazione giornaliera'?'personale-fonte-variazione':''}">${e(p.fonte)}</span></div>
+   <p>${spiegazione}</p><form id="aut-giorno">
+   <div class="personale-confronto"><div><span>Totale per questa data</span><strong>${p.disponibile?somma(p.righe):'—'} <small>${p.disponibile?'pasti':'da impostare'}</small></strong></div><div><span>Quantità abituale · ${giorni[new Date(p.data+'T12:00:00').getDay()||7]}</span><strong>${p.programmate.length?somma(p.programmate):'—'} <small>${p.programmate.length?'pasti':'non impostata'}</small></strong></div></div>
+   <div class="personale-categorie">${categoriePresenti.map(([k,label])=>`<article><h3>${e(label)} <span>${somma(p.righe.filter(r=>r.categoria===k))}</span></h3><ul class="personale-voci">${p.righe.filter(r=>r.categoria===k&&Number(r.quantita)>0).map(r=>`<li><span>${e(nomeTipo(r.tipologia_menu_id))}</span><strong>${Number(r.quantita)}</strong></li>`).join('')}</ul></article>`).join('')}</div>
+   ${puo?`<details id="aut-editor-giorno" class="personale-editor"><summary>Modifica solo questa data</summary><p>Indica il numero totale di pasti necessari, non la differenza. Per 5 insegnanti di cui uno vegetariano: 4 standard e 1 vegetariano.</p><div class="personale-campi">${Object.entries(categorie).map(([k,label])=>`<fieldset><legend>${e(label)}</legend>${righe.filter(r=>r.categoria===k).map(r=>`<label>${e(r.nome)}<input aria-label="${e(r.label+' '+r.nome)}" type="number" min="0" max="1000" name="${r.categoria}:${r.tid}" value="${r.q}" required></label>`).join('')}</fieldset>`).join('')}</div>
+    <p class="personale-totale-bozza">Totale da salvare: <output id="aut-totale-bozza">${somma(p.righe)}</output> pasti</p><label>Motivazione <input name="motivazione" maxlength="255" required placeholder="Es. un insegnante assente"></label><div class="personale-salvataggio"><button class="btn btn-primary">Salva pasti del giorno</button>${p.ripristinabile?'<button type="button" id="aut-ripristina" class="btn btn-outline-primary">Ripristina programmazione</button>':''}</div><p class="nota">La modifica vale solo per il ${dataLeggibile(p.data)}.</p></details>`:`<p class="nota">${ruolo==='scuola'&&p.data<oggi()?'Per correggere una data passata rivolgiti al Comune.':ruolo==='catering'?'Consultazione dei pasti: le modifiche sono gestite da Scuola e Comune.':'Nessuna modifica disponibile in questa data.'}</p>`}
+   </form></section>`;
+  if(puo){
+   id('aut-giorno').addEventListener('input',()=>{id('aut-totale-bozza').textContent=[...id('aut-giorno').querySelectorAll('input[type=number]')].reduce((s,x)=>s+(Number(x.value)||0),0);});
+   id('aut-giorno').addEventListener('submit',ev=>{ev.preventDefault();operazione(ev.target,'aut-personale-stato',async v=>{
+    const righe=Object.entries(v).filter(([k])=>k.includes(':')).map(([k,q])=>({categoria:k.split(':')[0],tipologia_menu_id:Number(k.split(':')[1]),quantita:Number(q)})).filter(r=>r.quantita>0);
+    if(!conferma(`${nomePlesso(p.plesso_id)} · ${p.data}\nTotale personale: ${somma(righe)}\nMotivo: ${v.motivazione}`))return;
+    await API.put(`/api/personale/plessi/${p.plesso_id}/giorno`,{data:p.data,righe,precedente:p.righe,motivazione:v.motivazione,conferma:true});
+    const riletto=await caricaPersonale(dati(id('aut-personale-filtro')));stato('aut-personale-stato','Pasti del personale salvati. La programmazione abituale non cambia.'+(!riletto?' Ricarica la vista per verificare i dati.':''));
+   });});
+  }
+  if(p.ripristinabile)id('aut-ripristina').addEventListener('click',()=>{
+   const form=id('aut-giorno');if(!form.reportValidity())return;
+   operazione(form,'aut-personale-stato',async v=>{
+    if(!conferma(`${nomePlesso(p.plesso_id)} · ${p.data}\nRimuovere la variazione di questa data e usare le quantità programmate?`))return;
+    await API.put(`/api/personale/plessi/${p.plesso_id}/giorno`,{data:p.data,ripristina:true,precedente:p.righe,motivazione:v.motivazione,conferma:true});
+    const riletto=await caricaPersonale(dati(id('aut-personale-filtro')));stato('aut-personale-stato','Programmazione ripristinata per la data scelta.'+(!riletto?' Ricarica la vista per verificare i dati.':''));
+   });
+  });
+  return true;
+ }
+ id('aut-personale-filtro').addEventListener('submit',ev=>{ev.preventDefault();caricaPersonale(dati(ev.target));});
+ id('aut-personale-filtro').addEventListener('change',()=>caricaPersonale(dati(id('aut-personale-filtro'))));
+ document.querySelectorAll('[data-vista="personale"]').forEach(b=>b.addEventListener('click',()=>{if(!personale)caricaPersonale(dati(id('aut-personale-filtro')));}));
  if(ufficio) {
-  id('aut-regola').elements.dal.min=oggi();id('aut-regola').elements.dal.value=oggi();
   id('aut-regola').addEventListener('submit',ev=>{ev.preventDefault();operazione(ev.target,'aut-regola-stato',async v=>{
    const selezionati=new FormData(ev.target).getAll('giorni');if(!selezionati.length)throw new Error('Seleziona almeno un giorno.');
    if(!conferma(`${nomePlesso(v.plesso_id)}\nDal ${v.dal}, ogni ${selezionati.map(g=>giorni[g]).join(', ')}: ${v.quantita} ${categorie[v.categoria]}, menù ${nomeTipo(v.tipologia_menu_id)}\nLa regola si ripete tutte le settimane.`))return;
-   await API.post(`/api/personale/plessi/${v.plesso_id}/regole`,{...v,giorni:selezionati,conferma:true});stato('aut-regola-stato','Ricorrenza salvata. Premi Mostra pasti personale per verificare una data successiva alla decorrenza.');
+   await API.post(`/api/personale/plessi/${v.plesso_id}/regole`,{...v,giorni:selezionati,conferma:true});
+   const riletto=await caricaPersonale(dati(id('aut-personale-filtro')));
+   stato('aut-personale-stato',`Ricorrenza salvata per ${nomePlesso(v.plesso_id)} dal ${dataLeggibile(v.dal)}. ${riletto?'Programmazione aggiornata.':'Ricarica la vista per verificare i dati.'}`);
+   stato('aut-regola-stato','Ricorrenza salvata.');
   });});
   id('aut-servizio-filtro').addEventListener('submit',ev=>{ev.preventDefault();operazione(ev.target,'aut-servizio-stato',caricaServizio);});
  }

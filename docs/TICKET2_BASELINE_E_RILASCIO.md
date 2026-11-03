@@ -36,6 +36,12 @@ L’elenco usa paginazione lato server da 10/25/50 record, conteggio totale e ri
 
 Su telefono/tablet fino a 980 px, elenco e dettaglio sono due viste: apertura immediata della scheda e ritorno alla stessa pagina/ricerca. Le azioni secondarie si espandono con «Altre operazioni». Sul desktop rimangono affiancati. Nessuna migrazione aggiuntiva per questa modifica.
 
+## Consultazione della programmazione del personale
+
+Due viste distinte mostrano la settimana abituale e i pasti della data scelta. Le sette schede riportano totale/categorie e dettaglio per menù, distinguono zero da assenza di regole e separano i cambiamenti con decorrenza futura. Il dettaglio della data confronta quantità abituale ed effettiva; i moduli si aprono su richiesta e il totale di bozza si aggiorna durante la modifica. Scuola e data sono condivise tra le viste; salvataggi e cambi di contesto aggiornano automaticamente i dati, con protezione dalle risposte fuori ordine.
+
+Scuola (solo proprio plesso) e Catering possono consultare le quantità aggregate della programmazione; l’API espone soltanto decorrenza, giorno, categoria, tipologia e quantità. I permessi di scrittura restano invariati. Nessuna migrazione o modifica delle regole reali per questo aggiornamento.
+
 ## Migrazione 010
 
 `database/migrations/010_autonomia_operatori.sql` contiene esclusivamente CREATE TABLE IF NOT EXISTS:
@@ -52,6 +58,7 @@ Il codice nuovo richiede la 010 e la **011_origine_personale.sql**. La 011 aggiu
 
 ## Collaudo effettuato
 
+- Personale: programmazione e variazioni distinte a 320/375/768/1366 px, totali/categorie/menù, zero e assenza di regole, decorrenze future, salvataggio e ripristino, aggiornamento immediato, risposte ritardate e data vuota; consultazione Scuola/Catering e isolamento del plesso verificati.
 - Famiglie: 220 record sintetici, 22 pagine senza duplicati o troncamenti, limiti 10/25/50, filtri, ricerca completa/literalità, validazioni e permessi; navigazione, schede, figli/buoni e moduli a 320/375/768/1366 px, ritorno e risposte ritardate, senza overflow o errori JavaScript.
 - API T01–T10: percorso positivo, conferme, validazioni, accessi diretti vietati, anonimi, isolamento Scuola, conservazione delle tabelle contabili, ripetizione senza duplicazioni.
 - Cinque ruoli in Chrome automatizzato: 375, 768, 1366 px; navigazione, moduli, salvataggi, disattivazione, nome alunno, chiusure, fido/fine servizio, ricorrenze, correzione Scuola, filtri, download CSV; assenza di errori JavaScript e overflow della pagina. Le operazioni complete sono state eseguite a 1366 px; a 375/768 px sono state verificate le schermate, i controlli e le esportazioni. Nessun collaudo su telefono fisico.
