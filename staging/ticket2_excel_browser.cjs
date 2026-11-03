@@ -21,9 +21,13 @@ const out='staging/ticket2-artifacts';fs.mkdirSync(out,{recursive:true});
    const response=page.waitForResponse(r=>r.url().includes('/api/report/pasti?'));
    await page.locator('#aut-report button').click();const body=await (await response).json();const report=body.dati;
    await page.locator('#aut-export-excel:not([disabled])').waitFor();
-   // Changing unsent inputs must not relabel the result that was actually loaded.
+   // Changed filters invalidate the displayed snapshot and all exports.
    const originalDate=await page.locator('#aut-report [name=dal]').inputValue();
    await page.locator('#aut-report [name=dal]').fill('2020-01-01');
+   for(const selector of ['#aut-export','#aut-export-mensile','#aut-export-excel'])assert(await page.locator(selector).isDisabled());
+   assert.equal(await page.locator('#aut-report-corpo tr').count(),0);
+   await page.locator('#aut-report [name=dal]').fill(originalDate);
+   await page.locator('#aut-report button').click();await page.locator('#aut-export-excel:not([disabled])').waitFor();
    const download=page.waitForEvent('download');await page.locator('#aut-export-excel').click();const file=await download;
    assert(file.suggestedFilename().includes(originalDate));const dest=path.join(out,`${role}-${width}.xlsx`);await file.saveAs(dest);
    const book=new ExcelJS.Workbook();await book.xlsx.load(fs.readFileSync(dest));const sheet=book.getWorksheet(1);

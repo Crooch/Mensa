@@ -111,7 +111,7 @@ Stato rilascio: NON ESEGUITO. La verifica di ripristino su copia protetta e l'au
 
 Esportazione `.xlsx` dal medesimo risultato autorizzato del CSV, disponibile a Comune, Admin, Scuola e Catering. Nessuna migrazione o nuova API. Il file contiene dettaglio giornaliero e riepilogo mensile per ordine; è disponibile anche CSV mensile. La libreria ExcelJS 4.4.0 (MIT) è inclusa in `public/assets/js/vendor`, caricata solo alla richiesta di Excel e servita dallo stesso sito, anche con installazione in sottocartella; nessun CDN. Distribuire anche `report_export.js`, la cartella vendor e i partial aggiornati.
 
-Verifiche: `node tests/report_excel.cjs` riapre il file e verifica tipi data/numeri, zero e dati mancanti, testo non interpretato come formula, Unicode, stili, filtri, intestazioni bloccate e risultato vuoto. `staging/ticket2_excel_browser.cjs` verifica i download Excel/CSV per i quattro ruoli abilitati a 375/768/1366 px, confronta ogni cella con il risultato API e verifica che filtri modificati ma non ricaricati non cambino il contenuto esportato.
+Verifiche: `node tests/report_excel.cjs` riapre il file e verifica tipi data/numeri, zero e dati mancanti, testo non interpretato come formula, Unicode, stili, filtri, intestazioni bloccate e risultato vuoto. `staging/ticket2_excel_browser.cjs` verifica i download Excel/CSV per i quattro ruoli abilitati a 375/768/1366 px, confronta ogni cella con il risultato API e verifica che filtri modificati disabilitino gli export fino al caricamento del nuovo risultato.
 
 ## Revisione personale, mensili e chiusure
 
@@ -120,3 +120,18 @@ Il cutoff degli alunni resta invariato. I permessi e i report del personale non 
 I riepiloghi mensili usano gli stessi filtri/permessi del dettaglio e raggruppano per mese e ordine. Alunni elaborati e personale delle giornate elaborate sono separati dalle previsioni; il totale disponibile esclude giornate incomplete. Le giornate sono unità plesso/data e il periodo può coprire una parte del mese. Le rettifiche del personale aggiornano le esportazioni successive.
 
 Nuovi controlli: `tests/ticket2_mensili.php`, `staging/ticket2_revision_smoke.py`, `staging/ticket2_revision_browser.cjs`; estesi i test di consolidamento e degli export Excel/CSV. Le chiusure del Comune condividono il lock calendario con le modifiche Admin, rifiutano cambiamenti concorrenti, sovrapposizioni, date iniziate e riferimenti ad altri plessi. Nessuna nuova configurazione reale viene applicata automaticamente.
+
+
+## Coerenza salvataggi e letture del personale
+
+Corretto il confronto delle righe giornaliere: ordine, rappresentazione numerica JSON e zeri espliciti non sono variazioni delle quantità. In precedenza l'ordine alfabetico dei menù nel modulo poteva differire da quello delle regole e generare una variazione involontaria, impedendo a quella data di seguire gli aggiornamenti della programmazione. I salvataggi invariati ora restituiscono `modificato: false` e non creano audit o variazioni. Lo zero esplicito resta distinguibile dall'assenza di configurazione.
+
+L'API della schermata espone gli ultimi 20 eventi per programmazione e per data, con motivazione, ora, ruolo e quantità. Conteggi, regole e versione della schermata vengono letti sotto lo stesso lock del plesso; l’orario dello storico viene convertito nel fuso configurato dell’applicazione. Le query dello storico non vengono eseguite nel ciclo dei report. Il controllo di ambito precede la lettura; le motivazioni non sono esposte al Catering. La schermata rende il testo come testo, senza interpretare HTML. Nessuna migrazione aggiuntiva: si legge l'audit esistente.
+
+Le tipologie disattivate già presenti vengono restituite e mantenute nel modulo giornaliero, evitando la perdita silenziosa delle quantità quando si corregge un'altra voce. Il server consente la rettifica della voce esistente e rifiuta nuove voci positive con tipologie disattivate. Il form delle ricorrenze invia la versione letta, verificata sotto lock; una modifica concorrente richiede la rilettura. I client API precedenti restano compatibili.
+
+Riepiloghi ed export vengono invalidati dopo variazioni effettive del personale o modifiche al servizio/chiusure. Tornando al riepilogo si ricaricano i filtri correnti; modificare i filtri disabilita gli export e svuota i risultati obsoleti. Una risposta precedente arrivata in ritardo viene ignorata. Le definizioni dei totali mensili, delle previsioni e delle giornate incomplete restano invariate.
+
+Regressioni aggiunte: `staging/personale_coerenza_smoke.py` confronta API, DB e report e verifica ruoli, passato/oggi/futuro, cutoff 00:00, chiusure, assenza/zero, ricorrenze, variazioni, ripristini, conflitti, motivazioni e conservazione contabile. `staging/personale_coerenza_browser.cjs` verifica il flusso reale a 375/1366 px, ordine dei menù, menù ritirati, motivazioni dopo reload, testo sicuro, coerenza del riepilogo e risposte tardive. Sono inclusi nel workflow Ticket 2; gli export vengono confrontati con l'API anche nei test esistenti.
+
+Non vengono reinterpretate o rimosse automaticamente variazioni già salvate: non è possibile distinguere con certezza un errore pregresso da una scelta dell'operatore. Per oggi/futuro il ripristino esplicito è disponibile nell'interfaccia. Nessuna modifica a dati o configurazione della VPS.

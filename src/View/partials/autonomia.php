@@ -42,7 +42,7 @@
    </form><p id="aut-regola-stato" role="status"></p>
   </details>
   <?php else: ?><p class="nota">La programmazione abituale è gestita dal Comune.</p><?php endif; ?>
-  <div id="aut-programmazione-futura"></div>
+  <div id="aut-programmazione-futura"></div><div id="aut-programmazione-storico"></div>
  </div>
  <div id="aut-personale-corpo"></div>
 </section>

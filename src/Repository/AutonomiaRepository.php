@@ -39,6 +39,10 @@ final class AutonomiaRepository extends Repository
  public function salvaRegola(int $id,array $v): void {
   $this->esegui('INSERT INTO pasti_personale_regole (plesso_id,dal,giorno,categoria,tipologia_menu_id,quantita) VALUES (:id,:dal,:giorno,:categoria,:tipologia_menu_id,:quantita) ON DUPLICATE KEY UPDATE quantita=VALUES(quantita)',['id'=>$id]+$v);
  }
+ public function storicoPersonale(int $id,string $data,bool $programmazione): array {
+  $operazioni=$programmazione?"a.operazione='ricorrenza_personale'":"a.operazione IN ('personale_giorno','ripristino_personale')";
+  return $this->tutti("SELECT a.id,a.operazione,a.precedente,a.successivo,a.motivazione,UNIX_TIMESTAMP(a.registrato_il) AS registrato_timestamp,u.ruolo FROM audit_amministrativo a JOIN utenti u ON u.id=a.utente_id WHERE {$operazioni} AND a.riferimento=:ref ORDER BY a.id DESC LIMIT 21",['ref'=>$programmazione?(string)$id:$id.':'.$data]);
+ }
  public function giorno(int $id,string $data): ?array { return $this->uno('SELECT * FROM pasti_personale_giorni WHERE plesso_id=:id AND data=:d',['id'=>$id,'d'=>$data]); }
  public function salvaGiorno(int $id,string $data,array $righe,bool $consolidato,string $origine='variazione'): void {
   $this->esegui('INSERT INTO pasti_personale_giorni (plesso_id,data,righe,consolidato,origine) VALUES (:id,:d,:r,:c,:o) ON DUPLICATE KEY UPDATE righe=VALUES(righe),consolidato=VALUES(consolidato),origine=VALUES(origine)',['id'=>$id,'d'=>$data,'r'=>json_encode($righe),'c'=>(int)$consolidato,'o'=>$origine]);

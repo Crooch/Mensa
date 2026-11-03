@@ -20,7 +20,7 @@ const date=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDate
   await page.locator('[data-vista=personale]').first().click();await page.locator('#aut-editor-regola > summary').click();
   await page.locator('#aut-regola [name=dal]').fill(date(0));
   for(const cb of await page.locator('#aut-regola [name=giorni]').all())await cb.check();
-  await page.locator('#aut-regola [name=categoria]').selectOption('assistenti');await page.locator('#aut-regola [name=tipologia_menu_id]').selectOption('1');await page.locator('#aut-regola [name=quantita]').fill('2');await page.locator('#aut-regola [name=motivazione]').fill('Regola settimanale UI');await page.locator('#aut-regola button').click();await page.locator('#aut-personale-stato').filter({hasText:'Ricorrenza salvata'}).waitFor();
+  await page.locator('#aut-regola [name=categoria]').selectOption('assistenti');await page.locator('#aut-regola [name=tipologia_menu_id]').selectOption('1');await page.locator('#aut-regola [name=quantita]').fill('2');await page.locator('#aut-regola [name=motivazione]').fill('Regola settimanale UI');await page.locator('#aut-regola button').click();await page.locator('#aut-personale-stato').filter({hasText:/Ricorrenza (salvata|invariata)/}).waitFor();
   await page.locator('#aut-personale-filtro [name=plesso_id]').selectOption('1');await page.locator('#aut-personale-filtro [name=data]').fill(date(1));await page.locator('#aut-personale-filtro button').click();await page.locator('#aut-regole').filter({hasText:'Lunedì'}).waitFor();
   await page.screenshot({path:`staging/ticket2-artifacts/regole-${width}.png`,fullPage:true});
   // Future closures can be edited and removed, using explicit reason and confirmation.

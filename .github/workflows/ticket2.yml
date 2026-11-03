@@ -49,6 +49,14 @@ jobs:
         run: |
           python3 staging/famiglie_smoke.py
           node staging/famiglie_browser.cjs
+      - name: Staff frontend/backend consistency, history and date permissions
+        env:
+          MENSA_TICKET2_BASE: http://127.0.0.1:18080
+          MENSA_TICKET2_DB_CONTAINER: mensa-ticket2-database-1
+          NODE_PATH: /tmp/ticket2-browser/node_modules
+        run: |
+          python3 staging/personale_coerenza_smoke.py
+          node staging/personale_coerenza_browser.cjs
       - name: Consolidation, repeated job, historical diets and service end
         run: docker exec mensa-ticket2-app-1 php tests/ticket2_consolidamento.php
       - uses: actions/upload-artifact@v7

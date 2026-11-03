@@ -2918,3 +2918,10 @@ body[data-ruolo="operatore"] .operatore-risultati .table tbody tr.famiglia-selez
 #aut-report-totali:not(:empty) { margin: var(--spazio-elementi) 0; line-height: 1.45; }
 .aut-report-esportazioni { display:flex; flex-wrap:wrap; gap:var(--spazio-elementi); margin:var(--spazio-gruppi) 0; }
 .aut-report-esportazioni .btn { margin:0; min-height:44px; }
+
+.personale-storico { margin-top:16px; border-top:1px solid #dce5ed; padding-top:12px; }
+.personale-storico h3 { font-size:1.05rem; margin:0 0 8px; }
+.personale-storico-voce { background:#f5f9fd; border-left:3px solid #8baabd; padding:10px 12px; margin:8px 0; overflow-wrap:anywhere; }
+.personale-storico-voce p { margin:0 0 6px; }
+.personale-storico-voce ul { margin:6px 0 0; padding-left:18px; }
+.personale-storico > details > summary { min-height:44px; padding:10px 0; cursor:pointer; }

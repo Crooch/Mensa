@@ -171,16 +171,62 @@ final class AutonomiaService
    'programmazione'=>array_map(static fn($r)=>array_intersect_key($r,array_flip(['dal','giorno','categoria','tipologia_menu_id','quantita'])),$this->r->regole($id)),
    'programmate'=>$base];
  }
+ /** Dati aggiuntivi per la schermata, esclusi dal ciclo dei report. */
+ public function vistaPersonale(array $u,int $id,string $data): array {
+  $this->ambito($u,$id,true); self::data($data);
+  // Conteggi, regole e versione devono provenire dalla stessa lettura coerente.
+  return Database::inTransazione(function() use($u,$id,$data) {
+  $this->r->lockPlesso($id);
+  $p=$this->personale($u,$id,$data);
+  $p['versione_programmazione']=$this->versioneProgrammazione($id);
+  $p['tipologie_personale']=array_map(static fn($t)=>array_intersect_key($t,array_flip(['id','nome','cancellata_logicamente'])),$this->c->tipologie()->elenco(false));
+  $p['storico_programmazione']=[]; $p['storico_giorno']=[];
+  $p['altre_modifiche_programmazione']=false; $p['altre_modifiche_giorno']=false;
+  if ($u['ruolo']!=='catering') foreach ([true,false] as $programma) {
+   $eventi=$this->r->storicoPersonale($id,$data,$programma);
+   $chiave=$programma?'programmazione':'giorno'; $p['altre_modifiche_'.$chiave]=count($eventi)>20;
+   foreach (array_slice($eventi,0,20) as $ev) {
+    $prima=json_decode($ev['precedente']??'null',true)??[]; $dopo=json_decode($ev['successivo']??'null',true)??[];
+    $voce=['operazione'=>$ev['operazione'],'registrato_il'=>date('c',(int)$ev['registrato_timestamp']),'ruolo'=>$ev['ruolo'],'motivazione'=>$ev['motivazione']];
+    if ($programma) {
+     $mappa=[];foreach ($prima as $r) $mappa[$r['dal'].':'.$r['giorno'].':'.$r['categoria'].':'.$r['tipologia_menu_id']]=(int)$r['quantita'];
+     $voce['righe']=[];foreach($dopo as $r) {
+      $key=$r['dal'].':'.$r['giorno'].':'.$r['categoria'].':'.$r['tipologia_menu_id'];
+      if (!array_key_exists($key,$mappa)||$mappa[$key]!== (int)$r['quantita']) $voce['righe'][]=array_intersect_key($r,array_flip(['dal','giorno','categoria','tipologia_menu_id','quantita']))+['quantita_precedente'=>$mappa[$key]??null];
+     }
+    } else {
+     $voce['righe_precedenti']=$prima['righe']??[]; $voce['righe']=$dopo['righe']??[];
+    }
+    $p['storico_'.$chiave][]=$voce;
+   }
+  }
+  return $p;
+  });
+ }
+ private function versioneProgrammazione(int $id): string { return hash('sha256',json_encode($this->r->regole($id),JSON_THROW_ON_ERROR)); }
+ /** Confronta quantità, non ordine delle righe, tipo JSON degli interi o zeri espliciti. */
+ private function quantitaPersonale($righe): array {
+  if (!is_array($righe)) throw HttpException::nonValido('Ricarica i conteggi prima di salvare.');
+  $out=[]; $viste=[];
+  foreach($righe as $r) {
+   if (!is_array($r) || !in_array($r['categoria']??null,['insegnanti','ata','assistenti','asacom'],true)) throw HttpException::nonValido('Conteggi precedenti non validi.');
+   $tid=filter_var($r['tipologia_menu_id']??null,FILTER_VALIDATE_INT);$q=filter_var($r['quantita']??null,FILTER_VALIDATE_INT);
+   if ($tid===false || $tid<1 || $q===false || $q<0 || $q>1000) throw HttpException::nonValido('Conteggi precedenti non validi.');
+   $key=$r['categoria'].':'.$tid;if(isset($viste[$key]))throw HttpException::nonValido('Conteggi precedenti duplicati.');$viste[$key]=true;
+   if($q>0)$out[$key]=$q;
+  }
+  ksort($out);return $out;
+ }
  private function ricorrenti(int $id,string $data): array {
   $out=[]; $giorno=(int)(new \DateTimeImmutable($data))->format('N');
   foreach($this->r->regole($id) as $r) if ($r['dal']<=$data && (int)$r['giorno']===$giorno) $out[$r['categoria'].':'.$r['tipologia_menu_id']]=['categoria'=>$r['categoria'],'tipologia_menu_id'=>(int)$r['tipologia_menu_id'],'quantita'=>(int)$r['quantita']];
   return array_values($out);
  }
- private function riga(array $v): array {
+ private function riga(array $v,bool $consentiDisattiva=false): array {
   if (!in_array($v['categoria']??'', ['insegnanti','ata','assistenti','asacom'],true)) throw HttpException::nonValido('Categoria personale non valida.');
   $q=filter_var($v['quantita']??null,FILTER_VALIDATE_INT); $tid=filter_var($v['tipologia_menu_id']??null,FILTER_VALIDATE_INT);
   $t=$tid?$this->c->tipologie()->trova($tid):null;
-  if ($q===false || $q<0 || $q>1000 || !$t || (int)$t['cancellata_logicamente']) throw HttpException::nonValido('Quantità intera da 0 a 1000 e tipologia attiva obbligatorie.');
+  if ($q===false || $q<0 || $q>1000 || !$t || (!$consentiDisattiva && (int)$t['cancellata_logicamente'])) throw HttpException::nonValido('Quantità intera da 0 a 1000 e tipologia attiva obbligatorie.');
   return ['categoria'=>$v['categoria'],'tipologia_menu_id'=>$tid,'quantita'=>$q];
  }
  public function regola(array $u,int $id,array $v): array {
@@ -189,15 +235,17 @@ final class AutonomiaService
   if ($dal<date('Y-m-d') || !is_array($giorni) || !$giorni || count($giorni)>7) throw HttpException::nonValido('La decorrenza deve essere oggi o futura. Seleziona almeno un giorno.');
   foreach($giorni as &$g) { $g=filter_var($g,FILTER_VALIDATE_INT); if ($g===false || $g<1 || $g>7) throw HttpException::nonValido('Giorno della settimana non valido.'); } unset($g);
   $giorni=array_unique($giorni); $riga=$this->riga($v);
-  return Database::inTransazione(function() use($u,$id,$riga,$dal,$giorni,$motivo) {
-   $this->r->lockPlesso($id); $prima=$this->r->regole($id);
+  return Database::inTransazione(function() use($u,$id,$riga,$dal,$giorni,$motivo,$v) {
+   $this->r->lockPlesso($id);
+   if (isset($v['versione_precedente']) && $v['versione_precedente']!==$this->versioneProgrammazione($id)) throw HttpException::nonValido('La programmazione è cambiata. Ricarica prima di salvare.');
+   $prima=$this->r->regole($id);
    foreach($giorni as $g) $this->r->salvaRegola($id,$riga+['dal'=>$dal,'giorno'=>$g]);
    $dopo=$this->r->regole($id);
    // Una fotografia automatica odierna segue le nuove regole; le variazioni esplicite restano prioritarie.
    $oggi=date('Y-m-d'); $snapshot=$this->r->giorno($id,$oggi);
    if ($dal===$oggi && $snapshot && $snapshot['origine']==='programmazione') $this->r->salvaGiorno($id,$oggi,$this->ricorrenti($id,$oggi),true,'programmazione');
-   $this->r->audit((int)$u['id'],'ricorrenza_personale',(string)$id,$prima,$dopo,$motivo);
-   return ['salvato'=>true];
+   if ($prima!=$dopo) $this->r->audit((int)$u['id'],'ricorrenza_personale',(string)$id,$prima,$dopo,$motivo);
+   return ['salvato'=>true,'modificato'=>$prima!=$dopo];
   });
  }
  public function correggiGiorno(array $u,int $id,array $v): array {
@@ -210,7 +258,7 @@ final class AutonomiaService
    if (!is_array($v['righe']??null) || count($v['righe'])>100) throw HttpException::nonValido('Elenco pasti non valido.');
    foreach ($v['righe'] as $r) {
     if (!is_array($r)) throw HttpException::nonValido('Riga non valida.');
-    $r=$this->riga($r); $k=$r['categoria'].':'.$r['tipologia_menu_id'];
+    $r=$this->riga($r,true); $k=$r['categoria'].':'.$r['tipologia_menu_id'];
     if (isset($chiavi[$k])) throw HttpException::nonValido('Categoria e tipologia duplicate: indica un unico totale.');
     $chiavi[$k]=true; $righe[]=$r;
    }
@@ -220,19 +268,28 @@ final class AutonomiaService
    if ($u['ruolo']==='scuola' && $data<date('Y-m-d')) throw HttpException::nonAutorizzato('Per le date passate richiedere una rettifica al Comune.');
    $stato=$this->personale($u,$id,$data); $prima=$stato['righe'];
    if (!$stato['modificabile']) throw HttpException::nonValido('Nessun servizio modificabile per questa data.');
-   if (!array_key_exists('precedente',$v) || $v['precedente']!=$prima) throw HttpException::nonValido('I conteggi sono cambiati. Ricarica prima di salvare.');
-   $g=$this->r->giorno($id,$data);
+   if (!array_key_exists('precedente',$v) || $this->quantitaPersonale($v['precedente'])!==$this->quantitaPersonale($prima)) throw HttpException::nonValido('I conteggi sono cambiati. Ricarica prima di salvare.');
+   // Le tipologie disattivate già presenti restano correggibili: mai eliminarle implicitamente.
+   foreach($righe as $r) {
+    $tipo=$this->c->tipologie()->trova((int)$r['tipologia_menu_id']);
+    if ((int)$tipo['cancellata_logicamente']) {
+     $esistente=false;foreach($prima as $old) if($old['categoria']===$r['categoria'] && (int)$old['tipologia_menu_id']===$r['tipologia_menu_id']) $esistente=true;
+     if(!$esistente && $r['quantita']>0) throw HttpException::nonValido('Non è possibile aggiungere una tipologia disattivata.');
+    }
+   }
+   $g=$this->r->giorno($id,$data); $modificato=false;
    if ($ripristina) {
     if ($data<date('Y-m-d')) throw HttpException::nonValido('Per il passato indicare le quantità effettive, senza ripristinare la programmazione.');
     if ($g && $g['origine']!=='programmazione') {
-     $this->r->eliminaGiorno($id,$data);
+     $this->r->eliminaGiorno($id,$data); $modificato=true;
      $this->r->audit((int)$u['id'],'ripristino_personale',$id.':'.$data,['righe'=>$prima,'fonte'=>$stato['fonte']],['righe'=>$this->ricorrenti($id,$data),'fonte'=>'Da programmazione'],$motivo);
     }
-   } elseif ($prima!=$righe || !$stato['disponibile']) {
+   } elseif ($this->quantitaPersonale($prima)!==$this->quantitaPersonale($righe) || !$stato['disponibile']) {
+    $modificato=true;
     $this->r->salvaGiorno($id,$data,$righe,$data<date('Y-m-d') || (bool)($g['consolidato']??false),'variazione');
     $this->r->audit((int)$u['id'],'personale_giorno',$id.':'.$data,['righe'=>$prima,'disponibile'=>$stato['disponibile']],['righe'=>$righe,'disponibile'=>true],$motivo);
    }
-   return ['salvato'=>true];
+   return ['salvato'=>true,'modificato'=>$modificato];
   });
  }
  public function consolidaPersonale(int $id,string $data): void {
