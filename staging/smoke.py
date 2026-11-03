@@ -1,0 +1,733 @@
+import os
+from urllib.parse import urlparse
+import json
+import datetime as dt
+import urllib.request
+import urllib.error
+
+base = os.environ.get("MENSA_STAGING_BASE", "http://127.0.0.1:18080")
+assert urlparse(base).hostname in ("localhost", "127.0.0.1"), "Solo staging locale"
+def call(path, payload=None, token=None, method=None):
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = "Bearer " + token
+    req = urllib.request.Request(base + path,
+        data=json.dumps(payload).encode() if payload is not None else None,
+        headers=headers, method=method)
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.load(resp)["dati"]
+
+def token(username):
+    return call("/api/auth/login",
+        {"username": username, "password": "Collaudo2026!"})["token"]
+
+def verifica_distribuzione(plesso):
+    sezioni = plesso["sezioni"]
+    assert sum(int(c["pasti"]) for c in sezioni) == int(plesso["totale_pasti"])
+    assert sum(int(c["pasta_in_bianco"]) for c in sezioni) == int(plesso["totale_pasta_in_bianco"])
+    assert (int(plesso["pasti_ordinari"]) + int(plesso["totale_pasta_in_bianco"])
+            == int(plesso["totale_pasti"]))
+    assert sum(int(t["pasti"]) for t in plesso["tipologie"]) == int(plesso["totale_pasti"])
+    for classe in sezioni:
+        tipi = classe["tipologie"]
+        assert sum(int(t["pasti"]) for t in tipi) == int(classe["pasti"])
+        assert sum(int(t["pasta_in_bianco"]) for t in tipi) == int(classe["pasta_in_bianco"])
+        assert int(classe["pasti_ordinari"]) + int(classe["pasta_in_bianco"]) == int(classe["pasti"])
+        for t in tipi:
+            assert int(t["pasti_ordinari"]) + int(t["pasta_in_bianco"]) == int(t["pasti"])
+            assert len(t["richieste_pasta"]) == int(t["pasta_in_bianco"])
+            assert all(int(x["classe_id"]) == int(classe["classe_id"]) and
+                       int(x["tipologia_id"]) == int(t["tipologia_id"])
+                       for x in t["richieste_pasta"])
+
+admin = token("admin.staging")
+catering = token("catering.staging")
+
+# Monitoraggio: solo GET, nessun effetto sui buoni e sui log del job.
+storico_prima = call("/api/job/esecuzioni", token=admin)
+stato_uno = call("/api/job/stato", token=admin)
+stato_due = call("/api/job/stato", token=admin)
+storico_dopo = call("/api/job/esecuzioni", token=admin)
+assert stato_uno == stato_due, "Il monitoraggio deve essere ripetibile"
+assert storico_prima == storico_dopo, "La consultazione non deve aprire esecuzioni"
+assert stato_uno["data"] == dt.date.today().isoformat()
+assert stato_uno["scheduler_abilitato"] is False, (
+    "Lo staging non deve avviare job automaticamente")
+# Anche un Admin non deve eseguire un job senza attivazione esplicita.
+for percorso in ("/api/job/scheduler", "/api/job/plessi/1"):
+    try:
+        call(percorso, payload={}, token=admin)
+        raise AssertionError("Job eseguibile con scheduler disabilitato")
+    except urllib.error.HTTPError as exc:
+        assert exc.code == 503, (percorso, exc.code)
+try:
+    call("/scheduler?key=cambiami-scheduler-key")
+    raise AssertionError("Endpoint HTTP scheduler accessibile senza attivazione")
+except urllib.error.HTTPError as exc:
+    assert exc.code == 503, exc.code
+scuole_attive = call("/api/admin/plessi", token=admin)
+assert len(stato_uno["scuole"]) == len(scuole_attive), (
+    f"Lo stato deve coprire tutte le scuole attive: {len(stato_uno['scuole'])}/"
+    f"{len(scuole_attive)}"
+)
+assert all(r["stato"] in ("non_prevista", "in_attesa", "da_eseguire",
+                          "in_corso", "completata", "errore")
+           for r in stato_uno["scuole"])
+assert all(len(r["orario_limite"]) == 5 for r in stato_uno["scuole"])
+genitore_sola_lettura = token("genitore.staging")
+try:
+    call("/api/job/stato", token=genitore_sola_lettura)
+    raise AssertionError("Un genitore puo consultare lo stato Admin")
+except urllib.error.HTTPError as exc:
+    assert exc.code == 403
+print("OK: monitoraggio odierno in sola lettura, accesso solo Admin, nessun job aperto.")
+
+assert call("/api/admin/calendari/1", token=admin)["configurazione"]["lunedi"] == 1
+report = call("/api/catering/report?data=2026-10-19", token=catering)
+infanzia = next(x for x in report["plessi"] if x["plesso_id"] == 1)
+verifica_distribuzione(infanzia)
+sezioni = {x["classe_nome"]: int(x["pasti"]) for x in infanzia["sezioni"]}
+assert set(sezioni) == {"Sezione A", "Sezione B", "Sezione C", "Sezione D"}
+assert sezioni["Sezione D"] == 0
+
+# Test regressione: mensa dell'infanzia dal 19/10, non dal 15/10.
+giorno_prima = "2026-10-15"
+scuola_prima = token("scuola.infanzia.staging")
+classe_a = next(c for c in call("/api/scuola/classi", token=scuola_prima)
+                if c["nome"] == "Sezione A")
+giornata_prima = call("/api/scuola/classi/" + str(classe_a["id"]) +
+                      "/giornata?data=" + giorno_prima, token=scuola_prima)
+assert giornata_prima["servizio_mensa"] == {
+    "attivo": False, "motivo": "servizio_non_avviato"
+}, "Il 15 ottobre il servizio deve risultare non iniziato"
+assert len(giornata_prima["alunni"]) == 2
+assert all(a["stato_effettivo"] is None and a["default_calcolato"] is None
+           for a in giornata_prima["alunni"]), "Nessun pasto previsto prima dell'avvio"
+assert call("/api/catering/report?data=" + giorno_prima, token=catering)["totale_pasti"] == 0
+try:
+    call("/api/scuola/presenze/override", {
+        "bambino_id": int(giornata_prima["alunni"][0]["bambino_id"]),
+        "data": giorno_prima, "stato": "presente",
+        "motivazione": "Test: nessun pasto prima dell'avvio"
+    }, token=scuola_prima)
+    raise AssertionError("Correzione consentita in giornata senza servizio")
+except urllib.error.HTTPError as exc:
+    assert exc.code == 422, "Le modifiche in giorni senza mensa devono essere rifiutate"
+assert all(a["stato_effettivo"] is None
+           for a in call("/api/scuola/classi/" + str(classe_a["id"]) +
+                         "/giornata?data=" + giorno_prima, token=scuola_prima)["alunni"])
+
+giornata_attiva = call("/api/scuola/classi/" + str(classe_a["id"]) +
+                       "/giornata?data=2026-10-19", token=scuola_prima)
+assert giornata_attiva["servizio_mensa"]["attivo"] is True
+assert any(a["stato_effettivo"] == "presente" for a in giornata_attiva["alunni"])
+print("OK: Scuola 15/10 senza servizio, niente pasti o correzioni; 19/10 attivo.")
+print("OK: login, calendario, report A-B-C-D con sezione D vuota")
+
+# Scenario genitore -> catering -> saldi con una data futura di mensa.
+oggi = dt.date.today()
+prossimo_lunedi = oggi + dt.timedelta(days=7 - oggi.weekday())
+giorno = max(prossimo_lunedi, dt.date(2026, 10, 19)).isoformat()
+genitore = token("genitore.staging")
+dashboard = call("/api/genitore/dashboard", token=genitore)
+figlio = int(dashboard["figli"][0]["id"])
+stato_prima = call("/api/genitore/figli/" + str(figlio) +
+                   "/giornata?data=" + giorno_prima, token=genitore)
+assert stato_prima["servizio_mensa"]["motivo"] == "servizio_non_avviato"
+assert stato_prima["stato_effettivo"] is None
+assert stato_prima["default_calcolato"] is None
+assert stato_prima["pasta_in_bianco"] is False
+print("OK: Genitore 15/10 senza pasto, in coerenza con Scuola e Catering.")
+calendario_famiglia = call(
+    "/api/genitore/figli/" + str(figlio) + "/calendario?anno=2026&mese=10", token=genitore)
+giorni = {x["data"]: x for x in calendario_famiglia["giorni"]}
+assert len(giorni) == 31, "Il calendario deve contenere tutte le date del mese"
+assert giorni["2026-10-19"]["servizio_mensa"]["attivo"] is True
+assert giorni["2026-10-20"]["servizio_mensa"]["attivo"] is True
+assert giorni["2026-10-17"]["servizio_mensa"]["attivo"] is False
+assert giorni["2026-10-17"]["stato_effettivo"] is None
+print("OK: calendario familiare completo, giorni attivi e giorni senza mensa distinti")
+saldo_iniziale = dashboard["crediti"][0]["saldo"]
+# Pasta in bianco è richiedibile soltanto se il bambino mangerà a mensa.
+call("/api/genitore/presenze/dichiarazione", {
+    "bambino_id": figlio, "data": giorno, "stato": "presente"
+}, token=genitore)
+call("/api/genitore/pasta-bianco", {
+    "bambino_id": figlio, "data": giorno, "richiesta": 1
+}, token=genitore)
+report = call("/api/catering/report?data=" + giorno, token=catering)
+infanzia = next(x for x in report["plessi"] if x["plesso_id"] == 1)
+assert any(int(r["bambino_id"]) == figlio for r in infanzia["pasta_in_bianco"])
+verifica_distribuzione(infanzia)
+classe_con_bianco = next(c for c in infanzia["sezioni"]
+    if any(int(b["bambino_id"]) == figlio
+           for t in c["tipologie"] for b in t["richieste_pasta"]))
+assert classe_con_bianco["pasta_in_bianco"] >= 1
+assert classe_con_bianco["pasti_ordinari"] + classe_con_bianco["pasta_in_bianco"] == classe_con_bianco["pasti"]
+
+esito_assenza = call("/api/genitore/presenze/dichiarazione", {
+    "bambino_id": figlio, "data": giorno, "stato": "assente"
+}, token=genitore)
+assert esito_assenza['pasta_annullata'] is True
+stato = call("/api/genitore/figli/" + str(figlio) +
+             "/giornata?data=" + giorno, token=genitore)
+assert stato["stato_effettivo"] == "assente"
+assert not stato["pasta_in_bianco"], "L'assenza deve annullare la pasta in bianco"
+try:
+    call("/api/genitore/pasta-bianco", {
+        "bambino_id": figlio, "data": giorno, "richiesta": 1
+    }, token=genitore)
+    raise AssertionError("La richiesta di pasta in bianco è consentita con bambino assente")
+except urllib.error.HTTPError as exc:
+    assert exc.code in (400, 403, 409, 422), "Errore atteso per bambino assente"
+report = call("/api/catering/report?data=" + giorno, token=catering)
+infanzia = next(x for x in report["plessi"] if x["plesso_id"] == 1)
+assert all(int(r["bambino_id"]) != figlio for r in infanzia["pasta_in_bianco"])
+
+call("/api/genitore/presenze/dichiarazione", {
+    "bambino_id": figlio, "data": giorno, "stato": "presente"
+}, token=genitore)
+stato = call("/api/genitore/figli/" + str(figlio) +
+             "/giornata?data=" + giorno, token=genitore)
+assert not stato["pasta_in_bianco"], "La vecchia richiesta non deve riattivarsi"
+call("/api/genitore/pasta-bianco", {
+    "bambino_id": figlio, "data": giorno, "richiesta": 1
+}, token=genitore)
+report = call("/api/catering/report?data=" + giorno, token=catering)
+infanzia = next(x for x in report["plessi"] if x["plesso_id"] == 1)
+assert any(int(r["bambino_id"]) == figlio for r in infanzia["pasta_in_bianco"])
+verifica_distribuzione(infanzia)
+classe_con_bianco = next(c for c in infanzia["sezioni"]
+    if any(int(b["bambino_id"]) == figlio
+           for t in c["tipologie"] for b in t["richieste_pasta"]))
+assert classe_con_bianco["pasta_in_bianco"] >= 1
+assert classe_con_bianco["pasti_ordinari"] + classe_con_bianco["pasta_in_bianco"] == classe_con_bianco["pasti"]
+assert call("/api/genitore/dashboard", token=genitore)["crediti"][0]["saldo"] == saldo_iniziale
+print("OK: pasta solo se presente, cancellazione con assenza, riattivazione esplicita e saldo invariato")
+
+# Verifica end-to-end Scuola -> Catering -> Genitore, su dati sintetici.
+scuola = token("scuola.infanzia.staging")
+classi_scuola = call("/api/scuola/classi", token=scuola)
+classe_figlio = None
+for classe_scuola in classi_scuola:
+    vista = call("/api/scuola/classi/" + str(classe_scuola["id"]) +
+                 "/giornata?data=" + giorno, token=scuola)
+    if any(int(a["bambino_id"]) == figlio for a in vista["alunni"]):
+        classe_figlio = classe_scuola["id"]
+        break
+assert classe_figlio is not None, "Bambino di prova non trovato nelle classi della scuola"
+pasti_prima = sum(int(s["pasti"]) for s in infanzia["sezioni"])
+esito_scuola = call("/api/scuola/presenze/override", {
+    "bambino_id": figlio, "data": giorno,
+    "stato": "assente", "motivazione": "Assente, prova integrazione"
+}, token=scuola)
+assert esito_scuola["stato_effettivo"] == "assente"
+vista = call("/api/scuola/classi/" + str(classe_figlio) +
+             "/giornata?data=" + giorno, token=scuola)
+riga = next(a for a in vista["alunni"] if int(a["bambino_id"]) == figlio)
+assert riga["stato_effettivo"] == "assente"
+assert riga["override_motivazione"] == "Assente, prova integrazione"
+report_assente = call("/api/catering/report?data=" + giorno, token=catering)
+infanzia_assente = next(x for x in report_assente["plessi"] if x["plesso_id"] == 1)
+assert sum(int(s["pasti"]) for s in infanzia_assente["sezioni"]) == pasti_prima - 1
+assert all(int(a["bambino_id"]) != figlio for a in infanzia_assente["pasta_in_bianco"])
+esito_scuola = call("/api/scuola/presenze/override", {
+    "bambino_id": figlio, "data": giorno,
+    "stato": "presente", "motivazione": "Presenza verificata, prova integrazione"
+}, token=scuola)
+assert esito_scuola["stato_effettivo"] == "presente"
+report_presente = call("/api/catering/report?data=" + giorno, token=catering)
+infanzia_presente = next(x for x in report_presente["plessi"] if x["plesso_id"] == 1)
+assert sum(int(s["pasti"]) for s in infanzia_presente["sezioni"]) == pasti_prima
+stato = call("/api/genitore/figli/" + str(figlio) +
+             "/giornata?data=" + giorno, token=genitore)
+assert stato["stato_effettivo"] == "presente"
+assert not stato["pasta_in_bianco"], "La correzione scuola non deve riattivare una pasta annullata"
+assert call("/api/genitore/dashboard", token=genitore)["crediti"][0]["saldo"] == saldo_iniziale
+print("OK: Scuola -> Catering -> Genitore, motivazione salvata, conteggi e credito invariato")
+
+# Regressione gita: il messaggio "tutta la classe non mangera'" deve
+# prevalere sulle precedenti conferme di famiglia/scuola, e avere effetto
+# in Scuola, Catering e Genitore senza ricariche del database.
+gita_giorno = (dt.date.fromisoformat(giorno) + dt.timedelta(days=1)).isoformat()
+vista_gita = call("/api/scuola/classi/" + str(classe_figlio) +
+                  "/giornata?data=" + gita_giorno, token=scuola)
+assert vista_gita["servizio_mensa"]["attivo"] is True
+assert len(vista_gita["alunni"]) == 2
+figli_gita = [int(a["bambino_id"]) for a in vista_gita["alunni"]]
+assert figlio in figli_gita
+altro_figlio = next(b for b in figli_gita if b != figlio)
+
+call("/api/genitore/presenze/dichiarazione", {
+    "bambino_id": figlio, "data": gita_giorno, "stato": "presente"
+}, token=genitore)
+call("/api/scuola/presenze/override", {
+    "bambino_id": altro_figlio, "data": gita_giorno, "stato": "presente",
+    "motivazione": "Presenza verificata prima della gita"
+}, token=scuola)
+call("/api/genitore/pasta-bianco", {
+    "bambino_id": figlio, "data": gita_giorno, "richiesta": 1
+}, token=genitore)
+
+prima_gita = call("/api/catering/report?data=" + gita_giorno, token=catering)
+plesso_prima = next(x for x in prima_gita["plessi"] if x["plesso_id"] == 1)
+sezione_prima = next(x for x in plesso_prima["sezioni"] if x["classe_id"] == classe_figlio)
+assert int(sezione_prima["pasti"]) == 2
+
+esito_gita = call("/api/scuola/assenze-massa", {
+    "classe_sezione_id": classe_figlio, "data": gita_giorno,
+    "motivo": "Gita scolastica: nessun pasto"
+}, token=scuola)
+assert int(esito_gita["id"]) > 0
+
+dopo_gita = call("/api/scuola/classi/" + str(classe_figlio) +
+                 "/giornata?data=" + gita_giorno, token=scuola)
+assert dopo_gita["assenza_massa"]["motivo"] == "Gita scolastica: nessun pasto"
+assert all(a["stato_effettivo"] == "assente" for a in dopo_gita["alunni"])
+assert any(a["dichiarazione_genitore"] == "presente" for a in dopo_gita["alunni"])
+assert any(a["override_scuola"] == "presente" for a in dopo_gita["alunni"])
+
+report_gita = call("/api/catering/report?data=" + gita_giorno, token=catering)
+plesso_gita = next(x for x in report_gita["plessi"] if x["plesso_id"] == 1)
+sezione_gita = next(x for x in plesso_gita["sezioni"] if x["classe_id"] == classe_figlio)
+assert int(sezione_gita["pasti"]) == 0
+assert int(plesso_gita["totale_pasti"]) == int(plesso_prima["totale_pasti"]) - 2
+assert all(b["bambino_id"] not in figli_gita for b in plesso_gita["pasta_in_bianco"])
+
+stato_gita = call("/api/genitore/figli/" + str(figlio) +
+                  "/giornata?data=" + gita_giorno, token=genitore)
+assert stato_gita["servizio_mensa"] == {"attivo": False, "motivo": "assenza_classe"}
+assert stato_gita["stato_effettivo"] is None
+assert stato_gita["pasta_in_bianco"] is False
+mese_gita = call("/api/genitore/figli/" + str(figlio) +
+                 "/calendario?anno=" + gita_giorno[:4] +
+                 "&mese=" + str(int(gita_giorno[5:7])), token=genitore)
+riga_gita = next(x for x in mese_gita["giorni"] if x["data"] == gita_giorno)
+assert riga_gita["servizio_mensa"]["motivo"] == "assenza_classe"
+assert riga_gita["modificabile"] is False
+
+def rifiuta_gita(path, payload, bearer, descrizione):
+    try:
+        call(path, payload, token=bearer)
+        raise AssertionError("La gita non ha bloccato " + descrizione)
+    except urllib.error.HTTPError as exc:
+        assert exc.code == 422, descrizione + ": atteso errore di validazione"
+
+rifiuta_gita("/api/genitore/presenze/dichiarazione", {
+    "bambino_id": figlio, "data": gita_giorno, "stato": "presente"
+}, genitore, "nuova presenza familiare")
+rifiuta_gita("/api/scuola/presenze/override", {
+    "bambino_id": figlio, "data": gita_giorno, "stato": "presente",
+    "motivazione": "Conferma per errore"
+}, scuola, "nuova conferma scuola")
+rifiuta_gita("/api/genitore/pasta-bianco", {
+    "bambino_id": figlio, "data": gita_giorno, "richiesta": 1
+}, genitore, "pasta in bianco")
+rifiuta_gita("/api/scuola/assenze-massa", {
+    "classe_sezione_id": classe_figlio, "data": gita_giorno,
+    "motivo": "Inserimento duplicato"
+}, scuola, "gita duplicata")
+assert call("/api/genitore/dashboard", token=genitore)["crediti"][0]["saldo"] == saldo_iniziale
+print("OK: gita prevale su famiglia/scuola, pasti zero, niente pasta o nuovi interventi.")
+
+# Test reale HTTP multipart: righe del menu e immagine pubblicata/rimossa.
+# I dati sono esclusivamente di staging e la foto e' un PNG sintetico 1x1.
+import base64
+# I test di scrittura devono restare futuri anche dopo ottobre 2026.
+menu_lunedi = dt.date.today() + dt.timedelta(days=14)
+menu_lunedi += dt.timedelta(days=(7-menu_lunedi.weekday())%7)
+menu_lunedi = menu_lunedi.isoformat()
+
+def invia_menu_multipart(campi, immagine=None):
+    boundary = "----MensaStagingSmokeBoundary"
+    body = bytearray()
+    for nome, valore in campi.items():
+        body.extend(("--" + boundary + "\r\n"
+            'Content-Disposition: form-data; name="' + nome + '"\r\n\r\n' +
+            str(valore) + "\r\n").encode("utf-8"))
+    if immagine is not None:
+        body.extend(("--" + boundary + "\r\n"
+            'Content-Disposition: form-data; name="foto"; filename="test.png"\r\n'
+            "Content-Type: image/png\r\n\r\n").encode("utf-8"))
+        body.extend(immagine)
+        body.extend(b"\r\n")
+    body.extend(("--" + boundary + "--\r\n").encode("utf-8"))
+    req = urllib.request.Request(base + "/api/catering/menu",
+        data=bytes(body), headers={
+            "Authorization": "Bearer " + catering,
+            "Content-Type": "multipart/form-data; boundary=" + boundary
+        })
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        return json.load(resp)["dati"]
+
+riferimenti = call("/api/riferimenti", token=catering)
+plesso_menu = 1
+tipologia_menu = int(riferimenti["tipologie"][0]["id"])
+giorno_menu = (dt.date.fromisoformat(menu_lunedi) + dt.timedelta(days=2)).isoformat()
+descrizione_menu = "Primo: pasta\nSecondo: pollo\n\nFrutta"
+campi_menu = {
+    "plesso_id": plesso_menu, "tipologia_menu_id": tipologia_menu,
+    "data": giorno_menu, "descrizione": descrizione_menu
+}
+png_1x1 = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg=="
+)
+pubblicato = invia_menu_multipart(campi_menu, png_1x1)
+menu_con_foto = call("/api/catering/menu?data=" + giorno_menu, token=catering)
+riga_con_foto = next(m for m in menu_con_foto
+    if int(m["plesso_id"]) == plesso_menu and
+       int(m["tipologia_menu_id"]) == tipologia_menu)
+assert int(riga_con_foto["id"]) == int(pubblicato["id"])
+assert riga_con_foto["descrizione"] == descrizione_menu
+assert riga_con_foto["foto_path"] and riga_con_foto["foto_path"].endswith(".png")
+
+# Le immagini non devono essere scaricabili da utenti anonimi.
+url_foto = base + "/storage/" + riga_con_foto["foto_path"]
+try:
+    urllib.request.urlopen(url_foto, timeout=10)
+    raise AssertionError("Immagine privata accessibile senza autenticazione")
+except urllib.error.HTTPError as exc:
+    assert exc.code == 401
+con_token = urllib.request.Request(url_foto, headers={"Authorization": "Bearer " + catering})
+with urllib.request.urlopen(con_token, timeout=10) as risposta:
+    assert risposta.status == 200
+    assert risposta.headers.get_content_type() == "image/png"
+    assert risposta.read() == png_1x1
+print("OK: foto private non accessibili senza token; Catering autenticato puo visualizzarle.")
+
+campi_menu["rimuovi_foto"] = "1"
+rimosso = invia_menu_multipart(campi_menu)
+assert int(rimosso["id"]) == int(pubblicato["id"])
+menu_senza_foto = call("/api/catering/menu?data=" + giorno_menu, token=catering)
+riga_senza_foto = next(m for m in menu_senza_foto
+    if int(m["plesso_id"]) == plesso_menu and
+       int(m["tipologia_menu_id"]) == tipologia_menu)
+assert riga_senza_foto["foto_path"] is None
+assert riga_senza_foto["descrizione"] == descrizione_menu
+assert len(menu_senza_foto) == len(menu_con_foto)
+print("OK: menu multilinea, upload PNG e rimozione foto con ID invariato.")
+
+# Catalogo settimana tipo con API reali: creazione, duplicazione, assegnazione
+# a due plessi e menu visibile alle famiglie. Nessun dato di produzione.
+modello_settimana = call("/api/catering/menu-settimanali", {
+    "nome": "Settimana base - collaudo",
+    "tipologia_menu_id": tipologia_menu,
+    "giorni": {
+        "1": "Primo: pasta\\nSecondo: verdure",
+        "2": "Riso",
+        "3": "Pollo",
+        "4": "Pesce",
+        "5": "Minestrone",
+        "6": "", "7": ""
+    }
+}, token=catering)
+modello_id = int(modello_settimana["id"])
+lista_modelli = call("/api/catering/menu-settimanali", token=catering)
+assert any(int(m["id"]) == modello_id for m in lista_modelli)
+duplica = call("/api/catering/menu-settimanali/" + str(modello_id) + "/duplica", {
+    "nome": "Copia del modello - collaudo",
+    "tipologia_menu_id": tipologia_menu
+}, token=catering)
+assert int(duplica["id"]) != modello_id
+
+assegnato = call("/api/catering/menu-settimanali/assegnazioni", {
+    "menu_id": modello_id, "tipologia_menu_id": tipologia_menu,
+    "plesso_ids": [1, 3]
+}, token=catering)
+assert len(assegnato["plessi"]) == 2
+assert assegnato["valido_dal"] >= dt.date.today().isoformat()
+assegnazioni = call("/api/catering/menu-settimanali/assegnazioni", token=catering)
+assert len([a for a in assegnazioni if int(a["menu_id"]) == modello_id]) == 2
+
+menus_19 = call("/api/catering/menu?data=" + menu_lunedi, token=catering)
+ricorrenti = [m for m in menus_19
+    if m.get("origine") == "settimanale" and int(m["tipologia_menu_id"]) == tipologia_menu]
+assert len(ricorrenti) == 2
+assert all(m["descrizione"] == "Primo: pasta\\nSecondo: verdure" for m in ricorrenti)
+
+# Il report "Pasti da preparare" deve riportare anche il nome del modello
+# e i piatti giornalieri, a parita' di plesso, data e tipologia.
+for plesso_assegnato in (1, 3):
+    report_con_modello = call(
+        "/api/catering/report?data=" + menu_lunedi + "&plesso_id=" + str(plesso_assegnato),
+        token=catering
+    )
+    scuola = next(p for p in report_con_modello["plessi"]
+        if int(p["plesso_id"]) == plesso_assegnato)
+    attive = [t for t in scuola["tipologie"]
+        if int(t["tipologia_id"]) == tipologia_menu and int(t["pasti"]) > 0]
+    # Un'assegnazione senza alunni per quella tipologia non genera pasti:
+    # la scuola secondaria sintetica ha soltanto alunni Standard.
+    if not attive:
+        assert plesso_assegnato == 3
+        continue
+    tipo = attive[0]
+    assert tipo["menu_nome"] == "Settimana base - collaudo"
+    assert tipo["menu_descrizione"] == "Primo: pasta\\nSecondo: verdure"
+    assert tipo["menu_origine"] == "settimanale"
+    for classe in scuola["sezioni"]:
+        for t in classe["tipologie"]:
+            if int(t["tipologia_id"]) == tipologia_menu:
+                assert t["menu_nome"] == "Settimana base - collaudo"
+                assert t["menu_descrizione"] == tipo["menu_descrizione"]
+    verifica_distribuzione(scuola)
+
+menu_genitore = call("/api/genitore/menu?data=" + menu_lunedi, token=genitore)
+assert any(m.get("origine") == "settimanale" for m in menu_genitore)
+assert call("/api/catering/menu?data=2026-10-15", token=catering) == []
+print("OK: modello duplicato e assegnato a piu' plessi, visibile al genitore senza modifiche retroattive.")
+
+# Foto per singolo giorno del modello: una stessa immagine deve arrivare
+# a tutti i plessi assegnati e al profilo Genitore. Salvataggio multipart reale.
+def aggiorna_settimana_multipart(modello, campi, file_png=None):
+    boundary = "----StagingFotoSettimana"
+    body = bytearray()
+    for nome, valore in campi.items():
+        body.extend(("--" + boundary + "\r\n"
+            'Content-Disposition: form-data; name="' + nome + '"\r\n\r\n' +
+            str(valore) + "\r\n").encode("utf-8"))
+    if file_png is not None:
+        body.extend(("--" + boundary + "\r\n"
+            'Content-Disposition: form-data; name="foto_giorno_1"; filename="lunedi.png"\r\n'
+            "Content-Type: image/png\r\n\r\n").encode("utf-8"))
+        body.extend(file_png)
+        body.extend(b"\r\n")
+    body.extend(("--" + boundary + "--\r\n").encode("utf-8"))
+    richiesta = urllib.request.Request(
+        base + "/api/catering/menu-settimanali/" + str(modello) + "/aggiorna",
+        data=bytes(body), headers={
+            "Authorization": "Bearer " + catering,
+            "Content-Type": "multipart/form-data; boundary=" + boundary
+        })
+    with urllib.request.urlopen(richiesta, timeout=20) as risposta:
+        return json.load(risposta)["dati"]
+
+giorni_foto = {
+    "1": "Primo: pasta\nSecondo: verdure",
+    "2": "Riso", "3": "Pollo", "4": "Pesce",
+    "5": "Minestrone", "6": "", "7": ""
+}
+campi_settimana = {
+    "nome": "Settimana base - collaudo",
+    "tipologia_menu_id": tipologia_menu,
+    "giorni": json.dumps(giorni_foto, ensure_ascii=False),
+    "rimuovi_foto": "[]"
+}
+aggiornato = aggiorna_settimana_multipart(modello_id, campi_settimana, png_1x1)
+assert int(aggiornato["id"]) == modello_id
+dopo_foto = call("/api/catering/menu-settimanali", token=catering)
+modello_foto = next(m for m in dopo_foto if int(m["id"]) == modello_id)
+foto_settimanale = modello_foto["foto_giorni"]["1"]
+assert foto_settimanale.startswith("menu/settimane/")
+assert foto_settimanale.endswith(".png")
+menus_foto = call("/api/catering/menu?data=" + menu_lunedi, token=catering)
+assert len([m for m in menus_foto if
+    int(m["tipologia_menu_id"]) == tipologia_menu and
+    m.get("origine") == "settimanale" and
+    m["foto_path"] == foto_settimanale]) == 2
+famiglia_foto = call("/api/genitore/menu?data=" + menu_lunedi, token=genitore)
+assert any(m["foto_path"] == foto_settimanale for m in famiglia_foto)
+# Duplicando il modello, la foto viene ripresa per riferimento immutabile.
+copiato_foto = call("/api/catering/menu-settimanali/" + str(modello_id) + "/duplica", {
+    "nome": "Copia con foto",
+    "tipologia_menu_id": tipologia_menu
+}, token=catering)
+modelli_finali = call("/api/catering/menu-settimanali", token=catering)
+assert next(m for m in modelli_finali
+    if int(m["id"]) == int(copiato_foto["id"]))["foto_giorni"]["1"] == foto_settimanale
+# La pubblicazione del menù giornaliero deve sostituire anche la fotografia:
+# in assenza di un upload, non deve riprendere quella del modello settimanale.
+campi_override = {
+    "plesso_id": plesso_menu, "tipologia_menu_id": tipologia_menu,
+    "data": menu_lunedi, "descrizione": "Pollo",
+    "rimuovi_foto": "0"
+}
+eccezione = invia_menu_multipart(campi_override)
+foto_override = call("/api/catering/menu?data=" + menu_lunedi, token=catering)
+riga_override = next(m for m in foto_override
+    if int(m["plesso_id"]) == plesso_menu and
+       int(m["tipologia_menu_id"]) == tipologia_menu)
+assert riga_override["foto_path"] is None
+assert riga_override["descrizione"] == "Pollo"
+assert riga_override["origine"] == "giornaliero"
+report_override = call("/api/catering/report?data=" + menu_lunedi + "&plesso_id=" +
+    str(plesso_menu), token=catering)
+tipo_override = next(t for p in report_override["plessi"]
+    if int(p["plesso_id"]) == plesso_menu for t in p["tipologie"]
+    if int(t["tipologia_id"]) == tipologia_menu)
+assert tipo_override["menu_nome"] == "Menu del giorno"
+assert tipo_override["menu_origine"] == "giornaliero"
+assert tipo_override["menu_descrizione"] == "Pollo"
+invia_menu_multipart(campi_override, png_1x1)
+campi_override["rimuovi_foto"] = "1"
+invia_menu_multipart(campi_override)
+dopo_rimozione_locale = call("/api/catering/menu?data=" + menu_lunedi, token=catering)
+assert next(m for m in dopo_rimozione_locale
+    if int(m["plesso_id"]) == plesso_menu and
+       int(m["tipologia_menu_id"]) == tipologia_menu)["foto_path"] is None
+assert next(m for m in dopo_rimozione_locale
+    if int(m["plesso_id"]) == 3 and
+       int(m["tipologia_menu_id"]) == tipologia_menu)["foto_path"] == foto_settimanale
+
+# Rimozione senza upload: l'aggiornamento non elimina gli altri menu.
+campi_settimana["rimuovi_foto"] = '["1"]'
+aggiorna_settimana_multipart(modello_id, campi_settimana)
+modelli_senza = call("/api/catering/menu-settimanali", token=catering)
+senza = next(m for m in modelli_senza if int(m["id"]) == modello_id)
+assert not senza["foto_giorni"]
+assert next(m for m in modelli_senza
+    if int(m["id"]) == int(copiato_foto["id"]))["foto_giorni"]["1"] == foto_settimanale
+# Una variazione programmata per un giorno futuro e per una tipologia
+# senza modello deve essere leggibile, modificabile e annullabile via API.
+tipo_senza_modello = int(riferimenti["tipologie"][1]["id"])
+campi_futuri = {
+    "plesso_id": plesso_menu, "tipologia_menu_id": tipo_senza_modello,
+    "data": giorno, "descrizione": "Menu senza glutine programmato",
+    "rimuovi_foto": "0"
+}
+nuovo_programmato = invia_menu_multipart(campi_futuri)
+programmate = call("/api/catering/menu/variazioni?pagina=1", token=catering)
+assert programmate["pagina"] == 1 and programmate["per_pagina"] == 10
+assert programmate["pagine"] >= 1 and len(programmate["righe"]) <= 10
+assert all(a["data"] >= b["data"] for a, b
+           in zip(programmate["righe"], programmate["righe"][1:]))
+futura = next(m for m in programmate["righe"]
+    if int(m["id"]) == int(nuovo_programmato["id"]))
+assert futura["data"] == giorno
+assert futura["descrizione"] == "Menu senza glutine programmato"
+assert futura["modificabile"] is True
+assert futura["ha_modello_settimanale"] is False
+assert any(m["descrizione"] == campi_futuri["descrizione"] for m in
+           call("/api/catering/menu?data=" + giorno, token=catering))
+campi_futuri["descrizione"] = "Menu senza glutine modificato"
+invia_menu_multipart(campi_futuri)
+assert next(m for m in call("/api/catering/menu/variazioni?pagina=1", token=catering)["righe"]
+    if int(m["id"]) == int(nuovo_programmato["id"]))["descrizione"] == campi_futuri["descrizione"]
+call("/api/catering/menu/annulla", {
+    "plesso_id": plesso_menu, "tipologia_menu_id": tipo_senza_modello, "data": giorno
+}, token=catering)
+assert not any(int(m["id"]) == int(nuovo_programmato["id"])
+               for m in call("/api/catering/menu/variazioni?pagina=1", token=catering)["righe"])
+ultima_pagina = call("/api/catering/menu/variazioni?pagina=99999", token=catering)
+assert ultima_pagina["pagina"] == ultima_pagina["pagine"]
+assert len(ultima_pagina["righe"]) <= 10
+assert any(m["descrizione"] == "Menu senza glutine modificato" for m in
+           call("/api/catering/menu?data=" + menu_lunedi, token=catering)) is False
+try:
+    call("/api/catering/menu/annulla", {
+        "plesso_id": plesso_menu, "tipologia_menu_id": tipo_senza_modello, "data": giorno
+    }, token=catering)
+    raise AssertionError("Annullamento ripetuto di menu inesistente accettato")
+except urllib.error.HTTPError as exc:
+    assert exc.code == 422
+print("OK: programmazione futura, elenco, aggiornamento e annullamento senza modello.")
+
+print("OK: foto settimanale aggiunta, condivisa, duplicata e rimossa via multipart; copia preservata.")
+
+
+# Riepilogo Admin per tutte le scuole e classi (sola lettura).
+# La scelta di una scuola nel modulo di configurazione non restringe l'API.
+riepilogo = call("/api/admin/calendari/riepilogo?data=2026-10-19", token=admin)
+assert riepilogo["data"] == "2026-10-19"
+assert riepilogo["anno_scolastico"] == "2026/2027"
+assert len(riepilogo["scuole"]) == len(scuole_attive)
+assert riepilogo["totali"]["scuole"] == len(scuole_attive)
+assert riepilogo["totali"]["scuole_aperte"] == 2
+assert riepilogo["totali"]["scuole_chiuse"] == len(scuole_attive) - 2
+assert riepilogo["totali"]["classi_aperte"] == 5
+assert riepilogo["totali"]["classi_chiuse"] == 0
+assert sum(len(p["classi"]) for p in riepilogo["scuole"]) == 5
+assert all(p["totale_classi"] == len(p["classi"]) for p in riepilogo["scuole"])
+assert all(set(c) == {"id", "nome"} for p in riepilogo["scuole"] for c in p["classi"])
+# Un giorno senza mensa per la Secondaria, con classi ereditate.
+riepilogo_martedi = call("/api/admin/calendari/riepilogo?data=2026-10-20", token=admin)
+secondaria = next(p for p in riepilogo_martedi["scuole"]
+                 if "Secondaria" in p["plesso_nome"])
+assert secondaria["attivo"] is False
+assert secondaria["motivo"] == "giorno_senza_servizio"
+assert secondaria["totale_classi"] == 1
+assert riepilogo_martedi["totali"]["classi_chiuse"] == 1
+# La ricerca per un altro anno non deve attribuire classi dell'anno precedente.
+riepilogo_anno_successivo = call(
+    "/api/admin/calendari/riepilogo?data=2027-10-19", token=admin)
+assert riepilogo_anno_successivo["anno_scolastico"] == "2027/2028"
+assert sum(p["totale_classi"] for p in riepilogo_anno_successivo["scuole"]) == 0
+assert call("/api/job/esecuzioni", token=admin) == storico_dopo
+for data_errata in ["2026-02-30", "2026-10-xx"]:
+    try:
+        call("/api/admin/calendari/riepilogo?data=" + data_errata, token=admin)
+        raise AssertionError("Data errata accettata nel riepilogo")
+    except urllib.error.HTTPError as exc:
+        assert exc.code == 422
+try:
+    call("/api/admin/calendari/riepilogo?data=2026-10-19", token=genitore_sola_lettura)
+    raise AssertionError("Genitore autorizzato alla vista Admin")
+except urllib.error.HTTPError as exc:
+    assert exc.code == 403
+print("OK: tutte le scuole, classi per anno, giorni aperti/chiusi, privacy e lettura senza job.")
+
+# Periodi straordinari: test API sul SOLO database sintetico di staging.
+cal = "/api/admin/calendari/1"
+def salva_periodo(inizio, fine, attivo, motivazione, periodo_id=None):
+    url = cal + "/periodi" + ("/" + str(periodo_id) if periodo_id is not None else "")
+    return call(url, {
+        "data_inizio": inizio, "data_fine": fine,
+        "servizio_attivo": attivo, "motivazione": motivazione
+    }, token=admin, method="PUT" if periodo_id is not None else None)
+
+chiusura_a = salva_periodo("2027-02-12", "2027-02-14", 0, "Chiusura A")["id"]
+chiusura_b = salva_periodo("2027-02-14", "2027-02-16", 0, "Chiusura B")["id"]
+periodi = call(cal, token=admin)["eccezioni"]
+assert any(int(p["id"]) == int(chiusura_a) and p["giorno_fine"] == "2027-02-14"
+           for p in periodi)
+assert any(int(p["id"]) == int(chiusura_b) and p["giorno_fine"] == "2027-02-16"
+           for p in periodi)
+assert call(cal + "/verifica?data=2027-02-14", token=admin) == {
+    "attivo": False, "motivo": "chiusura_programmata"
+}
+for da, a, stato in [
+    ("2027-02-13", "2027-02-16", 0),  # sovrapposizione interna, stesso tipo
+    ("2027-02-16", "2027-02-18", 1),  # solo confine ma apertura/chiusura opposti
+    ("2027-02-12", "2027-02-14", 0),  # duplicazione
+    ("2027-02-14", "2027-02-14", 1),  # giorno singolo con stato opposto
+]:
+    try:
+        salva_periodo(da, a, stato, "Conflitto atteso")
+        raise AssertionError("Sovrapposizione accettata: " + da + " - " + a)
+    except urllib.error.HTTPError as exc:
+        assert exc.code == 422, "Sovrapposizione: atteso HTTP 422"
+# Modifica di un periodo senza duplicare record, e successiva cancellazione.
+salva_periodo("2027-02-14", "2027-02-17", 0, "Chiusura B modificata", chiusura_b)
+assert next(p for p in call(cal, token=admin)["eccezioni"]
+            if int(p["id"]) == int(chiusura_b))["giorno_fine"] == "2027-02-17"
+call(cal + "/periodi/" + str(chiusura_b), token=admin, method="DELETE")
+assert not any(int(p["id"]) == int(chiusura_b)
+               for p in call(cal, token=admin)["eccezioni"])
+# Apertura deliberata di sabato/domenica e in una festività nazionale.
+apertura_weekend = salva_periodo("2027-02-20", "2027-02-21", 1, "Servizio speciale")["id"]
+for giorno_speciale in ("2027-02-20", "2027-02-21"):
+    assert call(cal + "/verifica?data=" + giorno_speciale, token=admin) == {
+        "attivo": True, "motivo": "apertura_straordinaria"
+    }
+apertura_festa = salva_periodo("2026-12-08", "", 1, "Apertura eccezionale")["id"]
+assert call(cal + "/verifica?data=2026-12-08", token=admin) == {
+    "attivo": True, "motivo": "apertura_straordinaria"
+}
+# Verifica anche l'apertura prima della data d'avvio ordinaria.
+apertura_pre = salva_periodo("2026-10-17", "", 1, "Servizio precedente avvio")["id"]
+assert call(cal + "/verifica?data=2026-10-17", token=admin) == {
+    "attivo": True, "motivo": "apertura_straordinaria"
+}
+# I vecchi endpoint giornalieri non devono sovrascrivere un periodo intero.
+try:
+    call(cal + "/eccezioni/2027-02-12", {
+        "servizio_attivo": 1, "motivazione": "Modifica impropria"
+    }, token=admin, method="PUT")
+    raise AssertionError("Endpoint legacy ha alterato un periodo pluriennale")
+except urllib.error.HTTPError as exc:
+    assert exc.code == 422
+# Nessuna delle operazioni precedenti deve incidere su presenze/crediti,
+# perché non è mai stato chiamato lo scheduler.
+assert call("/api/job/esecuzioni", token=admin) == storico_dopo
+print("OK: intervalli contigui dello stesso tipo, conflitti 422, modifica, "
+      "aperture weekend/festivita/prima dell'avvio, niente job eseguiti.")

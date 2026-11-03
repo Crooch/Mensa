@@ -17,11 +17,17 @@ final class AdminController
     /** Dati di riferimento comuni a piu' aree (plessi, tipologie, classi attive). */
     public function riferimenti(Request $r, array $utente): array
     {
-        return [
-            'plessi'    => $this->c->configurazione()->plessi(),
-            'tipologie' => $this->c->configurazione()->tipologie(),
-            'classi'    => $this->c->configurazione()->classi(),
-        ];
+        $plessi = $this->c->configurazione()->plessi();
+        $classi = $this->c->configurazione()->classi();
+        if ($utente['ruolo'] === 'scuola') {
+            $pid = (int)($utente['plesso_id'] ?? 0);
+            $plessi = array_values(array_filter($plessi, fn($p) => (int)$p['id'] === $pid));
+            $classi = array_values(array_filter($classi, fn($c) => (int)$c['plesso_id'] === $pid));
+        }
+        if (!in_array($utente['ruolo'], ['admin', 'operatore'], true)) {
+            $plessi = array_map(fn($p) => array_intersect_key($p, array_flip(['id','nome','cutoff_orario'])), $plessi);
+        }
+        return ['plessi'=>$plessi, 'tipologie'=>$this->c->configurazione()->tipologie(), 'classi'=>$classi];
     }
 
     // ---------------- plessi ----------------
@@ -46,6 +52,84 @@ final class AdminController
     {
         $this->c->configurazione()->cancellaPlesso((int) $r->parametro('id'));
         return ['cancellato_logicamente' => true];
+    }
+
+    // ---------------- calendario servizio mensa ----------------
+
+    public function dettaglioCalendario(Request $r, array $utente): array
+    {
+        return $this->c->calendario()->dettaglio((int) $r->parametro('id'));
+    }
+
+    public function salvaCalendario(Request $r, array $utente): array
+    {
+        $this->c->calendario()->salvaConfigurazione((int) $r->parametro('id'), $r->corpo());
+        return ['salvato' => true];
+    }
+
+    /** Ricerca globale di apertura mensa, sola lettura, senza addebiti. */
+    public function riepilogoCalendario(Request $r, array $utente): array
+    {
+        $data = (string) $r->query('data', date('Y-m-d'));
+        $giorno = \DateTimeImmutable::createFromFormat('!Y-m-d', $data);
+        if ($giorno === false || $giorno->format('Y-m-d') !== $data) {
+            throw \App\Core\HttpException::nonValido('Seleziona una data valida.');
+        }
+        $anno = (int) $giorno->format('Y');
+        $annoInizio = (int) $giorno->format('n') >= 9 ? $anno : $anno - 1;
+        $annoScolastico = $annoInizio . '/' . ($annoInizio + 1);
+        return $this->c->calendario()->riepilogoPlessi(
+            $data,
+            $this->c->configurazione()->classi(null, $annoScolastico)
+        );
+    }
+
+    public function verificaCalendario(Request $r, array $utente): array
+    {
+        return $this->c->calendario()->previsto(
+            (int) $r->parametro('id'),
+            (string) $r->query('data', date('Y-m-d'))
+        );
+    }
+
+    /** Nuove aperture/chiusure per giorno singolo o intervallo di date. */
+    public function creaPeriodoCalendario(Request $r, array $utente): array
+    {
+        return ['id' => $this->c->calendario()->salvaPeriodo(
+            (int) $r->parametro('id'), $r->corpo()
+        )];
+    }
+
+    public function modificaPeriodoCalendario(Request $r, array $utente): array
+    {
+        $this->c->calendario()->salvaPeriodo(
+            (int) $r->parametro('id'), $r->corpo(), (int) $r->parametro('periodo_id')
+        );
+        return ['aggiornato' => true];
+    }
+
+    public function cancellaPeriodoCalendario(Request $r, array $utente): array
+    {
+        $this->c->calendario()->cancellaPeriodo(
+            (int) $r->parametro('id'), (int) $r->parametro('periodo_id')
+        );
+        return ['cancellato' => true];
+    }
+
+    public function salvaEccezioneCalendario(Request $r, array $utente): array
+    {
+        $this->c->calendario()->salvaEccezione(
+            (int) $r->parametro('id'), (string) $r->parametro('data'), $r->corpo()
+        );
+        return ['salvata' => true];
+    }
+
+    public function cancellaEccezioneCalendario(Request $r, array $utente): array
+    {
+        $this->c->calendario()->cancellaEccezione(
+            (int) $r->parametro('id'), (string) $r->parametro('data')
+        );
+        return ['cancellata' => true];
     }
 
     // ---------------- classi ----------------
@@ -188,9 +272,13 @@ final class AdminController
         return ['salvate' => true];
     }
 
+    public function verificaSmtp(Request $r, array $utente): array
+    {
+        return $this->c->solleciti()->verificaSmtp();
+    }
+
     public function emailDiProva(Request $r, array $utente): array
     {
-        $this->c->solleciti()->inviaEmailDiProva((string) $r->obbligatorio('email'));
-        return ['inviata' => true];
+        return $this->c->solleciti()->inviaEmailDiProva((string) $r->obbligatorio('email'), (int) $r->obbligatorio('plesso_id'));
     }
 }

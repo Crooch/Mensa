@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Core\HttpException;
+use App\Core\Database;
 use App\Repository\AssegnazioneClasseRepository;
 use App\Repository\BambinoRepository;
 use App\Repository\ClasseSezioneRepository;
+use App\Repository\JobRepository;
 use App\Repository\PlessoRepository;
 use App\Repository\PresenzaRepository;
 
@@ -33,7 +35,10 @@ final class PresenzaService
         private BambinoRepository $bambini,
         private ClasseSezioneRepository $classi,
         private PlessoRepository $plessi,
-        private AssegnazioneClasseRepository $assegnazioni
+        private AssegnazioneClasseRepository $assegnazioni,
+        private CalendarioService $calendario,
+        private JobRepository $job,
+        private CreditoService $crediti
     ) {
     }
 
@@ -111,48 +116,189 @@ final class PresenzaService
     public function dichiaraGenitore(int $bambinoId, string $data, string $stato, int $utenteId): array
     {
         $this->validaStato($stato);
+        $this->validaDataDichiarazione($data);
         $bambino = $this->bambinoConPlesso($bambinoId, $data);
-        if ($data < date('Y-m-d')) {
-            throw HttpException::nonValido('Non è possibile dichiarare eccezioni per giornate passate: contattare la scuola');
+        $plessoId = (int) $bambino['plesso_id'];
+        if ($this->presenze->assenzaMassa((int) $bambino['classe_sezione_id'], $data) !== null) {
+            throw HttpException::nonValido('La classe non mangia a mensa in questa giornata (gita o uscita).');
         }
-        $plesso = $this->plessi->trova((int) $bambino['plesso_id']);
-        $fuoriCutoff = $this->oltreCutoff($plesso, $data);
+        if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
+            throw HttpException::nonValido('Non e previsto servizio mensa in questa data');
+        }
+        $plesso = $this->plessi->trova($plessoId);
+        if (!$this->job->acquisisciLock($plessoId, $data)) {
+            throw new HttpException(409, 'Elaborazione della giornata in corso. Riprovare.');
+        }
+        try {
+            $this->verificaModificabile($plesso, $plessoId, $data);
+            return Database::inTransazione(function () use ($bambinoId, $data, $stato, $utenteId) {
+                $record = $this->assicuraRecord($bambinoId, $data);
+                if ((int) $record['congelato'] === 1) {
+                    throw HttpException::nonValido('Giornata chiusa');
+                }
+                $pastaPrima = (int) ($this->presenze->richiestaPastaBianco($bambinoId, $data)['richiesta'] ?? 0) === 1;
+                if ($record['dichiarazione_genitore'] === $stato) {
+                    if ($record['stato_effettivo'] === 'assente') {
+                        $this->annullaPastaSeAssente($bambinoId, $data, $utenteId);
+                    }
+                    return $record + [
+                        'effetto' => 'invariato', 'fonte' => 'dichiarazione',
+                        'pasta_annullata' => $pastaPrima && $record['stato_effettivo'] === 'assente',
+                    ];
+                }
+                $this->presenze->modificaPresenza((int) $record['id'], [
+                    'dichiarazione_genitore' => $stato,
+                    'dichiarazione_timestamp' => date('Y-m-d H:i:s'),
+                    'dichiarazione_utente_id' => $utenteId,
+                    'fuori_cutoff' => 0,
+                ]);
+                $this->presenze->registraAudit(
+                    $bambinoId, $data, 'dichiarazione_genitore',
+                    $record['dichiarazione_genitore'], $stato, $utenteId
+                );
+                $esito = $this->ricalcola($bambinoId, $data, false, 'dichiarazione', $utenteId);
+                $esito['pasta_annullata'] = $pastaPrima && $esito['stato_effettivo'] === 'assente';
+                return $esito;
+            });
+        } finally {
+            $this->job->rilasciaLock($plessoId, $data);
+        }
+    }
 
-        $record = $this->assicuraRecord($bambinoId, $data);
-        $this->presenze->modificaPresenza((int) $record['id'], [
-            'dichiarazione_genitore'  => $stato,
-            'dichiarazione_timestamp' => date('Y-m-d H:i:s'),
-            'dichiarazione_utente_id' => $utenteId,
-            'fuori_cutoff'            => $fuoriCutoff ? 1 : 0,
-        ]);
-
-        return $this->ricalcola($bambinoId, $data, $fuoriCutoff, 'dichiarazione');
+    /**
+     * Richiesta di pasta in bianco soltanto con pasto previsto.
+     * Consentita oggi entro cutoff o in un giorno futuro di effettivo servizio.
+     */
+    public function pastaBiancoGenitore(int $bambinoId, string $data, bool $richiesta, int $utenteId): array
+    {
+        $this->validaDataDichiarazione($data);
+        $bambino = $this->bambinoConPlesso($bambinoId, $data);
+        $plessoId = (int) $bambino['plesso_id'];
+        if ($richiesta && $this->presenze->assenzaMassa((int) $bambino['classe_sezione_id'], $data) !== null) {
+            throw HttpException::nonValido('La classe non mangia a mensa in questa giornata.');
+        }
+        if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
+            throw HttpException::nonValido('Non e previsto servizio mensa in questa data');
+        }
+        $plesso = $this->plessi->trova($plessoId);
+        if (!$this->job->acquisisciLock($plessoId, $data)) {
+            throw new HttpException(409, 'Elaborazione della giornata in corso. Riprovare.');
+        }
+        try {
+            $this->verificaModificabile($plesso, $plessoId, $data);
+            return Database::inTransazione(function () use ($bambinoId, $data, $richiesta, $utenteId) {
+                $record = $this->assicuraRecord($bambinoId, $data);
+                if ((int) $record['congelato'] === 1) {
+                    throw HttpException::nonValido('Giornata chiusa');
+                }
+                if ($richiesta && $record['stato_effettivo'] !== 'presente') {
+                    throw HttpException::nonValido('La pasta in bianco si può richiedere solo se il pasto è previsto');
+                }
+                $precedente = $this->presenze->richiestaPastaBianco($bambinoId, $data);
+                if ($precedente !== null && (int) $precedente['richiesta'] === (int) $richiesta) {
+                    return ['bambino_id' => $bambinoId, 'data' => $data, 'richiesta' => $richiesta];
+                }
+                $this->presenze->salvaPastaBianco($bambinoId, $data, $richiesta, $utenteId);
+                $this->presenze->registraAudit(
+                    $bambinoId, $data, 'pasta_in_bianco',
+                    $precedente === null ? null : (string) $precedente['richiesta'],
+                    $richiesta ? '1' : '0', $utenteId
+                );
+                return ['bambino_id' => $bambinoId, 'data' => $data, 'richiesta' => $richiesta];
+            });
+        } finally {
+            $this->job->rilasciaLock($plessoId, $data);
+        }
     }
 
     /** Override della scuola, sempre motivato. Consentito anche su date passate (correzione tracciata). */
-    public function overrideScuola(int $bambinoId, string $data, string $stato, string $motivazione, int $utenteId, ?int $plessoUtente = null): array
+    public function overrideScuola(int $bambinoId, string $data, string $stato,
+                                   string $motivazione, int $utenteId, ?int $plessoUtente = null): array
     {
         $this->validaStato($stato);
-        if (trim($motivazione) === '') {
-            throw HttpException::nonValido('La motivazione dell\'override è obbligatoria');
+        $motivazione = trim($motivazione);
+        if ($motivazione === '' || strlen($motivazione) > 255) {
+            throw HttpException::nonValido('La motivazione e obbligatoria (massimo 255 caratteri)');
         }
         $bambino = $this->bambinoConPlesso($bambinoId, $data);
-        if ($plessoUtente !== null && (int) $bambino['plesso_id'] !== $plessoUtente) {
-            throw HttpException::nonAutorizzato('L\'alunno non appartiene al plesso dell\'utenza');
+        $plessoId = (int) $bambino['plesso_id'];
+        if ($this->presenze->assenzaMassa((int) $bambino['classe_sezione_id'], $data) !== null) {
+            throw HttpException::nonValido('Assenza di tutta la classe registrata: non e possibile confermare un pasto.');
         }
-        $plesso = $this->plessi->trova((int) $bambino['plesso_id']);
-        $fuoriCutoff = $this->oltreCutoff($plesso, $data);
+        if ($plessoUtente !== null && $plessoId !== $plessoUtente) {
+            throw HttpException::nonAutorizzato('Alunno non appartenente al plesso assegnato');
+        }
+        $plesso = $this->plessi->trova($plessoId);
+        if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
+            // Anche le correzioni retroattive non possono inventare un pasto
+            // in una giornata antecedente l'avvio o senza servizio mensa.
+            throw HttpException::nonValido('Nessun servizio mensa previsto per questa data');
+        }
+        if (!$this->job->acquisisciLock($plessoId, $data)) {
+            throw new HttpException(409, 'Elaborazione della giornata in corso. Riprovare.');
+        }
+        try {
+            return Database::inTransazione(function () use (
+                $bambinoId, $bambino, $data, $stato, $motivazione, $utenteId, $plessoId, $plesso
+            ) {
+                $record = $this->assicuraRecord($bambinoId, $data);
+                $fuoriCutoff = $this->oltreCutoff($plesso, $data);
+                $esecuzione = $this->job->esecuzione($plessoId, $data);
+                if ($esecuzione !== null && $esecuzione['esito'] === 'in_corso') {
+                    throw new HttpException(409, 'Job giornaliero ancora in elaborazione');
+                }
+                $aggiornamenti = [
+                    'override_scuola' => $stato,
+                    'override_timestamp' => date('Y-m-d H:i:s'),
+                    'override_utente_id' => $utenteId,
+                    'override_motivazione' => $motivazione,
+                    'fuori_cutoff' => $fuoriCutoff ? 1 : 0,
+                ];
 
-        $record = $this->assicuraRecord($bambinoId, $data);
-        $this->presenze->modificaPresenza((int) $record['id'], [
-            'override_scuola'      => $stato,
-            'override_timestamp'   => date('Y-m-d H:i:s'),
-            'override_utente_id'   => $utenteId,
-            'override_motivazione' => trim($motivazione),
-            'fuori_cutoff'         => $fuoriCutoff ? 1 : 0,
-        ]);
+                $consumo = false;
+                if ($fuoriCutoff && $data === date('Y-m-d') && $stato === 'presente') {
+                    // L'alunno ha usufruito del pasto nonostante la previsione di assenza.
+                    // Se il job e' concluso, la conferma genera un solo addebito;
+                    // se non e' ancora partito, lo effettuera' il job.
+                    if ($esecuzione !== null && $esecuzione['esito'] === 'errore') {
+                        throw new HttpException(409, 'Job incompleto: verificare la contabilizzazione prima della correzione');
+                    }
+                    $aggiornamenti['stato_effettivo'] = 'presente';
+                    if ($esecuzione !== null && $esecuzione['esito'] === 'ok') {
+                        $movimento = $this->crediti->registraConsumoInTransazione(
+                            (int) $bambino['genitore_id'], $plessoId, $bambinoId, $data, $utenteId
+                        );
+                        $aggiornamenti['consumo_registrato'] = 1;
+                        $consumo = $movimento !== null;
+                    }
+                } elseif (!$fuoriCutoff && (int) $record['congelato'] !== 1) {
+                    $record['override_scuola'] = $stato;
+                    $aggiornamenti['stato_effettivo'] = $this->calcolaStatoEffettivo($record);
+                    if ($aggiornamenti['stato_effettivo'] === 'assente') {
+                        $this->annullaPastaSeAssente($bambinoId, $data, $utenteId);
+                    }
+                }
 
-        return $this->ricalcola($bambinoId, $data, $fuoriCutoff, 'override');
+                if ($esecuzione !== null && $esecuzione['esito'] === 'ok' && $stato === 'presente') $aggiornamenti['congelato'] = 1;
+                $this->presenze->modificaPresenza((int) $record['id'], $aggiornamenti);
+                if ($data === date('Y-m-d')) (new \App\Repository\AutonomiaRepository())->storicizzaTipologie($plessoId, $data);
+                $this->presenze->registraAudit(
+                    $bambinoId, $data, 'override_scuola',
+                    $record['override_scuola'], $stato, $utenteId, $motivazione
+                );
+                $nuovo = $this->presenze->trovaPresenza($bambinoId, $data);
+                return $nuovo + [
+                    'effetto' => $fuoriCutoff
+                        ? ($consumo ? 'pasto_contabilizzato' :
+                            ($stato === 'presente' && $data === date('Y-m-d')
+                                ? 'presenza_confermata' : 'registrato_senza_effetto'))
+                        : 'applicato',
+                    'fonte' => 'override',
+                ];
+            });
+        } finally {
+            $this->job->rilasciaLock($plessoId, $data);
+        }
     }
 
     /**
@@ -160,7 +306,7 @@ final class PresenzaService
      * Se il contributo e' fuori cutoff (o il record e' congelato) lo stato non
      * viene toccato: resta quello congelato al momento del cutoff.
      */
-    private function ricalcola(int $bambinoId, string $data, bool $fuoriCutoff, string $fonte): array
+    private function ricalcola(int $bambinoId, string $data, bool $fuoriCutoff, string $fonte, int $utenteId): array
     {
         $record = $this->presenze->trovaPresenza($bambinoId, $data);
         if ($fuoriCutoff || (int) $record['congelato'] === 1) {
@@ -172,42 +318,79 @@ final class PresenzaService
             $this->presenze->modificaPresenza((int) $record['id'], ['stato_effettivo' => $nuovo]);
             $record['stato_effettivo'] = $nuovo;
         }
+        if ($nuovo === 'assente') {
+            $this->annullaPastaSeAssente($bambinoId, $data, $utenteId);
+        }
         return $record + ['effetto' => 'applicato', 'fonte' => $fonte];
     }
 
-    /** Assenza di massa per una classe (gita/uscita didattica). */
-    public function dichiaraAssenzaMassa(int $classeSezioneId, string $data, string $motivo, int $utenteId, ?int $plessoUtente = null): int
+    /**
+     * La pasta in bianco è valida soltanto se è previsto il pasto.
+     * Un'assenza annulla la richiesta precedente e conserva l'audit.
+     */
+    private function annullaPastaSeAssente(int $bambinoId, string $data, int $utenteId): void
     {
+        $pasta = $this->presenze->richiestaPastaBianco($bambinoId, $data);
+        if ($pasta === null || (int) $pasta['richiesta'] !== 1) {
+            return;
+        }
+        $this->presenze->salvaPastaBianco($bambinoId, $data, false, $utenteId);
+        $this->presenze->registraAudit(
+            $bambinoId, $data, 'pasta_in_bianco', '1', '0',
+            $utenteId, 'Pasto non previsto'
+        );
+    }
+
+    /** Assenza di massa per una classe (gita/uscita didattica). */
+    public function dichiaraAssenzaMassa(int $classeSezioneId, string $data,
+                                         string $motivo, int $utenteId, ?int $plessoUtente = null): int
+    {
+        $this->validaDataDichiarazione($data);
         $classe = $this->classi->trova($classeSezioneId);
         if ($classe === null) {
             throw HttpException::nonTrovato('Classe non trovata');
         }
-        if ($plessoUtente !== null && (int) $classe['plesso_id'] !== $plessoUtente) {
-            throw HttpException::nonAutorizzato('La classe non appartiene al plesso dell\'utenza');
+        $plessoId = (int) $classe['plesso_id'];
+        if ($plessoUtente !== null && $plessoId !== $plessoUtente) {
+            throw HttpException::nonAutorizzato('Classe non appartenente al plesso assegnato');
         }
-        if ($this->presenze->assenzaMassa($classeSezioneId, $data) !== null) {
-            throw HttpException::nonValido('Assenza di massa già registrata per questa classe e data');
+        if (!$this->calendario->previsto($plessoId, $data)['attivo']) {
+            throw HttpException::nonValido('Non e previsto servizio mensa in questa data');
         }
-        $id = $this->presenze->creaAssenzaMassa([
-            'classe_sezione_id' => $classeSezioneId,
-            'data'              => $data,
-            'motivo'            => trim($motivo),
-            'utente_id'         => $utenteId,
-        ]);
-
-        // Allinea i record già creati per quella data (il default cambia in "assente").
-        foreach ($this->bambini->elencoPerClasse($classeSezioneId, $data) as $bambino) {
-            $record = $this->presenze->trovaPresenza((int) $bambino['id'], $data);
-            if ($record === null || (int) $record['congelato'] === 1) {
-                continue;
-            }
-            $record['default_calcolato'] = 'assente';
-            $this->presenze->modificaPresenza((int) $record['id'], [
-                'default_calcolato' => 'assente',
-                'stato_effettivo'   => $this->calcolaStatoEffettivo($record),
-            ]);
+        $plesso = $this->plessi->trova($plessoId);
+        if (!$this->job->acquisisciLock($plessoId, $data)) {
+            throw new HttpException(409, 'Elaborazione della giornata in corso. Riprovare.');
         }
-        return $id;
+        try {
+            $this->verificaModificabile($plesso, $plessoId, $data);
+            return Database::inTransazione(function () use ($classeSezioneId, $data, $motivo, $utenteId) {
+                if ($this->presenze->assenzaMassa($classeSezioneId, $data) !== null) {
+                    throw HttpException::nonValido('Assenza di massa gia registrata');
+                }
+                $id = $this->presenze->creaAssenzaMassa([
+                    'classe_sezione_id' => $classeSezioneId,
+                    'data' => $data,
+                    'motivo' => trim($motivo),
+                    'utente_id' => $utenteId,
+                ]);
+                foreach ($this->bambini->elencoPerClasse($classeSezioneId, $data) as $bambino) {
+                    $record = $this->presenze->trovaPresenza((int) $bambino['id'], $data);
+                    if ($record !== null && (int) $record['congelato'] !== 1) {
+                        // La gita ha precedenza su precedenti comunicazioni della
+                        // famiglia e della scuola. Le fonti restano nello storico.
+                        $this->presenze->modificaPresenza((int) $record['id'], [
+                            'default_calcolato' => 'assente',
+                            'stato_effettivo' => 'assente',
+                        ]);
+                    }
+                    // Annulla anche eventuali richieste speciali preesistenti.
+                    $this->annullaPastaSeAssente((int) $bambino['id'], $data, $utenteId);
+                }
+                return $id;
+            });
+        } finally {
+            $this->job->rilasciaLock($plessoId, $data);
+        }
     }
 
     public function elencoAssenzeMassa(?int $plessoId, string $da, string $a): array
@@ -225,15 +408,31 @@ final class PresenzaService
         if ($plessoUtente !== null && (int) $classe['plesso_id'] !== $plessoUtente) {
             throw HttpException::nonAutorizzato();
         }
-        $plesso = $this->plessi->trova((int) $classe['plesso_id']);
+        $plessoId = (int) $classe['plesso_id'];
+        $plesso = $this->plessi->trova($plessoId);
+        $servizio = $this->calendario->previsto($plessoId, $data);
         $righe = $this->presenze->dettaglioGiornoClasse($classeSezioneId, $data);
 
-        // Per gli alunni senza record il default e' calcolato "a vista" (nessuna scrittura).
+        // Quando la mensa non e' prevista, non esistono pasti da preparare:
+        // non confondere una giornata chiusa con un alunno assente.
+        // Eventuali registrazioni storiche restano nel DB, senza nuove scritture.
         $assenzaMassa = $this->presenze->assenzaMassa($classeSezioneId, $data);
         foreach ($righe as &$riga) {
+            if (!$servizio['attivo']) {
+                $riga['default_calcolato'] = null;
+                $riga['stato_effettivo'] = null;
+                continue;
+            }
+            if ($assenzaMassa !== null) {
+                // La lettura resta corretta anche per gite già inserite
+                // con la vecchia logica e record individuali preesistenti.
+                $riga['default_calcolato'] = 'assente';
+                $riga['stato_effettivo'] = 'assente';
+            } elseif ($riga['presenza_id'] === null) {
+                $riga['default_calcolato'] = 'presente';
+                $riga['stato_effettivo'] = 'presente';
+            }
             if ($riga['presenza_id'] === null) {
-                $riga['default_calcolato'] = $assenzaMassa !== null ? 'assente' : 'presente';
-                $riga['stato_effettivo'] = $riga['default_calcolato'];
                 $riga['fuori_cutoff'] = 0;
                 $riga['congelato'] = 0;
             }
@@ -245,21 +444,67 @@ final class PresenzaService
             'data'          => $data,
             'cutoff_orario' => substr((string) $plesso['cutoff_orario'], 0, 5),
             'oltre_cutoff'  => $this->oltreCutoff($plesso, $data),
+            'servizio_mensa' => $servizio,
             'assenza_massa' => $assenzaMassa,
             'alunni'        => $righe,
         ];
     }
 
-    /** Calendario mensile di un bambino con dettaglio delle tre fonti. */
+    /**
+     * Calendario completo del mese, anche quando non esistono presenze registrate.
+     * NON scrive sul database. Una giornata passata senza record resta "non
+     * disponibile": non sarebbe corretto mostrarla come pasto consumato.
+     */
     public function calendarioBambino(int $bambinoId, int $anno, int $mese): array
     {
-        $inizio = sprintf('%04d-%02d-01', $anno, $mese);
-        $fine = date('Y-m-t', strtotime($inizio));
-        $giorni = [];
-        foreach ($this->presenze->calendarioBambino($bambinoId, $inizio, $fine) as $riga) {
-            $giorni[$riga['data']] = $riga;
+        if ($anno < 2000 || $anno > 2100 || $mese < 1 || $mese > 12) {
+            throw HttpException::nonValido('Indica un mese e un anno validi');
         }
-        return ['data_da' => $inizio, 'data_a' => $fine, 'giorni' => array_values($giorni)];
+        $inizio = sprintf('%04d-%02d-01', $anno, $mese);
+        $fine = (new \DateTimeImmutable($inizio))->format('Y-m-t');
+        $salvati = [];
+        foreach ($this->presenze->calendarioBambino($bambinoId, $inizio, $fine) as $riga) {
+            $salvati[$riga['data']] = $riga;
+        }
+        $oggi = date('Y-m-d');
+        $giorni = [];
+        for ($giorno = new \DateTimeImmutable($inizio); $giorno->format('Y-m-d') <= $fine; $giorno = $giorno->modify('+1 day')) {
+            $data = $giorno->format('Y-m-d');
+            $assegnazione = $this->assegnazioni->attivaAllaData($bambinoId, $data);
+            $plessoId = $assegnazione !== null ? (int) $assegnazione['plesso_id'] : null;
+            $servizio = $plessoId !== null ? $this->calendario->previsto($plessoId, $data)
+                : ['attivo' => false, 'motivo' => 'nessuna_classe'];
+            $registrato = $salvati[$data] ?? null;
+            $gita = $assegnazione !== null &&
+                $this->presenze->assenzaMassa((int) $assegnazione['classe_sezione_id'], $data) !== null;
+            if ($gita && $servizio['attivo'] === true) {
+                $servizio = ['attivo' => false, 'motivo' => 'assenza_classe'];
+            }
+            $attivo = $servizio['attivo'] === true;
+            $default = $attivo ? ($registrato['default_calcolato'] ?? $this->defaultCalcolato($bambinoId, $data)) : null;
+            $stato = $attivo && ($registrato !== null || $data >= $oggi)
+                ? ($registrato['stato_effettivo'] ?? $default) : null;
+            $modificabile = $attivo && $data >= $oggi;
+            if ($modificabile && $data === $oggi) {
+                $plesso = $this->plessi->trova($plessoId);
+                $modificabile = !$this->oltreCutoff($plesso, $data)
+                    && ($registrato === null || (int) $registrato['congelato'] !== 1);
+            }
+            $giorni[] = [
+                'data' => $data,
+                'servizio_mensa' => $servizio,
+                'modificabile' => $modificabile,
+                'stato_effettivo' => $stato,
+                'default_calcolato' => $default,
+                'dichiarazione_genitore' => $registrato['dichiarazione_genitore'] ?? null,
+                'override_scuola' => $registrato['override_scuola'] ?? null,
+                'override_motivazione' => $registrato['override_motivazione'] ?? null,
+                'pasta_in_bianco' => $stato === 'presente' ? (int) ($registrato['pasta_in_bianco'] ?? 0) : 0,
+                'fuori_cutoff' => (int) ($registrato['fuori_cutoff'] ?? 0),
+                'registrato' => $registrato !== null,
+            ];
+        }
+        return ['data_da' => $inizio, 'data_a' => $fine, 'giorni' => $giorni];
     }
 
     /** Stato della giornata per un bambino, con le fonti e l'informazione di cutoff. */
@@ -268,7 +513,16 @@ final class PresenzaService
         $bambino = $this->bambinoConPlesso($bambinoId, $data);
         $plesso = $this->plessi->trova((int) $bambino['plesso_id']);
         $record = $this->presenze->trovaPresenza($bambinoId, $data);
-        $default = $record['default_calcolato'] ?? $this->defaultCalcolato($bambinoId, $data);
+        $servizio = $this->calendario->previsto((int) $bambino['plesso_id'], $data);
+        if ($servizio['attivo'] === true &&
+            $this->presenze->assenzaMassa((int) $bambino['classe_sezione_id'], $data) !== null) {
+            $servizio = ['attivo' => false, 'motivo' => 'assenza_classe'];
+        }
+        $attivo = $servizio['attivo'] === true;
+        $default = $attivo
+            ? ($record['default_calcolato'] ?? $this->defaultCalcolato($bambinoId, $data))
+            : null;
+        $stato = $attivo ? ($record['stato_effettivo'] ?? $default) : null;
 
         return [
             'bambino_id'             => $bambinoId,
@@ -277,11 +531,14 @@ final class PresenzaService
             'dichiarazione_genitore' => $record['dichiarazione_genitore'] ?? null,
             'override_scuola'        => $record['override_scuola'] ?? null,
             'override_motivazione'   => $record['override_motivazione'] ?? null,
-            'stato_effettivo'        => $record['stato_effettivo'] ?? $default,
+            'stato_effettivo'        => $stato,
+            'pasta_in_bianco'        => $attivo && $stato === 'presente'
+                && (int) ($this->presenze->richiestaPastaBianco($bambinoId, $data)['richiesta'] ?? 0) === 1,
             'fuori_cutoff'           => (int) ($record['fuori_cutoff'] ?? 0),
             'congelato'              => (int) ($record['congelato'] ?? 0),
             'cutoff_orario'          => substr((string) $plesso['cutoff_orario'], 0, 5),
             'oltre_cutoff'           => $this->oltreCutoff($plesso, $data),
+            'servizio_mensa'         => $servizio,
         ];
     }
 
@@ -297,7 +554,14 @@ final class PresenzaService
         foreach ($this->bambini->elencoPerPlesso($plessoId, $data) as $bambino) {
             $record = $this->assicuraRecord((int) $bambino['id'], $data);
             if ((int) $record['congelato'] !== 1) {
-                $stato = $this->calcolaStatoEffettivo($record);
+                // Il consolidamento giornaliero applica la stessa regola
+                // dei report: la gita annulla tutti i pasti della classe.
+                // Altrimenti una vecchia presenza individuale verrebbe
+                // riattivata dal job e potrebbe generare un addebito.
+                $gita = $this->presenze->assenzaMassa((int) $bambino['classe_sezione_id'], $data) !== null;
+                $stato = $gita ? 'assente'
+                    : ((int) $record['fuori_cutoff'] === 1
+                        ? $record['stato_effettivo'] : $this->calcolaStatoEffettivo($record));
                 $this->presenze->modificaPresenza((int) $record['id'], [
                     'stato_effettivo' => $stato,
                     'congelato'       => 1,
@@ -306,7 +570,32 @@ final class PresenzaService
             }
             $conteggi[$record['stato_effettivo']]++;
         }
+        (new \App\Repository\AutonomiaRepository())->storicizzaTipologie($plessoId, $data);
         return $conteggi;
+    }
+
+    /** Validazione lato server; nessun limite arbitrario alle assenze future. */
+    private function validaDataDichiarazione(string $data): void
+    {
+        $d = \DateTimeImmutable::createFromFormat('!Y-m-d', $data);
+        if ($d === false || $d->format('Y-m-d') !== $data) {
+            throw HttpException::nonValido('Data non valida');
+        }
+        if ($data < date('Y-m-d')) {
+            throw HttpException::nonValido('La giornata e gia trascorsa');
+        }
+    }
+
+    /** Da chiamare solo dopo aver preso il lock condiviso con lo scheduler. */
+    private function verificaModificabile(array $plesso, int $plessoId, string $data): void
+    {
+        if ($this->oltreCutoff($plesso, $data)) {
+            throw HttpException::nonValido('La giornata e chiusa: termine per le modifiche superato');
+        }
+        $esecuzione = $this->job->esecuzione($plessoId, $data);
+        if ($esecuzione !== null && in_array($esecuzione['esito'], ['ok', 'in_corso'], true)) {
+            throw HttpException::nonValido('La giornata e gia contabilizzata o in elaborazione');
+        }
     }
 
     private function validaStato(string $stato): void

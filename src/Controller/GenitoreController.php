@@ -18,7 +18,7 @@ final class GenitoreController
     private function genitoreId(array $utente): int
     {
         $genitore = $this->c->genitori()->trovaPerUtente((int) $utente['id']);
-        if ($genitore === null) {
+        if ($genitore === null || (int)$genitore['cancellato_logicamente'] === 1) {
             throw HttpException::nonAutorizzato('Utenza non collegata ad alcuna anagrafica genitore');
         }
         return (int) $genitore['id'];
@@ -45,12 +45,18 @@ final class GenitoreController
                 'anno_scolastico' => $figlio['anno_scolastico'],
                 'attivo'          => (int) $figlio['cancellato_logicamente'] === 0,
                 'stato_oggi'      => $stato,
+                'fine_servizio' => $figlio['plesso_id'] !== null ? (new \App\Repository\AutonomiaRepository())->impostazioni((int)$figlio['plesso_id'])['primo_giorno_sospensione'] : null,
             ];
         }
 
+        $attivi = array_column(array_filter($figli, fn($f) => $f['attivo'] && $f['plesso_id'] !== null), 'plesso_id');
+        $crediti = $this->c->creditoService()->situazioneGenitore($genitoreId);
+        $correnti = array_values(array_filter($crediti, fn($c) => in_array((int)$c['plesso_id'], $attivi, true)));
+        $storici = array_values(array_filter($crediti, fn($c) => !in_array((int)$c['plesso_id'], $attivi, true)));
         return [
             'data'      => $oggi,
-            'crediti'   => $this->c->creditoService()->situazioneGenitore($genitoreId),
+            'crediti'   => $correnti,
+            'crediti_storici' => $storici,
             'figli'     => $figli,
             'movimenti' => $this->c->creditoService()->movimenti($genitoreId),
             'feedback'  => $this->c->feedback()->storicoGenitore($genitoreId),
@@ -93,7 +99,23 @@ final class GenitoreController
             'stato_effettivo' => $esito['stato_effettivo'],
             'fuori_cutoff'    => (int) $esito['fuori_cutoff'] === 1,
             'effetto'         => $esito['effetto'],
+            'pasta_annullata' => (bool) ($esito['pasta_annullata'] ?? false),
         ];
+    }
+
+    /** La richiesta del piatto non cambia lo stato presenza/assenza. */
+    public function pastaBianco(Request $r, array $utente): array
+    {
+        $genitoreId = $this->genitoreId($utente);
+        $bambinoId = (int) $r->obbligatorio('bambino_id');
+        $this->c->anagrafica()->bambinoDelGenitore($bambinoId, $genitoreId);
+        $richiesta = $r->obbligatorio('richiesta');
+        if (!in_array($richiesta, [0, 1, '0', '1', false, true], true)) {
+            throw HttpException::nonValido('Valore richiesta non valido');
+        }
+        return $this->c->presenzaService()->pastaBiancoGenitore(
+            $bambinoId, (string) $r->obbligatorio('data'), (bool) $richiesta, (int) $utente['id']
+        );
     }
 
     public function inserisciFeedback(Request $r, array $utente): array

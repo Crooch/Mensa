@@ -2,54 +2,170 @@
 $titoloPagina = 'Area ristorazione · ' . $titoloApp;
 $ruoloPagina = 'catering';
 $scriptPagina = 'catering';
+$scriptExtraPagina = 'catering_settimane';
 require __DIR__ . '/partials/testa.php';
 ?>
 <nav class="schede" role="tablist">
     <button class="scheda attiva" data-vista="report" data-testid="tab-report">Pasti da preparare</button>
     <button class="scheda" data-vista="menu" data-testid="tab-menu">Menu del giorno</button>
+    <button class="scheda" data-vista="settimane" data-testid="tab-settimane">Menu settimanali</button>
     <button class="scheda" data-vista="feedback" data-testid="tab-feedback">Feedback</button>
+<button class="scheda" data-vista="riepilogo-pasti">Riepilogo pasti</button>
+<button class="scheda" data-vista="personale">Pasti del personale</button>
 </nav>
 
 <section id="vista-report" class="vista">
     <h1>Pasti da preparare</h1>
-    <div class="riga-filtri">
-        <label for="report-data">Data</label>
-        <input type="date" id="report-data" data-testid="report-data-input">
-        <button class="btn btn-primary btn-sm" id="btn-report" data-testid="report-carica-button">Aggiorna</button>
+    <div class="catering-filtri catering-filtri--report">
+        <div class="catering-campo">
+            <label for="report-data">Data</label>
+            <input type="date" id="report-data" data-testid="report-data-input">
+        </div>
+        <button class="btn btn-primary catering-filtri__azione" type="button" id="btn-report" data-testid="report-carica-button">Aggiorna i pasti</button>
     </div>
-    <p class="nota">Il conteggio deriva solo dalle presenze effettive: nessuna informazione su pagamenti o crediti delle famiglie.</p>
-    <div id="report" class="griglia-cards" data-testid="report-plessi"></div>
+    <p class="nota" id="report-stato" role="status" aria-live="polite" data-testid="report-stato">Seleziona una data per consultare i pasti.</p>
+    <div id="report-riepilogo" class="riepilogo-mensa" aria-live="polite"></div>
+    <p class="nota catering-distribuzione-nota">Il totale comprende alunni e personale. Ogni scuola mostra i pasti per classe e quelli del personale, distinti per categoria e menù. La pasta in bianco è compresa nel totale e si trova evidenziata nella classe interessata.</p>
+    <div id="report" class="griglia-cards catering-distribuzione" data-testid="report-plessi"></div>
 </section>
 
 <section id="vista-menu" class="vista" hidden>
-    <h1>Pubblicazione menu (facoltativa)</h1>
-    <form id="form-menu" class="pannello" enctype="multipart/form-data" data-testid="menu-form">
-        <div class="riga-filtri">
-            <label for="menu-plesso">Plesso</label>
-            <select id="menu-plesso" data-testid="menu-plesso-select"></select>
-            <label for="menu-tipologia">Tipologia</label>
-            <select id="menu-tipologia" data-testid="menu-tipologia-select"></select>
+    <h1>Menu del giorno</h1>
+    <p class="nota catering-introduzione">Scegli la data, il plesso e la tipologia per programmare, modificare o annullare un menù. Se presente, il menù del giorno prevale su quello settimanale.</p>
+    <form id="form-menu" class="pannello catering-form-menu" enctype="multipart/form-data" data-testid="menu-form">
+        <div class="catering-filtri catering-filtri--menu">
+            <div class="catering-campo">
+                <label for="menu-data">Giorno del menu</label>
+                <input type="date" id="menu-data" required data-testid="menu-data-input">
+            </div>
+            <div class="catering-campo">
+                <label for="menu-plesso">Plesso</label>
+                <select id="menu-plesso" data-testid="menu-plesso-select"></select>
+            </div>
+            <div class="catering-campo">
+                <label for="menu-tipologia">Tipologia</label>
+                <select id="menu-tipologia" data-testid="menu-tipologia-select"></select>
+            </div>
         </div>
-        <label for="menu-descrizione">Descrizione</label>
-        <textarea id="menu-descrizione" rows="2" data-testid="menu-descrizione-input"></textarea>
-        <label for="menu-foto">Foto (jpg, png, webp)</label>
-        <input type="file" id="menu-foto" accept="image/*" data-testid="menu-foto-input">
-        <button type="submit" class="btn btn-primary" data-testid="menu-submit-button">Pubblica per oggi</button>
+        <p id="menu-selezione-stato" class="stato-operazione catering-menu-stato" role="status" aria-live="polite" data-testid="menu-selezione-stato">Caricamento dei menu pubblicati…</p>
+        <div class="catering-campo">
+            <label for="menu-descrizione">Descrizione del menu</label>
+            <textarea id="menu-descrizione" rows="3" placeholder="Es. Pasta al pomodoro, pollo e verdure" data-testid="menu-descrizione-input"></textarea>
+        </div>
+        <div class="catering-campo">
+            <label for="menu-foto-widget-input">Foto del menu (facoltativa)</label>
+            <div id="menu-foto-widget" class="menu-foto" data-testid="menu-foto-widget"></div>
+        </div>
+        <div class="catering-menu-azioni">
+            <button type="submit" id="menu-submit" class="btn btn-primary catering-menu-submit" disabled data-testid="menu-submit-button">Pubblica menu</button>
+            <button type="button" id="menu-ripristina" class="btn btn-outline-primary" hidden disabled
+                    data-testid="menu-ripristina-button">Annulla variazione giornaliera</button>
+        </div>
     </form>
-    <h2>Pubblicazioni di oggi</h2>
+    <h2>Menu previsti per il giorno selezionato</h2>
+    <p id="menu-stato" class="stato-operazione" role="status" hidden></p>
     <div id="menu-lista" class="griglia-cards" data-testid="menu-lista"></div>
+    <h2>Variazioni giornaliere programmate</h2>
+    <div id="menu-variazioni-lista" class="catering-variazioni" data-testid="menu-variazioni-lista"></div>
+    <nav id="menu-variazioni-pagine" class="catering-variazioni-pagine" aria-label="Pagine delle variazioni giornaliere" hidden>
+        <button id="menu-variazioni-precedenti" type="button" class="btn btn-outline-primary" disabled>Precedenti</button>
+        <span id="menu-variazioni-indicatore" aria-live="polite">Pagina 1 di 1</span>
+        <button id="menu-variazioni-successive" type="button" class="btn btn-outline-primary" disabled>Successive</button>
+    </nav>
+</section>
+
+<section id="vista-settimane" class="vista" hidden>
+    <h1>Menu settimanali</h1>
+    <p class="nota catering-introduzione">Crea una settimana tipo, duplicala e assegnala a uno o più plessi. Resta in uso finché non ne scegli un'altra. Le modifiche valgono dal giorno successivo. Se presente, il menù del giorno prevale su quello settimanale.</p>
+    <div class="catering-settimane-layout">
+        <form id="form-settimana" class="pannello catering-form-menu">
+            <h2 id="settimana-form-titolo">Nuovo menu settimanale</h2>
+            <div class="catering-filtri catering-filtri--menu">
+                <div class="catering-campo">
+                    <label for="settimana-nome">Nome del menu settimanale</label>
+                    <input id="settimana-nome" required maxlength="150" placeholder="Es. Settimana base">
+                </div>
+                <div class="catering-campo">
+                    <label for="settimana-tipo">Tipologia alimentare</label>
+                    <select id="settimana-tipo" required></select>
+                </div>
+            </div>
+            <div class="catering-giorni">
+                <div class="catering-campo"><label for="settimana-giorno-1">Lunedì</label>
+                    <textarea id="settimana-giorno-1" rows="3" data-testid="settimana-giorno-1" placeholder="Descrizione del menu"></textarea>
+                    <div id="settimana-foto-widget-1" class="menu-foto" data-testid="settimana-foto-1"></div></div>
+                <div class="catering-campo"><label for="settimana-giorno-2">Martedì</label>
+                    <textarea id="settimana-giorno-2" rows="3" data-testid="settimana-giorno-2" placeholder="Descrizione del menu"></textarea>
+                    <div id="settimana-foto-widget-2" class="menu-foto" data-testid="settimana-foto-2"></div></div>
+                <div class="catering-campo"><label for="settimana-giorno-3">Mercoledì</label>
+                    <textarea id="settimana-giorno-3" rows="3" data-testid="settimana-giorno-3" placeholder="Descrizione del menu"></textarea>
+                    <div id="settimana-foto-widget-3" class="menu-foto" data-testid="settimana-foto-3"></div></div>
+                <div class="catering-campo"><label for="settimana-giorno-4">Giovedì</label>
+                    <textarea id="settimana-giorno-4" rows="3" data-testid="settimana-giorno-4" placeholder="Descrizione del menu"></textarea>
+                    <div id="settimana-foto-widget-4" class="menu-foto" data-testid="settimana-foto-4"></div></div>
+                <div class="catering-campo"><label for="settimana-giorno-5">Venerdì</label>
+                    <textarea id="settimana-giorno-5" rows="3" data-testid="settimana-giorno-5" placeholder="Descrizione del menu"></textarea>
+                    <div id="settimana-foto-widget-5" class="menu-foto" data-testid="settimana-foto-5"></div></div>
+                <div class="catering-campo"><label for="settimana-giorno-6">Sabato</label>
+                    <textarea id="settimana-giorno-6" rows="3" data-testid="settimana-giorno-6" placeholder="Descrizione del menu"></textarea>
+                    <div id="settimana-foto-widget-6" class="menu-foto" data-testid="settimana-foto-6"></div></div>
+                <div class="catering-campo"><label for="settimana-giorno-7">Domenica</label>
+                    <textarea id="settimana-giorno-7" rows="3" data-testid="settimana-giorno-7" placeholder="Descrizione del menu"></textarea>
+                    <div id="settimana-foto-widget-7" class="menu-foto" data-testid="settimana-foto-7"></div></div>
+            </div>
+            <p class="nota">Puoi lasciare vuoti i giorni senza menu.</p>
+            <div class="catering-settimane-azioni">
+                <button type="submit" class="btn btn-primary" id="settimana-salva">Salva menu settimanale</button>
+                <button type="button" class="btn btn-outline-primary" id="settimana-nuovo">Nuovo menu</button>
+            </div>
+            <p id="settimana-stato" class="stato-operazione" role="status" aria-live="polite" hidden></p>
+        </form>
+        <div>
+            <h2>Menu disponibili</h2>
+            <div id="settimane-elenco" class="catering-elenco-settimane"></div>
+        </div>
+    </div>
+    <div class="pannello catering-assegna">
+        <h2>Assegna ai plessi</h2>
+        <p class="nota">Seleziona un menu e i plessi che dovranno utilizzarlo. Le altre assegnazioni rimangono invariate.</p>
+        <div class="catering-campo">
+            <label for="assegna-modello">Menu settimanale</label>
+            <select id="assegna-modello"></select>
+        </div>
+        <fieldset class="catering-plessi-scelta">
+            <legend>Plessi a cui assegnarlo</legend>
+            <div id="assegna-plessi"></div>
+        </fieldset>
+        <button type="button" class="btn btn-primary" id="assegna-salva">Assegna menu</button>
+        <p id="assegna-stato" class="stato-operazione" role="status" aria-live="polite" hidden></p>
+        <h3>Assegnazioni attive dal prossimo giorno</h3>
+        <div id="assegnazioni-elenco" class="catering-elenco-assegnazioni"></div>
+    </div>
 </section>
 
 <section id="vista-feedback" class="vista" hidden>
-    <h1>Feedback delle famiglie</h1>
-    <p class="nota">Sola lettura, senza dati anagrafici. Non è prevista alcuna funzione di risposta.</p>
-    <div class="riga-filtri">
-        <label for="fb-da">Dal</label><input type="date" id="fb-da" data-testid="feedback-da-input">
-        <label for="fb-a">Al</label><input type="date" id="fb-a" data-testid="feedback-a-input">
-        <label for="fb-plesso">Plesso</label><select id="fb-plesso" data-testid="feedback-plesso-select"></select>
-        <label for="fb-tipologia">Tipologia</label><select id="fb-tipologia" data-testid="feedback-tipologia-select"></select>
-        <button class="btn btn-primary btn-sm" id="btn-feedback" data-testid="feedback-filtra-button">Filtra</button>
+    <h1>Valutazioni delle famiglie</h1>
+    <p class="nota">Valutazioni ricevute, senza nomi completi.</p>
+    <div class="catering-filtri catering-filtri--feedback">
+        <div class="catering-campo">
+            <label for="fb-da">Dal</label>
+            <input type="date" id="fb-da" data-testid="feedback-da-input">
+        </div>
+        <div class="catering-campo">
+            <label for="fb-a">Al</label>
+            <input type="date" id="fb-a" data-testid="feedback-a-input">
+        </div>
+        <div class="catering-campo">
+            <label for="fb-plesso">Plesso</label>
+            <select id="fb-plesso" data-testid="feedback-plesso-select"></select>
+        </div>
+        <div class="catering-campo">
+            <label for="fb-tipologia">Tipologia</label>
+            <select id="fb-tipologia" data-testid="feedback-tipologia-select"></select>
+        </div>
+        <button type="button" class="btn btn-primary catering-filtri__azione" id="btn-feedback" data-testid="feedback-filtra-button">Filtra</button>
     </div>
+    <p id="feedback-stato" class="stato-operazione" role="status" hidden></p>
     <div class="tabella-scroll">
         <table class="table" data-testid="feedback-tabella">
             <thead><tr><th>Data</th><th>Alunno</th><th>Plesso</th><th>Classe</th><th>Tipologia</th><th>Voto</th><th>Commento</th></tr></thead>
@@ -57,4 +173,5 @@ require __DIR__ . '/partials/testa.php';
         </table>
     </div>
 </section>
+<?php require __DIR__ . '/partials/autonomia.php'; ?>
 <?php require __DIR__ . '/partials/piede.php'; ?>

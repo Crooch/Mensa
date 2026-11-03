@@ -31,61 +31,160 @@ final class CreditoService
      *
      * @return array{movimento_id:int, importo:float, tariffa:float, origine_tariffa:string, saldo:int}
      */
-    public function acquistaBuoni(int $genitoreId, int $plessoId, int $numeroBuoni, int $utenteId, ?string $note = null): array
+    public function acquistaBuoni(int $genitoreId, int $plessoId, int $numeroBuoni, int $utenteId,
+                                  ?string $note = null, ?string $richiestaId = null, ?float $importoAtteso = null): array
     {
         if ($numeroBuoni <= 0) {
             throw HttpException::nonValido('Il numero di buoni deve essere maggiore di zero');
         }
+        if ($richiestaId !== null && !preg_match('/^[a-zA-Z0-9-]{16,64}$/D', $richiestaId)) {
+            throw HttpException::nonValido('Identificativo della richiesta non valido');
+        }
+        $note = $note === null ? null : trim($note);
+
+        // Il medesimo token deve sempre riferirsi allo stesso acquisto.
+        // Il controllo preliminare migliora la risposta; il DB UNIQUE evita
+        // duplicati anche fra richieste parallele da browser diversi.
+        if ($richiestaId !== null) {
+            $precedente = $this->crediti->acquistoPerRichiesta($richiestaId);
+            if ($precedente !== null) {
+                return $this->rispostaAcquistoEsistente($precedente, $genitoreId, $plessoId, $numeroBuoni, $utenteId, $note);
+            }
+        }
+
         $tariffa = $this->tariffe->tariffaAttiva($genitoreId, $plessoId);
         $importo = round($numeroBuoni * $tariffa['tariffa'], 2);
+        if ($importoAtteso !== null && abs($importoAtteso - $importo) > 0.009) {
+            throw new HttpException(409, 'Il costo dei buoni è cambiato. Riapri il modulo e controlla il nuovo importo.');
+        }
 
-        return Database::inTransazione(function () use ($genitoreId, $plessoId, $numeroBuoni, $utenteId, $note, $tariffa, $importo) {
-            $poolId = $this->crediti->assicuraPool($genitoreId, $plessoId);
-            $movimentoId = $this->crediti->registraMovimento([
-                'pool_id'      => $poolId,
-                'tipo'         => 'acquisto',
-                'delta'        => $numeroBuoni,
-                'data'         => date('Y-m-d'),
-                'bambino_id'   => null,
-                'importo_euro' => $importo,
-                'utente_id'    => $utenteId,
-                'note'         => $note,
-            ]);
-            $this->crediti->aggiornaSaldo($poolId, $numeroBuoni);
-            $pool = $this->crediti->trovaPool($genitoreId, $plessoId);
+        try {
+            return Database::inTransazione(function () use (
+                $genitoreId, $plessoId, $numeroBuoni, $utenteId, $note, $tariffa, $importo, $richiestaId
+            ) {
+                $g = (new \App\Repository\AutonomiaRepository())->famiglia($genitoreId, true);
+                if (!$g || (int)$g['cancellato_logicamente']) throw HttpException::nonValido('Famiglia non attiva: richiedere assistenza per operazioni contabili.');
+                $poolId = $this->crediti->assicuraPool($genitoreId, $plessoId);
+                $movimentoId = $this->crediti->registraMovimento([
+                    'pool_id'      => $poolId,
+                    'tipo'         => 'acquisto',
+                    'delta'        => $numeroBuoni,
+                    'data'         => date('Y-m-d'),
+                    'bambino_id'   => null,
+                    'importo_euro' => $importo,
+                    'utente_id'    => $utenteId,
+                    'note'         => $note,
+                    'richiesta_id' => $richiestaId,
+                ]);
+                $this->crediti->aggiornaSaldo($poolId, $numeroBuoni);
+                $pool = $this->crediti->trovaPool($genitoreId, $plessoId);
 
-            return [
-                'movimento_id'    => $movimentoId,
-                'importo'         => $importo,
-                'tariffa'         => $tariffa['tariffa'],
-                'origine_tariffa' => $tariffa['origine'],
-                'saldo'           => (int) $pool['saldo'],
-            ];
-        });
+                return [
+                    'movimento_id'    => $movimentoId,
+                    'importo'         => $importo,
+                    'tariffa'         => $tariffa['tariffa'],
+                    'origine_tariffa' => $tariffa['origine'],
+                    'saldo'           => (int) $pool['saldo'],
+                    'gia_registrato'  => false,
+                ];
+            });
+        } catch (\PDOException $errore) {
+            // Un retry parallelo può incontrare la chiave UNIQUE già inserita.
+            // La transazione fallita è stata annullata: rilegge il movimento
+            // originario senza alterare una seconda volta il saldo.
+            if ($richiestaId === null || (string) $errore->getCode() !== '23000') {
+                throw $errore;
+            }
+            $precedente = $this->crediti->acquistoPerRichiesta($richiestaId);
+            if ($precedente === null) {
+                throw $errore;
+            }
+            return $this->rispostaAcquistoEsistente($precedente, $genitoreId, $plessoId, $numeroBuoni, $utenteId, $note);
+        }
+    }
+
+    private function rispostaAcquistoEsistente(array $precedente, int $genitoreId, int $plessoId,
+                                               int $numeroBuoni, int $utenteId, ?string $note): array
+    {
+        if ((int) $precedente['genitore_id'] !== $genitoreId
+            || (int) $precedente['plesso_id'] !== $plessoId
+            || (int) $precedente['delta'] !== $numeroBuoni
+            || (int) $precedente['utente_id'] !== $utenteId
+            || trim((string) ($precedente['note'] ?? '')) !== trim((string) ($note ?? ''))) {
+            throw HttpException::nonValido('Questa richiesta è già stata usata per un acquisto diverso. Riapri il modulo.');
+        }
+        $pool = $this->crediti->trovaPool($genitoreId, $plessoId);
+        return [
+            'movimento_id'    => (int) $precedente['id'],
+            'importo'         => (float) $precedente['importo_euro'],
+            'tariffa'         => (float) $precedente['importo_euro'] / $numeroBuoni,
+            'origine_tariffa' => 'acquisto_precedente',
+            'saldo'           => (int) $pool['saldo'],
+            'gia_registrato'  => true,
+        ];
     }
 
     /** Rettifica manuale del saldo (con nota obbligatoria per tracciabilita'). */
-    public function rettifica(int $genitoreId, int $plessoId, int $delta, string $note, int $utenteId): int
+    public function rettifica(int $genitoreId, int $plessoId, int $delta, string $note,
+                             int $utenteId, ?string $richiestaId = null): int
     {
         if ($delta === 0) {
-            throw HttpException::nonValido('La rettifica deve essere diversa da zero');
+            throw HttpException::nonValido('La correzione deve aggiungere o togliere almeno un buono');
         }
-        if (trim($note) === '') {
-            throw HttpException::nonValido('La motivazione della rettifica è obbligatoria');
+        $note = trim($note);
+        if ($note === '') {
+            throw HttpException::nonValido('Indica il motivo della correzione');
         }
-        return Database::inTransazione(function () use ($genitoreId, $plessoId, $delta, $note, $utenteId) {
-            $poolId = $this->crediti->assicuraPool($genitoreId, $plessoId);
-            $id = $this->crediti->registraMovimento([
-                'pool_id'   => $poolId,
-                'tipo'      => 'rettifica_manuale',
-                'delta'     => $delta,
-                'data'      => date('Y-m-d'),
-                'utente_id' => $utenteId,
-                'note'      => trim($note),
-            ]);
-            $this->crediti->aggiornaSaldo($poolId, $delta);
-            return $id;
-        });
+        if ($richiestaId !== null && !preg_match('/^[a-zA-Z0-9-]{16,64}$/D', $richiestaId)) {
+            throw HttpException::nonValido('Identificativo della richiesta non valido');
+        }
+        if ($richiestaId !== null) {
+            $precedente = $this->crediti->rettificaPerRichiesta($richiestaId);
+            if ($precedente !== null) {
+                return $this->verificaRettificaEsistente($precedente, $genitoreId, $plessoId, $delta, $note, $utenteId);
+            }
+        }
+        try {
+            return Database::inTransazione(function () use ($genitoreId, $plessoId, $delta, $note, $utenteId, $richiestaId) {
+                $g = (new \App\Repository\AutonomiaRepository())->famiglia($genitoreId, true);
+                if (!$g || (int)$g['cancellato_logicamente']) throw HttpException::nonValido('Famiglia non attiva: richiedere assistenza per operazioni contabili.');
+                $poolId = $this->crediti->assicuraPool($genitoreId, $plessoId);
+                $id = $this->crediti->registraMovimento([
+                    'pool_id' => $poolId,
+                    'tipo' => 'rettifica_manuale',
+                    'delta' => $delta,
+                    'data' => date('Y-m-d'),
+                    'utente_id' => $utenteId,
+                    'note' => $note,
+                    'richiesta_id' => $richiestaId,
+                ]);
+                $this->crediti->aggiornaSaldo($poolId, $delta);
+                return $id;
+            });
+        } catch (\PDOException $errore) {
+            if ($richiestaId === null || (string) $errore->getCode() !== '23000') {
+                throw $errore;
+            }
+            $precedente = $this->crediti->rettificaPerRichiesta($richiestaId);
+            if ($precedente === null) {
+                throw $errore;
+            }
+            return $this->verificaRettificaEsistente($precedente, $genitoreId, $plessoId, $delta, $note, $utenteId);
+        }
+    }
+
+    private function verificaRettificaEsistente(array $precedente, int $genitoreId, int $plessoId,
+                                               int $delta, string $note, int $utenteId): int
+    {
+        if ((int) $precedente['genitore_id'] !== $genitoreId
+            || (int) $precedente['plesso_id'] !== $plessoId
+            || (int) $precedente['delta'] !== $delta
+            || (string) $precedente['note'] !== $note
+            || (int) $precedente['utente_id'] !== $utenteId
+            || trim((string) ($precedente['note'] ?? '')) !== trim((string) ($note ?? ''))) {
+            throw HttpException::nonValido('Questa richiesta è già stata usata per una correzione diversa. Riapri il modulo.');
+        }
+        return (int) $precedente['id'];
     }
 
     /**
@@ -94,23 +193,34 @@ final class CreditoService
      */
     public function registraConsumo(int $genitoreId, int $plessoId, int $bambinoId, string $data): ?int
     {
+        return Database::inTransazione(fn () =>
+            $this->registraConsumoInTransazione($genitoreId, $plessoId, $bambinoId, $data)
+        );
+    }
+
+    /**
+     * Stesso movimento usato dal job e dalle eccezioni accertate dalla scuola.
+     * Il chiamante DEVE avere gia' aperto una transazione SQL e acquisito il
+     * lock plesso/data prima di accedere a questo metodo.
+     */
+    public function registraConsumoInTransazione(int $genitoreId, int $plessoId,
+                                                 int $bambinoId, string $data, ?int $utenteId = null): ?int
+    {
         if ($this->crediti->esisteConsumo($bambinoId, $data)) {
-            return null; // idempotenza: il job puo' essere rieseguito senza doppi addebiti
+            return null;
         }
-        return Database::inTransazione(function () use ($genitoreId, $plessoId, $bambinoId, $data) {
-            $poolId = $this->crediti->assicuraPool($genitoreId, $plessoId);
-            $id = $this->crediti->registraMovimento([
-                'pool_id'    => $poolId,
-                'tipo'       => 'consumo_pasto',
-                'delta'      => -1,
-                'data'       => $data,
-                'bambino_id' => $bambinoId,
-                'utente_id'  => null,
-                'note'       => 'Consumo automatico post-cutoff',
-            ]);
-            $this->crediti->aggiornaSaldo($poolId, -1);
-            return $id;
-        });
+        $poolId = $this->crediti->assicuraPool($genitoreId, $plessoId);
+        $id = $this->crediti->registraMovimento([
+            'pool_id' => $poolId,
+            'tipo' => 'consumo_pasto',
+            'delta' => -1,
+            'data' => $data,
+            'bambino_id' => $bambinoId,
+            'utente_id' => $utenteId,
+            'note' => $utenteId === null ? 'Consumo automatico post-cutoff' : 'Pasto confermato dalla scuola',
+        ]);
+        $this->crediti->aggiornaSaldo($poolId, -1);
+        return $id;
     }
 
     /** Stato visivo del pool: verde / giallo / rosso in base al fido del plesso. */

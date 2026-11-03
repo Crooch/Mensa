@@ -28,6 +28,8 @@ final class FeedbackService
     public function inserisci(int $genitoreId, int $bambinoId, string $data, ?int $voto, ?string $commento): int
     {
         $bambino = $this->anagrafica->bambinoDelGenitore($bambinoId, $genitoreId, $data);
+        $fine = (new \App\Repository\AutonomiaRepository())->impostazioni((int)$bambino['plesso_id'])['primo_giorno_sospensione'];
+        if ($fine !== null && date('Y-m-d') >= $fine) throw HttpException::nonValido('Servizio concluso: consultazione dello storico disponibile in sola lettura.');
         if ($voto === null && ($commento === null || trim($commento) === '')) {
             throw HttpException::nonValido('Indicare almeno un voto o un commento');
         }

@@ -77,6 +77,11 @@ final class Container
         return $this->ottieni('r.menu', fn () => new R\MenuGiornalieroRepository());
     }
 
+    public function menuSettimanali(): R\MenuSettimanaleRepository
+    {
+        return $this->ottieni('r.menuSettimanali', fn () => new R\MenuSettimanaleRepository());
+    }
+
     public function feedbackRepo(): R\FeedbackRepository
     {
         return $this->ottieni('r.feedback', fn () => new R\FeedbackRepository());
@@ -85,6 +90,16 @@ final class Container
     public function comunicazioni(): R\ComunicazioneRepository
     {
         return $this->ottieni('r.comunicazioni', fn () => new R\ComunicazioneRepository());
+    }
+
+    public function calendarioRepo(): R\CalendarioRepository
+    {
+        return $this->ottieni('r.calendario', fn () => new R\CalendarioRepository());
+    }
+
+    public function calendario(): S\CalendarioService
+    {
+        return $this->ottieni('s.calendario', fn () => new S\CalendarioService($this->calendarioRepo(), $this->plessi()));
     }
 
     public function jobRepo(): R\JobRepository
@@ -120,7 +135,10 @@ final class Container
             $this->bambini(),
             $this->classi(),
             $this->plessi(),
-            $this->assegnazioni()
+            $this->assegnazioni(),
+            $this->calendario(),
+            $this->jobRepo(),
+            $this->creditoService()
         ));
     }
 
@@ -144,7 +162,11 @@ final class Container
             $this->plessi(),
             $this->tipologie(),
             $this->menu(),
-            $this->presenzaService()
+            $this->presenzaService(),
+            $this->calendario(),
+            $this->jobRepo(),
+            $this->menuSettimanali(),
+            $this->autonomia()
         ));
     }
 
@@ -162,7 +184,8 @@ final class Container
         return $this->ottieni('s.solleciti', fn () => new S\SollecitoService(
             $this->crediti(),
             $this->comunicazioni(),
-            $this->plessi()
+            $this->plessi(),
+            $this->bambini()
         ));
     }
 
@@ -175,7 +198,8 @@ final class Container
             $this->presenzaService(),
             $this->creditoService(),
             $this->solleciti(),
-            $this->jobRepo()
+            $this->jobRepo(),
+            $this->calendario()
         ));
     }
 
@@ -187,6 +211,11 @@ final class Container
             $this->tipologie(),
             $this->comunicazioni()
         ));
+    }
+
+    public function autonomia(): S\AutonomiaService
+    {
+        return $this->ottieni("s.autonomia", fn () => new S\AutonomiaService($this));
     }
 
     public function autenticazione(): Auth

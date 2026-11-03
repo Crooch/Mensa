@@ -13,8 +13,19 @@ $config = [
         'base_path' => '',          // sottocartella di pubblicazione, es. '/mensa'
         'debug'     => false,
         'timezone'  => 'Europe/Rome',
-        // Chiave richiesta per invocare lo scheduler via URL (cron da pannello hosting)
-        'scheduler_key' => 'cambiami-scheduler-key',
+        // Permette un cutover contabile a T0 senza fermare altri siti della VPS.
+        // Quando true blocca ogni richiesta web all'app Mensa (503).
+        'maintenance_mode' => false,
+        // Lo scheduler e' disattivato dopo ogni nuovo deploy fino ad attivazione
+        // esplicita nell'override locale (config.local.php, mai versionato).
+        // Vale per bin/cron_daily.php e /scheduler?key=...
+        'scheduler_enabled' => false,
+        // Prima giornata a saldo zero: nessun invio massivo di solleciti.
+        // Default per installazioni senza una scelta Admin salvata.
+        // La scelta in Email e solleciti prevale su questo valore.
+        'solleciti_automatici_enabled' => false,
+        // Senza chiave locale casuale l'endpoint HTTP non e' accessibile.
+        'scheduler_key' => '',
     ],
     'db' => [
         'host'     => '127.0.0.1',

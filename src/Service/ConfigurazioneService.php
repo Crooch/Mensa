@@ -155,21 +155,38 @@ final class ConfigurazioneService
     public function impostazioni(): array
     {
         $valori = $this->comunicazioni->impostazioni();
+        $valori['solleciti_automatici_enabled'] = ImpostazioniEmail::automatici($valori);
+        $valori['invio_simulato'] = \App\Core\Mailer::simulato();
+        $valori['scheduler_abilitato'] = \App\Core\Config::schedulerAbilitato();
         $valori['smtp_password'] = !empty($valori['smtp_password']) ? '********' : '';
         return $valori;
     }
 
     public function salvaImpostazioni(array $dati): void
     {
-        $chiaviAmmesse = ['email_protocollo', 'smtp_host', 'smtp_port', 'smtp_security', 'smtp_username', 'smtp_password', 'smtp_from', 'smtp_from_name'];
+        $chiaviAmmesse = ['email_protocollo', 'smtp_host', 'smtp_port', 'smtp_security', 'smtp_username', 'smtp_password', 'smtp_from', 'smtp_from_name', 'solleciti_automatici_enabled'];
+        $nuovi = [];
         foreach ($dati as $chiave => $valore) {
-            if (!in_array($chiave, $chiaviAmmesse, true)) {
+            if (!in_array($chiave, $chiaviAmmesse, true)) continue;
+            if ($chiave === 'solleciti_automatici_enabled') {
+                if (!is_bool($valore)) throw HttpException::nonValido('Indicare se abilitare o disabilitare i solleciti.');
+                $nuovi[$chiave] = $valore ? '1' : '0';
                 continue;
             }
-            if ($chiave === 'smtp_password' && ($valore === '********' || $valore === null)) {
-                continue; // valore mascherato: non sovrascrivere
-            }
-            $this->comunicazioni->salvaImpostazione($chiave, $valore === null ? null : (string) $valore);
+            if ($chiave === 'smtp_password' && ($valore === '********' || $valore === null)) continue;
+            if ($valore !== null && !is_string($valore) && !is_int($valore)) throw HttpException::nonValido('Impostazione email non valida.');
+            $nuovi[$chiave] = $chiave === 'smtp_password' ? (string) $valore : trim((string) $valore);
         }
+        \App\Core\Database::inTransazione(function () use ($nuovi) {
+            $completi = array_replace($this->comunicazioni->impostazioni(), $nuovi);
+            $attivi = ImpostazioniEmail::automatici($completi);
+            // La disattivazione resta sempre possibile, anche con vecchi parametri incompleti.
+            if ($nuovi !== ['solleciti_automatici_enabled' => '0']) ImpostazioniEmail::validaSmtp($completi, $attivi);
+            if (($nuovi['solleciti_automatici_enabled'] ?? null) === '1'
+                && !array_filter($this->comunicazioni->modelli(), static fn($m) => (int) $m['attivo'] === 1)) {
+                throw HttpException::nonValido('Salvare almeno un modello attivo prima di abilitare i solleciti automatici.');
+            }
+            foreach ($nuovi as $chiave => $valore) $this->comunicazioni->salvaImpostazione($chiave, $valore);
+        });
     }
 }

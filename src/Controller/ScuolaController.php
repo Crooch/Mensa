@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Core\Container;
+use App\Core\HttpException;
 use App\Core\Request;
 
 /**
@@ -20,7 +21,13 @@ final class ScuolaController
 
     private function plessoVincolato(array $utente): ?int
     {
-        return $utente['ruolo'] === 'scuola' && $utente['plesso_id'] !== null ? (int) $utente['plesso_id'] : null;
+        if ($utente['ruolo'] === 'scuola') {
+            if (empty($utente['plesso_id'])) {
+                throw HttpException::nonAutorizzato('Utenza scuola priva di plesso assegnato');
+            }
+            return (int) $utente['plesso_id'];
+        }
+        return null;
     }
 
     public function classi(Request $r, array $utente): array

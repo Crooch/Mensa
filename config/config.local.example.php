@@ -3,8 +3,15 @@
 return [
     'app' => [
         'debug'         => false,
+        // Per il cutover T0 mettere temporaneamente true.
+        'maintenance_mode' => false,
         'base_path'     => '',
-        'scheduler_key' => 'una-chiave-lunga-e-casuale',
+        // Abilitare solo dopo verifica dati, calendario, cutoff, cron e Comune.
+        'scheduler_enabled' => false,
+        // Necessaria solo se il cron invoca /scheduler via HTTP.
+        // Solo per l'endpoint HTTP: impostare una chiave casuale >= 32
+        // caratteri, mai un segnaposto noto. Per PHP CLI lasciare vuoto.
+        'scheduler_key' => '',
     ],
     'db' => [
         'host'     => 'localhost',

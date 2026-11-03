@@ -16,6 +16,18 @@ use App\Core\HttpException;
 use App\Core\Request;
 use App\Core\Response;
 
+// La manutenzione è limitata al sito Mensa: non spegne Apache o altri siti.
+// Blocca login, API, scheduler HTTP e scritture durante il cutover contabile.
+if (Config::get('app.maintenance_mode', false) === true
+    || is_file(APP_ROOT . '/storage/maintenance.flag')) {
+    http_response_code(503);
+    header('Retry-After: 300');
+    header('Cache-Control: no-store');
+    header('Content-Type: text/plain; charset=utf-8');
+    echo 'Mensa temporaneamente in manutenzione. Riprova piu tardi.';
+    exit;
+}
+
 $richiesta = new Request();
 $percorso = $richiesta->percorso();
 $container = new Container();
@@ -25,15 +37,33 @@ $container = new Container();
 // /scheduler?key=... (nessun token utente, chiave configurata in config)
 // ---------------------------------------------------------------------
 if ($percorso === '/scheduler') {
-    $chiaveAttesa = (string) Config::get('app.scheduler_key');
-    if (($richiesta->query('key') ?? '') !== $chiaveAttesa || $chiaveAttesa === '') {
-        Response::errore(403, 'Chiave scheduler non valida');
+    // Cron CLI preferito in produzione. L'endpoint web e' disattivato
+    // per default e non puo' avviare addebiti durante un semplice deploy.
+    if (!Config::schedulerAbilitato()) {
+        Response::errore(503, 'Scheduler non abilitato');
+        return;
+    }
+    $chiaveAttesa = (string) Config::get('app.scheduler_key', '');
+    $chiaveRicevuta = (string) ($richiesta->query('key') ?? '');
+    if ($richiesta->metodo() !== 'GET'
+        || strlen($chiaveAttesa) < 32
+        || $chiaveAttesa === 'cambiami-scheduler-key'
+        || !hash_equals($chiaveAttesa, $chiaveRicevuta)) {
+        Response::errore(403, 'Scheduler non autorizzato');
         return;
     }
     try {
-        Response::ok($container->job()->eseguiScheduler());
+        $risultati = $container->job()->eseguiScheduler();
+        foreach ($risultati as $riga) {
+            if (in_array($riga['stato'] ?? '', ['errore', 'errore_precedente'], true)) {
+                Response::errore(500, 'Chiusura con errore: verificare lo storico');
+                return;
+            }
+        }
+        Response::ok($risultati);
     } catch (\Throwable $e) {
-        Response::errore(500, $e->getMessage());
+        error_log('[mensa scheduler] ' . $e->getMessage());
+        Response::errore(500, 'Errore interno durante la chiusura');
     }
     return;
 }
@@ -43,6 +73,14 @@ if ($percorso === '/scheduler') {
 // solo per path logico; il controllo di accesso richiede un utente autenticato)
 // ---------------------------------------------------------------------
 if (strncmp($percorso, '/storage/', 9) === 0) {
+    // Le fotografie possono riferirsi a minori e menu dietetici:
+    // l'accesso e' consentito soltanto con una sessione applicativa valida.
+    try {
+        $container->autenticazione()->autorizza($richiesta, []);
+    } catch (HttpException $e) {
+        Response::errore($e->getCode(), $e->getMessage());
+        return;
+    }
     $relativo = substr($percorso, 9);
     if (str_contains($relativo, '..')) {
         Response::errore(400, 'Percorso non valido');

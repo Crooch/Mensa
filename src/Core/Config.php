@@ -15,6 +15,17 @@ final class Config
     }
 
     /** @param mixed $default */
+    /**
+     * Interruttore job. Flag fisico nella directory config, non versionato:
+     * permette di attivare il cron senza riscrivere password o config locali.
+     * Solo l'amministratore della VPS deve poter creare questo file.
+     */
+    public static function schedulerAbilitato(): bool
+    {
+        return self::get('app.scheduler_enabled', false) === true
+            || is_file(APP_ROOT . '/config/scheduler_enabled.flag');
+    }
+
     public static function get(string $chiave, $default = null)
     {
         $nodo = self::$valori;

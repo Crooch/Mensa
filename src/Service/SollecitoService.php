@@ -6,6 +6,8 @@ namespace App\Service;
 
 use App\Core\Config;
 use App\Core\Mailer;
+use App\Core\HttpException;
+use App\Repository\BambinoRepository;
 use App\Repository\ComunicazioneRepository;
 use App\Repository\CreditoRepository;
 use App\Repository\PlessoRepository;
@@ -23,7 +25,8 @@ final class SollecitoService
     public function __construct(
         private CreditoRepository $crediti,
         private ComunicazioneRepository $comunicazioni,
-        private PlessoRepository $plessi
+        private PlessoRepository $plessi,
+        private BambinoRepository $bambini
     ) {
     }
 
@@ -97,14 +100,21 @@ final class SollecitoService
         return $esito;
     }
 
-    /** Nomi dei figli attivi nel plesso alla data (per il placeholder {alunno}). */
+    /**
+     * Placeholder {alunno}: solo figli attualmente assegnati al plesso indicato,
+     * alla data del sollecito. Non usare lo storico globale dei consumi:
+     * includerebbe minori di altri plessi o non più assegnati.
+     */
     private function nomiFigli(int $genitoreId, int $plessoId, string $data): string
     {
-        $righe = $this->crediti->movimenti($genitoreId, 'consumo_pasto', 50);
         $nomi = [];
-        foreach ($righe as $riga) {
-            if ($riga['bambino_nome'] !== null) {
-                $nomi[$riga['bambino_nome'] . ' ' . $riga['bambino_cognome']] = true;
+        foreach ($this->bambini->elencoPerPlesso($plessoId, $data) as $riga) {
+            if ((int) $riga['genitore_id'] !== $genitoreId) {
+                continue;
+            }
+            $nome = trim((string) $riga['nome'] . ' ' . (string) $riga['cognome']);
+            if ($nome !== '') {
+                $nomi[$nome] = true;
             }
         }
         return $nomi === [] ? '-' : implode(', ', array_keys($nomi));
@@ -124,12 +134,45 @@ final class SollecitoService
         ];
     }
 
-    /** Invio di prova della configurazione SMTP (funzione Admin). */
-    public function inviaEmailDiProva(string $destinatario): void
+    public function automaticiAbilitati(): bool
+    {
+        return ImpostazioniEmail::automatici($this->comunicazioni->impostazioni());
+    }
+
+    /** Connessione, TLS e autenticazione, senza inviare messaggi. */
+    public function verificaSmtp(): array
     {
         $impostazioni = $this->comunicazioni->impostazioni();
-        $mailer = new Mailer($this->configurazioneSmtp($impostazioni));
-        $mailer->invia([$destinatario], [], 'Test configurazione email - Mensa Caltavuturo', "Email di prova inviata dal sistema di gestione mensa scolastica.\n");
+        ImpostazioniEmail::validaSmtp($impostazioni);
+        try {
+            (new Mailer($this->configurazioneSmtp($impostazioni)))->verifica();
+        } catch (\RuntimeException $e) {
+            throw HttpException::nonValido($e->getMessage());
+        }
+        return ['simulato' => Mailer::simulato(), 'verificata' => !Mailer::simulato()];
+    }
+
+    /** Solo destinatario esplicito e dati fittizi: nessun CC, nessun log di sollecito reale. */
+    public function inviaEmailDiProva(string $destinatario, int $plessoId): array
+    {
+        $destinatario = trim($destinatario);
+        if (!filter_var($destinatario, FILTER_VALIDATE_EMAIL)) throw HttpException::nonValido('Indirizzo email di prova non valido.');
+        $plesso = $this->plessi->trova($plessoId);
+        $modello = $this->comunicazioni->modello($plessoId);
+        if (!$plesso || !$modello) throw HttpException::nonValido('Selezionare una scuola con un modello salvato.');
+        $impostazioni = $this->comunicazioni->impostazioni();
+        ImpostazioniEmail::validaSmtp($impostazioni);
+        $campioni = ['{genitore}' => 'Genitore di prova', '{alunno}' => 'Alunno di prova',
+            '{plesso}' => $plesso['nome'], '{saldo}' => '-15', '{fido}' => '10', '{data}' => date('d/m/Y')];
+        $oggetto = '[PROVA] '.strtr($modello['oggetto'], $campioni);
+        $testo = strtr($modello['testo'], $campioni);
+        try {
+            (new Mailer($this->configurazioneSmtp($impostazioni)))->invia([$destinatario], [], $oggetto, $testo);
+        } catch (\RuntimeException $e) {
+            throw HttpException::nonValido($e->getMessage());
+        }
+        return ['inviata' => !Mailer::simulato(), 'simulato' => Mailer::simulato(),
+            'destinatario' => $destinatario, 'oggetto' => $oggetto, 'testo' => $testo];
     }
 
     public function logSolleciti(): array

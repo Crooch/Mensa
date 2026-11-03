@@ -9,7 +9,7 @@
          replica palette istituzionale e componenti principali. -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-italia@2.13.2/dist/css/bootstrap-italia.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&display=swap">
-    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/app.css">
+    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/app.css?v=<?= is_file(APP_ROOT . '/public/assets/css/app.css') ? (int) filemtime(APP_ROOT . '/public/assets/css/app.css') : 0 ?>">
 </head>
 <body data-ruolo="<?= htmlspecialchars($ruoloPagina ?? '') ?>" data-base="<?= $basePath ?>">
 <header class="intestazione-comune">

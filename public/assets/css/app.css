@@ -75,12 +75,12 @@ a { color: var(--blu-italia); }
     transition: box-shadow .2s ease, transform .2s ease;
 }
 .card-mensa:hover { box-shadow: 0 6px 18px rgba(23,50,77,.12); transform: translateY(-2px); }
-.card-mensa h3 { margin: 0 0 .35rem; font-size: 1rem; }
+.card-mensa h3 { margin: 0 0 .35rem; font-size: 1.1rem; }
 .card-mensa .saldo { font-size: 2rem; font-weight: 700; line-height: 1.1; }
 .card-mensa--verde { border-left-color: var(--verde); }
 .card-mensa--giallo { border-left-color: var(--giallo); }
 .card-mensa--rosso { border-left-color: var(--rosso); }
-.card-mensa dl { display: grid; grid-template-columns: auto 1fr; gap: .15rem .5rem; margin: .5rem 0 0; font-size: .88rem; }
+.card-mensa dl { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: .35rem .65rem; margin: .6rem 0 0; font-size: .96rem; }
 .card-mensa dt { color: #5d7285; }
 .card-mensa dd { margin: 0; font-weight: 600; }
 .card-mensa img { width: 100%; border-radius: var(--raggio); margin-top: .6rem; }
@@ -89,13 +89,13 @@ a { color: var(--blu-italia); }
     background: #fff; border: 1px solid var(--grigio-bordo); border-radius: var(--raggio);
     padding: 1.1rem 1.25rem; margin-bottom: 1.25rem;
 }
-.nota { font-size: .88rem; color: #5d7285; }
+.nota { font-size: .96rem; color: #42576c; line-height: 1.55; }
 .vuoto { color: #7d8b99; font-style: italic; }
 
 /* ---------------- badge di stato ---------------- */
 .badge-stato {
     display: inline-block; padding: .15rem .55rem; border-radius: 999px;
-    font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+    font-size: .88rem; font-weight: 700; text-transform: none; letter-spacing: 0;
 }
 .badge-verde { background: #e3f4e6; color: var(--verde); }
 .badge-giallo { background: #fdf3e0; color: var(--giallo); }
@@ -103,7 +103,7 @@ a { color: var(--blu-italia); }
 .badge-neutro { background: var(--blu-chiaro); color: var(--blu-scuro); }
 
 /* ---------------- form ---------------- */
-label { display: block; font-size: .82rem; font-weight: 600; margin-bottom: .2rem; color: #46617d; }
+label { display: block; font-size: .98rem; font-weight: 600; margin-bottom: .35rem; color: #334d65; }
 input, select, textarea {
     font-family: inherit; font-size: .95rem; padding: .5rem .6rem;
     border: 1px solid #7a8a99; border-radius: var(--raggio); background: #fff; color: inherit; width: 100%;
@@ -124,16 +124,16 @@ textarea { resize: vertical; }
 .btn-primary:hover { background: var(--blu-scuro); }
 .btn-outline-primary { background: #fff; color: var(--blu-italia); border-color: var(--blu-italia); }
 .btn-outline-primary:hover { background: var(--blu-chiaro); }
-.btn-sm { padding: .35rem .8rem; font-size: .85rem; }
+.btn-sm { padding: .5rem .9rem; font-size: .95rem; }
 .btn-link { background: none; border: none; color: var(--blu-italia); text-decoration: underline; }
-.btn-azione { background: #fff; border: 1px solid var(--grigio-bordo); border-radius: var(--raggio); padding: .25rem .55rem; font-size: .8rem; cursor: pointer; }
+.btn-azione { background: #fff; border: 1px solid #8fa1b4; border-radius: var(--raggio); padding: .45rem .7rem; font-size: .92rem; cursor: pointer; margin: .1rem; }
 .btn-azione:hover { border-color: var(--blu-italia); color: var(--blu-italia); }
 
 /* ---------------- tabelle ---------------- */
 .tabella-scroll { overflow-x: auto; background: #fff; border: 1px solid var(--grigio-bordo); border-radius: var(--raggio); }
 table.table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 table.table th, table.table td { padding: .6rem .75rem; text-align: left; border-bottom: 1px solid var(--grigio-bordo); vertical-align: middle; }
-table.table thead th { background: var(--blu-chiaro); color: var(--blu-scuro); font-size: .78rem; text-transform: uppercase; letter-spacing: .4px; }
+table.table thead th { background: var(--blu-chiaro); color: var(--blu-scuro); font-size: .88rem; text-transform: none; letter-spacing: 0; }
 table.table tbody tr:hover { background: #fafcfe; }
 table.table tr.selezionata { background: var(--blu-chiaro); }
 
@@ -142,14 +142,14 @@ table.table tr.selezionata { background: var(--blu-chiaro); }
 
 /* ---------------- calendario ---------------- */
 .calendario { display: grid; grid-template-columns: repeat(7, 1fr); gap: .35rem; background: #fff; padding: .75rem; border: 1px solid var(--grigio-bordo); border-radius: var(--raggio); }
-.calendario .giorno { border: 1px solid var(--grigio-bordo); border-radius: var(--raggio); min-height: 64px; padding: .3rem .4rem; font-size: .8rem; cursor: pointer; background: #fff; text-align: left; }
-.calendario .giorno strong { display: block; font-size: .9rem; }
+.calendario .giorno { border: 1px solid var(--grigio-bordo); border-radius: var(--raggio); min-height: 76px; padding: .4rem .3rem; font-size: .83rem; line-height: 1.25; overflow-wrap: anywhere; cursor: pointer; background: #fff; text-align: left; }
+.calendario .giorno strong { display: block; font-size: 1rem; }
 .calendario .giorno.presente { background: #eaf6ec; border-color: #b7dfc0; }
 .calendario .giorno.assente { background: #fbe9e7; border-color: #f0b7b1; }
 .calendario .giorno.gita { background: #fdf3e0; border-color: #f0d9a8; }
 .calendario .giorno.override { border-width: 2px; border-color: var(--blu-italia); }
 .calendario .giorno.vuoto { background: var(--grigio-sfondo); border-style: dashed; cursor: default; }
-.calendario .intestazione-giorno { font-size: .72rem; text-transform: uppercase; text-align: center; color: #5d7285; font-weight: 700; }
+.calendario .intestazione-giorno { font-size: .85rem; text-align: center; color: #42576c; font-weight: 700; }
 
 /* ---------------- stelle feedback ---------------- */
 .stelle { display: flex; gap: .25rem; margin: .5rem 0; }
@@ -160,6 +160,7 @@ table.table tr.selezionata { background: var(--blu-chiaro); }
 .banner { border-left: 5px solid var(--blu-italia); background: var(--blu-chiaro); padding: .7rem 1rem; border-radius: var(--raggio); margin-bottom: 1rem; font-size: .9rem; }
 .banner--rosso { border-left-color: var(--rosso); background: #fbe6e4; }
 .banner--verde { border-left-color: var(--verde); background: #e3f4e6; }
+.banner--neutro { border-left-color: #9baaba; background: #eef2f6; color: #405268; }
 
 .avvisi { position: fixed; right: 1rem; bottom: 1rem; display: flex; flex-direction: column; gap: .5rem; z-index: 60; }
 .avviso { background: var(--blu-scuro); color: #fff; padding: .7rem 1rem; border-radius: var(--raggio); font-size: .9rem; box-shadow: 0 8px 24px rgba(0,0,0,.2); animation: entra .25s ease; max-width: 340px; }
@@ -192,3 +193,2750 @@ table.table tr.selezionata { background: var(--blu-chiaro); }
 .piede { background: #0b2136; color: #cfdcea; font-size: .82rem; padding: 1.25rem 0; }
 .piede .contenitore { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .w-100 { width: 100%; }
+
+/* Accessibilità: focus visibile anche per chi usa solo la tastiera. */
+button:focus-visible, a:focus-visible, summary:focus-visible {
+    outline: 3px solid #0066cc; outline-offset: 3px;
+}
+button:disabled { cursor: progress; opacity: .7; }
+@media (max-width: 600px) {
+    .contenitore { width: calc(100% - 1rem); }
+    .pannello { padding: .85rem; }
+    .griglia-cards { grid-template-columns: minmax(0, 1fr); }
+    .calendario { gap: .15rem; padding: .35rem; }
+    .calendario .giorno { padding: .25rem .15rem; }
+}
+
+/* UX/UI A–D: stati coerenti, leggibilità e moduli responsive. */
+[hidden] { display: none !important; }
+body { line-height: 1.5; }
+.btn, .btn-azione { min-height: 42px; }
+.btn:active, .btn-azione:active { transform: translateY(1px); }
+.scheda { min-height: 46px; }
+.scheda[aria-selected="true"] { background: #e6f0fa; border-radius: 6px 6px 0 0; }
+.griglia-cards { align-items: start; }
+.card-mensa { border-radius: 10px; box-shadow: 0 2px 12px rgba(18, 49, 77, .06); }
+.pannello { border-radius: 10px; }
+.stato-operazione {
+    padding: .75rem 1rem; border-radius: 8px; border: 1px solid #bacbdc;
+    background: #eaf2fc; color: #123c60; font-weight: 600; line-height: 1.5; margin: .65rem 0;
+}
+.stato-operazione--ok { background: #e8f5e9; color: #165528; border-color: #a5d5b2; }
+.stato-operazione--errore { background: #fff0ef; color: #921c16; border-color: #efaca6; }
+.stato-operazione--caricamento { background: #eff4fa; color: #254b6e; }
+.stato-operazione--info { background: #eef4fa; color: #254b6e; }
+/* Gli stati del pasto non sono esiti tecnici: colori semantici distinti. */
+.stato-operazione--assente {
+    background: #fff0ed; color: #96372d; border-color: #efb9b1;
+}
+.stato-operazione--non-previsto {
+    background: #f0f2f5; color: #435266; border-color: #d2d9e1;
+}
+.stato-operazione--verifica {
+    background: #fff6e7; color: #785013; border-color: #ead1a4;
+}
+/* Notifiche: testo e chiusura allineati al centro anche su più righe. */
+#avvisi {
+    width: min(360px, calc(100vw - 2rem));
+    max-width: 100%;
+    align-items: stretch;
+    pointer-events: none;
+}
+#avvisi .avviso {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    padding: .8rem .85rem;
+    border-radius: 10px;
+    pointer-events: auto;
+}
+#avvisi .avviso__testo {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    color: inherit;
+    line-height: 1.4;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+#avvisi .avviso__chiudi {
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, .65);
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    line-height: 1;
+    font-size: 0;
+    box-shadow: none;
+}
+#avvisi .avviso__chiudi::before,
+#avvisi .avviso__chiudi::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 15px;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+}
+#avvisi .avviso__chiudi::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+#avvisi .avviso__chiudi::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+#avvisi .avviso__chiudi:hover {
+    background: rgba(255, 255, 255, .15);
+}
+#avvisi .avviso__chiudi:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 2px;
+}
+.conferma-dialogo { border: 0; border-radius: 14px; padding: 1.6rem; width: min(450px, calc(100vw - 2rem)); color: var(--grigio-testo); box-shadow: 0 16px 60px #132f4a44; }
+.conferma-dialogo::backdrop { background: #09264199; }
+.conferma-dialogo h2 { margin-top: 0; font-size: 1.3rem; }
+.conferma-dialogo__azioni { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .6rem; margin-top: 1.25rem; }
+.riepilogo-mensa { display: flex; flex-wrap: wrap; gap: .7rem; margin: 1rem 0; }
+.riepilogo-mensa__dato { background: #f6f9fc; border: 1px solid #d5e2ee; border-radius: 8px; padding: .75rem 1rem; flex: 1 1 130px; }
+.riepilogo-mensa__dato strong { display:block; font-size: 1.5rem; line-height: 1.1; }
+.riepilogo-mensa__dato span { display: block; font-size: .9rem; color: #42576c; }
+.azioni-giorno { display:flex; flex-wrap:wrap; gap:.6rem; padding:.6rem 0; }
+.azioni-giorno .btn { flex:1 1 170px; }
+.calendario .giorno { position:relative; min-height:84px; }
+.calendario .giorno.selezionato { outline: 3px solid var(--blu-italia); outline-offset: 1px; }
+.calendario .giorno.senza-mensa { background:#eef1f5; color:#405268; border-style:dashed; }
+.calendario .giorno.non-disponibile { background:#f7f8fa; color:#42576c; }
+.calendario .giorno small { display:block; font-size:.78rem; margin-top:.2rem; font-weight:600; }
+input:disabled, button:disabled { opacity:.65; }
+@media (max-width:700px) {
+  .schede { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.35rem; }
+  .scheda { border:1px solid #d5e2ee; border-radius:7px; text-align:center; padding:.7rem .35rem; }
+  .scheda.attiva { border:2px solid var(--blu-italia); border-radius:7px; }
+  .riga-filtri { gap:.65rem; }
+  .riga-filtri label { width:100%; flex:1 1 100%; }
+  .riga-filtri input, .riga-filtri select { min-height:44px; }
+  .btn, .btn-azione { min-height:44px; }
+  .calendario .giorno { font-size:.7rem; min-height:68px; padding:.2rem; }
+  .calendario .giorno small { font-size:.66rem; }
+  .calendario .intestazione-giorno { font-size:.7rem; }
+  .avvisi { right:.5rem; bottom:.5rem; left:.5rem; }
+  #avvisi { width: auto; }
+  #avvisi .avviso { width:100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration:.01ms!important; animation-duration:.01ms!important; }
+}
+
+
+/* 14/10/2026 - Correzione impaginazione DESKTOP, senza nascondere i testi.
+   I campi di filtro sono raggruppati a due a due dallo script comune. */
+html, body { max-width: 100%; }
+.contenitore, .contenuto, .vista, .pannello, .card-mensa, .griglia-cards,
+.due-colonne, .due-colonne > *, .tabella-scroll, .riepilogo-mensa,
+.riepilogo-mensa__dato, .modale__pannello, .campo-filtro {
+    min-width: 0;
+}
+.griglia-cards {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+    align-items: start;
+}
+.due-colonne {
+    grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+}
+.riga-filtri {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: .85rem;
+    align-items: end;
+}
+.riga-filtri > * { min-width: 0; max-width: 100%; }
+.riga-filtri > label { width: auto; align-self: center; }
+.campo-filtro { display: flex; flex-direction: column; width: 100%; }
+.campo-filtro > label { margin-bottom: .25rem; line-height: 1.35; }
+.campo-filtro > input, .campo-filtro > select, .campo-filtro > textarea {
+    min-width: 0; max-width: 100%; width: 100%;
+}
+.card-mensa, .pannello, .riepilogo-mensa__dato, .stato-operazione,
+.banner, .avviso, .conferma-dialogo, .modale__pannello {
+    overflow-wrap: anywhere;
+}
+.card-mensa dl {
+    grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+    gap: .35rem .7rem;
+    font-size: .94rem;
+}
+.card-mensa dt, .card-mensa dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.card-mensa h3, .card-mensa p, .pannello h2, .pannello p {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.btn, .btn-azione, .scheda, .badge-stato {
+    white-space: normal;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-align: center;
+}
+.azioni-giorno > *, .riepilogo-mensa__dato { min-width: 0; }
+.tabella-scroll { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+.tabella-scroll > table.table { width: max-content; min-width: 100%; }
+.tabella-scroll > table.table th, .tabella-scroll > table.table td {
+    max-width: 260px;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+.calendario { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.calendario .giorno {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+.intestazione-comune__titolo, .intestazione-comune__azioni,
+.intestazione-comune__titolo > div { min-width: 0; }
+.intestazione-comune__titolo strong, .intestazione-comune__titolo span,
+#utente-corrente { overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+    .due-colonne { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+    .riga-filtri { grid-template-columns: minmax(0, 1fr); gap: .7rem; }
+    .griglia-cards { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Area famiglia: azioni del giorno sempre ordinate e allineate tra card.
+   Regole limitate a #figli-lista per non alterare gli altri profili. */
+#figli-lista { align-items: stretch; }
+#figli-lista > .card-figlio {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+#figli-lista .figlio-comandi {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    min-width: 0;
+    width: 100%;
+    margin-top: auto;
+    padding-top: 1.25rem;
+}
+#figli-lista > .card-figlio { container-type: inline-size; }
+#figli-lista .figlio-selezione-data {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 210px);
+    align-items: center;
+    column-gap: .75rem;
+    row-gap: .4rem;
+    min-width: 0;
+    width: 100%;
+}
+#figli-lista .figlio-selezione-data label {
+    margin: 0;
+    line-height: 1.35;
+}
+/* Solo il limite di larghezza della card è specifico del Genitore:
+   aspetto, bordo e icona sono condivisi da tutti i profili. */
+#figli-lista .figlio-selezione-data input[type="date"] {
+    max-width: 210px;
+}
+@container (max-width: 370px) {
+    #figli-lista .figlio-selezione-data {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    #figli-lista .figlio-selezione-data input[type="date"] {
+        max-width: 100%;
+    }
+}
+/* UI.stato aggiorna le classi: lo spazio deve restare coerente. */
+#figli-lista .figlio-comandi > .stato-operazione {
+    margin: 0;
+    width: 100%;
+    min-width: 0;
+}
+#figli-lista .figlio-azioni {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .6rem;
+    min-width: 0;
+    width: 100%;
+}
+#figli-lista .figlio-azioni--singola {
+    grid-template-columns: minmax(0, 1fr);
+}
+#figli-lista .figlio-azioni .btn,
+#figli-lista .figlio-calendario {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    width: 100%;
+    min-height: 46px;
+    line-height: 1.3;
+    text-align: center;
+}
+#figli-lista .figlio-calendario { margin: 0; }
+@media (max-width: 600px) {
+    #figli-lista .figlio-azioni { grid-template-columns: minmax(0, 1fr); }
+}
+
+
+/* Select condiviso: freccia centrata e distanziata dal testo su tutti
+   i profili (i controlli multipli mantengono l'aspetto nativo). */
+select:not([multiple]):not([size]) {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+    height: 46px;
+    padding: .55rem 2.65rem .55rem .75rem !important;
+    margin: 0;
+    border: 1px solid #91a9bd !important;
+    border-radius: 8px !important;
+    background-color: #fff !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6' fill='none' stroke='%23334d65' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right .85rem center !important;
+    background-size: 18px 18px !important;
+    box-shadow: 0 1px 2px rgba(18, 49, 77, .07) !important;
+    color: var(--grigio-testo);
+    font: inherit;
+    font-size: .95rem;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+select:not([multiple]):not([size]):focus-visible {
+    outline: 3px solid var(--blu-italia);
+    outline-offset: 2px;
+}
+select:not([multiple]):not([size]):disabled {
+    cursor: not-allowed;
+    background-color: #f0f2f5 !important;
+}
+
+/* Componente comune data/mese/ora: Scuola, Genitore, Catering, Operatore e Admin.
+   Bootstrap Italia applicava una sottolineatura a tutta larghezza mentre
+   l'icona del calendario restava vicina alla data. Il bordo appartiene ora
+   esclusivamente al controllo, che non si allunga oltre una larghezza utile.
+   Restano nativi selezione, tastiera e picker di browser/telefono. */
+input[type="date"],
+input[type="month"],
+input[type="time"],
+input[type="datetime-local"] {
+    display: block;
+    box-sizing: border-box;
+    min-width: 0;
+    width: min(100%, 220px) !important;
+    max-width: 100%;
+    min-height: 46px;
+    height: 46px;
+    margin: 0;
+    padding: .55rem .75rem !important;
+    border: 1px solid #91a9bd !important;
+    border-bottom: 1px solid #91a9bd !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    background-image: none !important;
+    box-shadow: 0 1px 2px rgba(18, 49, 77, .07) !important;
+    color: var(--grigio-testo);
+    font: inherit;
+    font-size: .95rem;
+    line-height: 1.3;
+}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    margin-left: auto;
+    cursor: pointer;
+    opacity: .85;
+}
+input[type="date"]:focus-visible,
+input[type="month"]:focus-visible,
+input[type="time"]:focus-visible,
+input[type="datetime-local"]:focus-visible {
+    outline: 3px solid var(--blu-italia);
+    outline-offset: 2px;
+}
+/* Evita tagli della data sui layout molto stretti, senza estendere il campo
+   in modo artificiale dentro le griglie dei filtri. */
+.campo-filtro > input[type="date"],
+.campo-filtro > input[type="month"],
+.campo-filtro > input[type="time"],
+.campo-filtro > input[type="datetime-local"] {
+    justify-self: start;
+    align-self: start;
+}
+
+/* Area Scuola — griglie esplicite: etichette, date e pulsanti
+   allineati senza spaziature create dai filtri generici. */
+#vista-giornata h1, #vista-assenze h1 { margin-bottom: .35rem; }
+#vista-giornata > .nota, #vista-assenze > .nota { margin: 0 0 1rem; }
+.scuola-filtri {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 220px) auto;
+    align-items: end;
+    gap: .8rem;
+    margin: 0 0 .85rem;
+}
+.scuola-filtri--assenza { grid-template-columns: minmax(0, 1fr) minmax(0, 220px); }
+.scuola-campo { display: flex; flex-direction: column; min-width: 0; gap: .35rem; }
+.scuola-campo label { margin: 0; line-height: 1.3; text-align: left; }
+.scuola-campo select { width: 100%; min-width: 0; min-height: 46px; }
+.scuola-campo input[type="date"] { width: 100% !important; }
+.scuola-aggiorna { min-height: 46px; align-self: end; margin: 0; white-space: nowrap; }
+#vista-giornata > .stato-operazione { margin: 0 0 .75rem; }
+#vista-giornata .riepilogo-mensa { margin: 0 0 .75rem; gap: .65rem; }
+#vista-giornata .riepilogo-mensa__dato { padding: .6rem .8rem; }
+#vista-giornata > .banner { margin: 0 0 .85rem; line-height: 1.45; }
+.scuola-tabella { width: 100%; }
+/* Sostituisce il max-content del contenitore tabellare generico:
+   a schermo ampio l'intestazione e le righe riempiono tutta la card. */
+.scuola-tabella > table.table {
+    width: 100% !important;
+    min-width: 920px;
+    table-layout: auto;
+}
+.scuola-tabella .table th, .scuola-tabella .table td {
+    padding: .65rem .7rem;
+    vertical-align: middle;
+    max-width: none;
+    overflow-wrap: anywhere;
+}
+.scuola-tabella .table th:last-child, .scuola-tabella .table td:last-child {
+    min-width: 140px;
+}
+.scuola-azioni { display: flex; flex-direction: column; gap: .4rem; width: 100%; }
+.scuola-azioni .btn { width: 100%; min-height: 40px; padding: .38rem .5rem; }
+/* Badge e note appartengono alla stessa colonna, anche se il testo va a capo.
+   La nota inizia in corrispondenza del testo interno al badge, non del bordo. */
+.scuola-correzione, .scuola-stato-pasto {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    min-width: 0;
+    max-width: 100%;
+    gap: .25rem;
+}
+.scuola-correzione > .badge-stato,
+.scuola-stato-pasto > .badge-stato {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-start;
+    max-width: 100%;
+    min-height: 28px;
+    margin: 0;
+    line-height: 1.3;
+    vertical-align: middle;
+}
+.scuola-correzione > small,
+.scuola-stato-pasto > small {
+    display: block;
+    box-sizing: border-box;
+    max-width: 100%;
+    margin: 0;
+    padding: 0 0 0 .55rem;
+    color: #4b6177;
+    font-size: .84rem;
+    line-height: 1.35;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+.scuola-senza-modifica { color: #566e82; }
+.scuola-assenza-form { display: flex; flex-direction: column; gap: .9rem; margin-bottom: 1.35rem; }
+.scuola-assenza-form .scuola-filtri { margin: 0; }
+.scuola-campo--motivo { width: 100%; max-width: 630px; }
+.scuola-assenza-form > .btn { align-self: flex-start; min-height: 44px; }
+
+/* Finestra condivisa per motivazioni obbligatorie, senza prompt del browser. */
+.motivo-dialogo {
+    box-sizing: border-box;
+    width: min(510px, calc(100vw - 2rem));
+    max-width: 100%;
+    max-height: calc(100dvh - 2rem);
+    padding: 1.35rem;
+    margin: auto;
+    overflow-y: auto;
+    border: 1px solid #d2dce7;
+    border-radius: 12px;
+    color: var(--grigio-testo);
+    background: #fff;
+    box-shadow: 0 20px 70px rgba(8, 35, 60, .25);
+}
+.motivo-dialogo::backdrop { background: rgba(8, 28, 47, .56); }
+.motivo-dialogo__testa { display: flex; align-items: center; justify-content: space-between; gap: .8rem; }
+.motivo-dialogo__testa h2 { margin: 0; font-size: 1.25rem; line-height: 1.35; }
+.motivo-dialogo__chiudi {
+    flex: 0 0 36px; width: 36px; height: 36px;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin: 0; padding: 0; border: 1px solid #cad7e3;
+    border-radius: 50%; color: #244968; background: #f6f9fc;
+    font-family: inherit; font-size: 1.4rem; line-height: 1; cursor: pointer;
+}
+.motivo-dialogo__testo { margin: .65rem 0 1rem; }
+.motivo-dialogo__etichetta { margin: 0 0 .4rem; }
+.motivo-dialogo textarea {
+    display: block; min-width: 0; width: 100%; min-height: 100px;
+    padding: .65rem .75rem; border-radius: 8px; border: 1px solid #8ba2b8;
+}
+.motivo-dialogo textarea[aria-invalid="true"] { border-color: var(--rosso); }
+.motivo-dialogo__errore { margin: .45rem 0 0; color: var(--rosso); font-size: .88rem; }
+.motivo-dialogo__azioni { display: flex; justify-content: flex-end; gap: .6rem; flex-wrap: wrap; margin-top: 1.1rem; }
+.motivo-dialogo__azioni .btn { min-height: 44px; }
+@media (max-width: 760px) {
+    .scuola-filtri, .scuola-filtri--assenza {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .scuola-campo input[type="date"] { max-width: 100%; }
+    .scuola-aggiorna { width: 100%; }
+}
+@media (max-width: 440px) {
+    .motivo-dialogo { padding: 1rem; }
+    .motivo-dialogo__azioni .btn { flex: 1 1 130px; }
+}
+
+/* Scuola su smartphone: niente sei colonne minuscole né scroll laterale.
+   Ogni alunno è una scheda con etichette leggibili; stesso contenuto e azioni. */
+@media (max-width: 760px) {
+    .scuola-tabella {
+        width: 100%;
+        max-width: 100%;
+        border: 0;
+        overflow: visible;
+        background: transparent;
+    }
+    .scuola-tabella > table.table {
+        display: block;
+        width: 100% !important;
+        min-width: 0;
+        border-collapse: separate;
+    }
+    .scuola-tabella .table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+    .scuola-tabella .table tbody {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: .75rem;
+        width: 100%;
+    }
+    .scuola-tabella .table tbody tr {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--grigio-bordo);
+        border-radius: 10px;
+        background: #fff;
+    }
+    .scuola-tabella .table tbody td {
+        display: grid;
+        grid-template-columns: minmax(0, 43%) minmax(0, 57%);
+        align-items: start;
+        gap: .45rem;
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        padding: .65rem .8rem;
+        border-bottom: 1px solid #e4eaf0;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+    .scuola-tabella .table tbody td::before {
+        content: attr(data-label);
+        display: block;
+        min-width: 0;
+        font-size: .85rem;
+        font-weight: 600;
+        line-height: 1.4;
+        color: #536a7f;
+    }
+    .scuola-tabella .table tbody td:first-child {
+        display: block;
+        padding: .8rem;
+        background: #eef4fa;
+        color: var(--grigio-testo);
+        font-size: 1.05rem;
+        font-weight: 700;
+    }
+    .scuola-tabella .table tbody td:first-child::before { display: none; }
+    .scuola-tabella .table tbody td:last-child {
+        min-width: 0;
+        border-bottom: 0;
+    }
+    .scuola-tabella .table tbody td[colspan] {
+        display: block;
+        padding: 1rem;
+    }
+    .scuola-tabella .table tbody td[colspan]::before { display: none; }
+    .scuola-tabella .scuola-azioni { min-width: 0; }
+    .scuola-tabella .scuola-azioni .btn { min-width: 0; max-width: 100%; }
+}
+
+/* Catering: griglie uniformi e leggibili per filtri, report e pubblicazioni.
+   Le etichette sono parte dello stesso controllo, non elementi del grid esterno. */
+#vista-report > h1, #vista-menu > h1, #vista-feedback > h1 { margin-bottom: .7rem; }
+.catering-filtri {
+    display: grid;
+    align-items: end;
+    gap: .8rem;
+    margin: 0 0 .9rem;
+    min-width: 0;
+}
+.catering-filtri--report {
+    grid-template-columns: minmax(0, 220px) auto;
+    justify-content: start;
+}
+.catering-filtri--menu {
+    grid-template-columns: minmax(0, 210px) repeat(2, minmax(0, 1fr));
+}
+.catering-variazioni {
+    display: grid;
+    gap: .55rem;
+    margin-bottom: 1.1rem;
+}
+.catering-variazione {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .5rem 1rem;
+    border: 1px solid #d3e1ec;
+    background: #fff;
+    border-radius: 8px;
+    padding: .75rem .9rem;
+    min-width: 0;
+}
+.catering-variazione__info {
+    display: grid;
+    gap: .18rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: .91rem;
+}
+.catering-variazione__info > span { color: #496174; }
+.catering-variazione__info > small { color: #725221; }
+.catering-variazione__azioni { display: flex; flex-wrap: wrap; gap: .4rem; }
+.catering-variazione__azioni .btn { min-height: 40px; margin: 0; }
+.catering-variazioni-pagine {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: .55rem 1rem;
+    margin: .5rem 0 1.2rem;
+    text-align: center;
+}
+.catering-variazioni-pagine[hidden] { display: none; }
+.catering-variazioni-pagine .btn { min-height: 42px; margin: 0; }
+#menu-variazioni-indicatore { font-size: .9rem; font-weight: 600; }
+@media (max-width: 500px) {
+    .catering-variazioni-pagine { gap: .55rem; }
+    .catering-variazioni-pagine .btn { flex: 1; }
+    #menu-variazioni-indicatore { width: 100%; order: -1; }
+}
+@media (max-width: 780px) {
+    .catering-filtri--menu { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+    .catering-variazione__azioni { width: 100%; }
+    .catering-variazione__azioni .btn { flex: 1; }
+}
+
+.catering-filtri--feedback {
+    grid-template-columns: minmax(0, 180px) minmax(0, 180px)
+                           minmax(160px, 1fr) minmax(160px, 1fr) auto;
+}
+.catering-campo {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+    gap: .35rem;
+}
+.catering-campo label {
+    display: block;
+    margin: 0;
+    line-height: 1.3;
+    text-align: left;
+}
+.catering-campo select,
+.catering-campo input[type="date"] { width: 100% !important; min-width: 0; }
+.catering-filtri__azione {
+    align-self: end;
+    min-height: 46px;
+    width: auto;
+    margin: 0;
+    white-space: nowrap;
+}
+#vista-report #report-stato { margin: 0 0 .7rem; line-height: 1.4; }
+#vista-report #report-riepilogo { margin: 0 0 .85rem; gap: .65rem; }
+#vista-report #report-riepilogo .riepilogo-mensa__dato { padding: .65rem .8rem; }
+#vista-report .catering-distribuzione-nota { margin: 0 0 .85rem; }
+#vista-report #report {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    width: 100%;
+    min-width: 0;
+    gap: .85rem;
+}
+#vista-report #report .catering-scuola {
+    min-width: 0;
+    padding: 1rem 1.05rem;
+    transition: none;
+    transform: none;
+}
+#vista-report #report .catering-scuola:hover { transform: none; }
+.catering-scuola h3 { margin: 0 0 .65rem; overflow-wrap: anywhere; }
+.catering-scuola h4 { margin: .75rem 0 .35rem; font-size: .96rem; }
+.catering-scuola__intestazione {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: .4rem .6rem;
+}
+.catering-scuola__intestazione .saldo { display: block; font-size: 1.85rem; }
+.catering-scuola__intestazione .nota { margin: .15rem 0 0; font-size: .83rem; }
+.catering-scuola__intestazione .badge-stato { max-width: 100%; }
+.catering-scuola__sintesi {
+    font-size: .87rem;
+    margin: .4rem 0 .55rem;
+    color: #42576c;
+}
+.catering-scuola__sintesi strong { color: #765000; }
+.catering-scuola__tipologie {
+    margin: .55rem 0 .75rem;
+    padding: .5rem 0 .7rem;
+    border-bottom: 1px solid #d9e4ec;
+}
+.catering-scuola__tipologie h4 { margin: 0 0 .4rem; }
+.catering-ripartizione {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: .3rem .45rem;
+    min-width: 0;
+}
+.catering-quantita {
+    display: inline-flex;
+    align-items: baseline;
+    gap: .35rem;
+    max-width: 100%;
+    padding: .25rem .45rem;
+    border-radius: 6px;
+    border: 1px solid #d4e2ed;
+    background: #f4f8fc;
+    font-size: .84rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+.catering-quantita__testi {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.35;
+}
+.catering-quantita__modello {
+    display: block;
+    max-width: 100%;
+    color: #476173;
+    font-size: .75rem;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+.catering-scuola__piatti {
+    margin-top: .55rem;
+    border-top: 1px solid #d9e4ec;
+    padding-top: .45rem;
+    max-width: 100%;
+}
+.catering-scuola__piatti summary {
+    cursor: pointer;
+    padding: .2rem 0;
+    min-height: 36px;
+    color: #13578b;
+    font-weight: 600;
+    font-size: .85rem;
+}
+.catering-scuola__piatti summary:focus-visible {
+    outline: 3px solid var(--blu-italia);
+    outline-offset: 2px;
+}
+.catering-scuola__piatti-elenco {
+    display: grid;
+    gap: .45rem;
+    padding: .35rem 0;
+}
+.catering-scuola__piatto {
+    padding: .55rem .65rem;
+    background: #f4f8fc;
+    border-radius: 6px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: .84rem;
+}
+.catering-scuola__piatto strong { display: block; }
+.catering-scuola__piatto p {
+    margin: .25rem 0 0;
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
+.catering-quantita strong {
+    font-size: 1rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+.catering-quantita span { min-width: 0; overflow-wrap: anywhere; }
+.catering-ripartizione__altre { min-width: 0; max-width: 100%; font-size: .82rem; }
+.catering-ripartizione__altre summary {
+    min-height: 34px;
+    display: list-item;
+    padding: .25rem .2rem;
+    color: #13578b;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.catering-ripartizione__altre summary:focus-visible {
+    outline: 3px solid var(--blu-italia);
+    outline-offset: 2px;
+}
+.catering-ripartizione__dettagli {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    padding: .4rem 0;
+}
+.catering-scuola__titolo-classi { margin: .25rem 0 .35rem; }
+.catering-scuola__classi {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.catering-classe {
+    padding: .65rem 0 .7rem;
+    border-bottom: 1px solid #e0e9f0;
+    min-width: 0;
+}
+.catering-classe:last-child { border-bottom: 0; padding-bottom: .1rem; }
+.catering-classe__riga {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .3rem .65rem;
+}
+.catering-classe__riga h4 {
+    margin: 0;
+    font-size: .98rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+.catering-classe__totale {
+    font-size: 1.17rem;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.catering-classe__totale small { font-size: .77rem; font-weight: 500; }
+.catering-classe > .catering-ripartizione { margin-top: .36rem; }
+.catering-classe__bianco {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .15rem .45rem;
+    padding: .37rem .55rem;
+    margin-top: .4rem;
+    background: #fff3dc;
+    border-left: 3px solid #b57619;
+    border-radius: 4px;
+    font-size: .85rem;
+    min-width: 0;
+}
+.catering-classe__bianco strong { color: #744500; }
+.catering-classe__bianco-tipo { font-weight: 600; }
+.catering-classe__nomi {
+    flex-basis: 100%;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+}
+.catering-classe__vuoto { margin: .2rem 0 0; color: #53697b; font-size: .85rem; }
+@media (max-width: 900px) {
+    #vista-report #report { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+    #vista-report #report .catering-scuola { padding: .85rem; }
+    .catering-scuola__intestazione { flex-direction: column; }
+}
+#vista-menu .catering-introduzione { margin: 0 0 .9rem; }
+.catering-form-menu {
+    display: flex;
+    flex-direction: column;
+    gap: .95rem;
+    margin-bottom: 1.25rem;
+}
+.catering-form-menu > .catering-filtri { margin: 0; }
+.catering-form-menu > .catering-campo { width: 100%; }
+.catering-form-menu textarea {
+    width: 100%;
+    min-width: 0;
+    min-height: 100px;
+    border-radius: 8px;
+}
+.catering-form-menu input[type="file"] {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    border: 1px solid #91a9bd;
+    border-radius: 8px;
+    padding: .6rem .75rem;
+    background: #fff;
+}
+.catering-form-menu .catering-menu-stato {
+    margin: 0;
+    padding: .75rem .9rem;
+    line-height: 1.5;
+}
+.catering-form-menu .catering-foto-nota {
+    margin: 0;
+    font-size: .86rem;
+    line-height: 1.35;
+}
+.catering-form-menu .catering-menu-submit {
+    align-self: flex-start;
+    min-height: 46px;
+    margin: 0;
+}
+.catering-menu-azioni {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .65rem;
+}
+.catering-menu-azioni > .btn { min-height: 46px; margin: 0; }
+#menu-ripristina[hidden] { display: none !important; }
+#vista-menu > h2 { margin: 1.25rem 0 .65rem; }
+#vista-menu #menu-stato { margin: 0 0 .8rem; }
+#vista-menu #menu-lista { width: 100%; gap: .85rem; }
+.catering-menu-card {
+    display: flex;
+    flex-direction: column;
+    gap: .65rem;
+    min-width: 0;
+}
+.catering-menu-card h3,
+.catering-menu-card p { margin: 0; }
+.catering-menu-card .catering-menu-card__tipo {
+    font-weight: 600;
+    color: #53677a;
+}
+.catering-menu-card .btn {
+    align-self: stretch;
+    min-height: 44px;
+    margin-top: auto;
+}
+#vista-feedback #feedback-stato { margin: 0 0 .85rem; }
+@media (max-width: 980px) {
+    .catering-filtri--feedback {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .catering-filtri--feedback > .catering-filtri__azione { justify-self: start; }
+}
+@media (max-width: 600px) {
+    .catering-filtri--report,
+    .catering-filtri--menu,
+    .catering-filtri--feedback {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .catering-filtri__azione,
+    .catering-form-menu .catering-menu-submit { width: 100%; }
+    .catering-menu-azioni .btn { width: 100%; }
+    .catering-campo input[type="date"] { max-width: 100%; }
+    .catering-menu-card .btn { width: 100%; }
+}
+
+/* Formattazione testuale del menu condivisa tra Catering e Genitore:
+   conserva invii e righe vuote inseriti nel campo multilinea. */
+.menu-descrizione {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+/* Stesso controllo fotografico per un menu giornaliero o un singolo giorno
+   della settimana: anteprima, sostituzione e rimozione in attesa del salvataggio. */
+.menu-foto {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    gap: .5rem;
+    padding: .75rem;
+    border: 1px solid #d3e1eb;
+    border-radius: 10px;
+    background: #fafcfe;
+}
+.menu-foto__preview {
+    position: relative;
+    width: min(100%, 280px);
+    height: 180px;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #eef2f6;
+}
+.menu-foto__preview[hidden],
+.menu-foto__vuoto[hidden],
+.menu-foto__annulla[hidden],
+.menu-foto__input[hidden] { display: none !important; }
+.menu-foto__preview img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.menu-foto__x {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 2px solid white;
+    border-radius: 50%;
+    background: #a82c21;
+    color: white;
+    cursor: pointer;
+}
+/* X geometrica: i due tratti condividono il centro esatto del pulsante,
+   senza dipendere dal font o dal glifo tipografico. */
+.menu-foto__x::before,
+.menu-foto__x::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 18px;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+.menu-foto__x::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+.menu-foto__x:hover { background: #832117; }
+.menu-foto__x:focus-visible {
+    outline: 3px solid var(--blu-italia);
+    outline-offset: 2px;
+}
+.menu-foto__vuoto {
+    color: #52677a;
+    font-size: .87rem;
+}
+.menu-foto__comandi { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.menu-foto__comandi .btn { min-height: 44px; margin: 0; }
+.menu-foto__messaggio {
+    margin: 0;
+    font-size: .83rem;
+    color: #495c6d;
+    line-height: 1.4;
+}
+.menu-foto__messaggio:empty { display: none; }
+.catering-settimana-foto {
+    display: block;
+    width: 110px;
+    height: 78px;
+    max-width: 100%;
+    object-fit: contain;
+    background: #eef2f6;
+    border: 1px solid #d3e1eb;
+    border-radius: 6px;
+    margin-top: .4rem;
+}
+/* Anche le foto delle schede del menu del giorno occupano sempre
+   lo stesso ingombro: nessuna deformazione o ritaglio. */
+.catering-menu-card > img {
+    display: block;
+    width: min(100%, 280px);
+    height: 180px;
+    object-fit: contain;
+    background: #eef2f6;
+    border: 1px solid #d3e1eb;
+    border-radius: 8px;
+}
+@media (max-width: 600px) {
+    .menu-foto { width: 100%; }
+    .menu-foto__comandi { width: 100%; }
+    .menu-foto__comandi .btn { flex: 1 1 auto; }
+}
+
+/* Catalogo di settimane tipo: due colonne su desktop, sequenziale su mobile. */
+.catering-settimane-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr);
+    align-items: start;
+    gap: 1rem;
+}
+.catering-settimane-layout > * { min-width: 0; }
+.catering-settimane-layout h2, .catering-assegna h2 { margin: 0 0 .7rem; }
+.catering-giorni { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.catering-giorni textarea { width: 100%; min-height: 105px; }
+.catering-settimane-azioni { display: flex; flex-wrap: wrap; gap: .6rem; }
+.catering-settimane-azioni .btn { min-height: 44px; }
+.catering-elenco-settimane { display: grid; grid-template-columns: minmax(0, 1fr); gap: .8rem; }
+.catering-settimana-card { min-width: 0; }
+.catering-settimana-card h3 { margin: 0; }
+.catering-settimana-card dl {
+    display: grid;
+    grid-template-columns: minmax(74px, 110px) minmax(0, 1fr);
+    gap: .3rem .65rem;
+    font-size: .9rem;
+}
+.catering-settimana-card dl dt { color: #53677a; }
+.catering-settimana-card dl dd { min-width: 0; margin: 0; }
+.catering-assegna { margin-top: 1rem; }
+.catering-assegna .catering-campo { max-width: 620px; margin-bottom: .8rem; }
+.catering-plessi-scelta { border: 1px solid var(--grigio-bordo); border-radius: 8px; padding: .85rem; margin: 0 0 .85rem; }
+.catering-plessi-scelta legend { font-weight: 600; font-size: .95rem; padding: 0 .3rem; }
+#assegna-plessi { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: .55rem; }
+.catering-plesso-opzione { display: flex; align-items: center; gap: .5rem; min-height: 40px; margin: 0; font-weight: 500; }
+.catering-plesso-opzione input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 20px; margin: 0; accent-color: var(--blu-italia); }
+.catering-elenco-assegnazioni { display: grid; gap: .45rem; }
+.catering-assegnazione { display: flex; justify-content: space-between; gap: .75rem; padding: .55rem .7rem; border: 1px solid #d5e2ee; border-radius: 7px; flex-wrap: wrap; }
+@media (max-width: 940px) {
+    .catering-settimane-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+    .catering-giorni { grid-template-columns: minmax(0, 1fr); }
+    .catering-settimane-azioni .btn { flex: 1 1 130px; }
+    #assegna-salva { width: 100%; min-height: 44px; }
+}
+
+
+/* =====================================================================
+   Profili Genitore, Operatore e Admin — stessa gerarchia di Scuola e Catering.
+   Regole circoscritte ai tre ruoli per non modificare le schermate collaudate.
+   ===================================================================== */
+body[data-ruolo="genitore"],
+body[data-ruolo="operatore"],
+body[data-ruolo="admin"] {
+    --raggio: 9px;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .vista {
+    min-width: 0;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .area-intro {
+    margin: 1.15rem 0 1.35rem;
+    padding-bottom: .85rem;
+    border-bottom: 1px solid #d5e2ee;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .area-intro h1 {
+    margin: 0 0 .3rem;
+    font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+    line-height: 1.25;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .area-intro p {
+    margin: 0;
+    max-width: 76ch;
+    color: #50687f;
+    line-height: 1.5;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .area-sezione-testa {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .3rem 1rem;
+    margin: 1.6rem 0 .7rem;
+    border-bottom: 1px solid #d5e2ee;
+    padding-bottom: .45rem;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .area-sezione-testa h2,
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .area-sezione-testa h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0;
+}
+.area-sezione-aiuto {
+    font-size: .86rem;
+    color: #60778c;
+}
+.area-sezione-descrizione { margin: -.2rem 0 .9rem; }
+.visivamente-nascosto {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .card-mensa {
+    border: 1px solid #d5e2ee;
+    box-shadow: 0 2px 9px rgba(18, 49, 77, .05);
+    transition: box-shadow .18s ease;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .card-mensa:hover {
+    box-shadow: 0 3px 13px rgba(18, 49, 77, .1);
+    transform: none;
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .card-mensa--verde {
+    border-left: 4px solid var(--verde);
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .card-mensa--giallo {
+    border-left: 4px solid var(--giallo);
+}
+body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .card-mensa--rosso {
+    border-left: 4px solid var(--rosso);
+}
+
+/* Genitore: i buoni sono un riepilogo, mentre i figli sono l'area operativa. */
+#vista-riepilogo .famiglia-crediti { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+#vista-riepilogo .famiglia-crediti .saldo { font-size: clamp(1.8rem, 2.5vw, 2.25rem); }
+#vista-riepilogo #figli-lista { grid-template-columns: repeat(auto-fit, minmax(min(100%, 365px), 1fr)); gap: 1rem; }
+#vista-riepilogo #figli-lista .card-figlio { padding: 1.15rem; }
+#vista-riepilogo #figli-lista .card-figlio > h3 {
+    font-size: 1.15rem;
+    border-bottom: 1px solid #e6edf3;
+    padding-bottom: .55rem;
+    margin-bottom: .7rem;
+}
+#vista-riepilogo #figli-lista .card-figlio dl { font-size: .91rem; gap: .3rem .75rem; }
+#vista-riepilogo #figli-lista .figlio-comandi {
+    border-top: 1px solid #e5edf4;
+    margin-top: 1rem;
+    padding-top: .9rem;
+    gap: .55rem;
+}
+#vista-riepilogo #figli-lista .figlio-stato { margin: 0; }
+#vista-riepilogo #menu-oggi { grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); }
+body[data-ruolo="genitore"] .famiglia-filtri {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+    gap: .75rem;
+    align-items: end;
+    padding: 1rem;
+    background: #fff;
+    border: 1px solid #d5e2ee;
+    border-radius: 10px;
+}
+body[data-ruolo="genitore"] .famiglia-feedback-form .famiglia-filtri {
+    padding: 0;
+    border: 0;
+}
+body[data-ruolo="genitore"] .famiglia-calendario-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, .85fr);
+    gap: 1rem;
+    align-items: start;
+    margin-top: .9rem;
+}
+body[data-ruolo="genitore"] .famiglia-calendario-mese,
+body[data-ruolo="genitore"] .famiglia-calendario-dettaglio { min-width: 0; }
+body[data-ruolo="genitore"] .famiglia-calendario-dettaglio {
+    margin: 0;
+    border-color: #d5e2ee;
+    box-shadow: 0 2px 9px rgba(18,49,77,.04);
+}
+body[data-ruolo="genitore"] .famiglia-calendario-dettaglio h2 { margin: 0 0 .65rem; }
+body[data-ruolo="genitore"] .famiglia-calendario-legenda {
+    color: #50687f;
+    font-size: .84rem;
+    margin: .65rem 0 .1rem;
+}
+body[data-ruolo="genitore"] .calendario { border-color: #d5e2ee; }
+body[data-ruolo="genitore"] .calendario .giorno {
+    min-height: 79px;
+    border-radius: 7px;
+}
+body[data-ruolo="genitore"] .famiglia-feedback-form {
+    max-width: 860px;
+}
+body[data-ruolo="genitore"] .famiglia-feedback-form .stelle {
+    display: inline-flex;
+    padding: .3rem .6rem;
+    border: 1px solid #d5e2ee;
+    border-radius: 9px;
+    gap: .45rem;
+    margin-bottom: 1rem;
+}
+body[data-ruolo="genitore"] .famiglia-feedback-form .stelle button {
+    min-width: 40px;
+    min-height: 44px;
+    font-size: 1.75rem;
+    text-align: center;
+}
+body[data-ruolo="genitore"] .famiglia-feedback-form textarea { display: block; margin-bottom: 1rem; }
+
+/* Operatore: elenco laterale di consultazione e dettaglio con spazio reale. */
+body[data-ruolo="operatore"] .operatore-ricerca {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    padding: 1rem;
+    background: #fff;
+    border: 1px solid #d5e2ee;
+    border-radius: 10px;
+    align-items: end;
+    gap: .65rem;
+}
+body[data-ruolo="operatore"] .operatore-ricerca input { min-height: 44px; }
+body[data-ruolo="operatore"] .operatore-ricerca .btn { white-space: nowrap; }
+body[data-ruolo="operatore"] .operatore-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 310px) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+body[data-ruolo="operatore"] .operatore-risultati {
+    background: #fff;
+    border: 1px solid #d5e2ee;
+    border-radius: 10px;
+    padding: .7rem;
+    min-width: 0;
+}
+body[data-ruolo="operatore"] .operatore-risultati h2 {
+    margin: .25rem .2rem .65rem;
+    font-size: 1rem;
+}
+body[data-ruolo="operatore"] .operatore-risultati .tabella-scroll {
+    border: 0;
+    overflow-x: visible;
+}
+body[data-ruolo="operatore"] .operatore-risultati .table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+}
+body[data-ruolo="operatore"] .operatore-risultati .table thead { display: none; }
+body[data-ruolo="operatore"] .operatore-risultati .table tbody {
+    display: grid;
+    gap: .45rem;
+}
+body[data-ruolo="operatore"] .operatore-risultati .table tbody tr {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .2rem;
+    padding: .65rem .7rem;
+    border: 1px solid #e0e8f1;
+    border-radius: 8px;
+}
+body[data-ruolo="operatore"] .operatore-risultati .table td {
+    border: 0;
+    padding: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-size: .88rem;
+    min-width: 0;
+}
+body[data-ruolo="operatore"] .operatore-risultati .table td:first-child {
+    font-weight: 700;
+    font-size: .97rem;
+}
+body[data-ruolo="operatore"] .operatore-risultati .table td:last-child {
+    align-self: flex-end;
+}
+body[data-ruolo="operatore"] #scheda-famiglia {
+    min-width: 0;
+    padding: 1.2rem;
+    box-shadow: 0 2px 12px rgba(18, 49, 77, .045);
+}
+body[data-ruolo="operatore"] .operatore-famiglia-testa {
+    border-bottom: 1px solid #e2eaf2;
+    padding-bottom: .85rem;
+    margin-bottom: 1rem;
+}
+body[data-ruolo="operatore"] .operatore-famiglia-testa h2 { margin: 0 0 .55rem; font-size: 1.3rem; }
+body[data-ruolo="operatore"] .operatore-contatti {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+    gap: .55rem 1rem;
+    margin: .7rem 0 0;
+}
+body[data-ruolo="operatore"] .operatore-contatti > div { min-width: 0; }
+body[data-ruolo="operatore"] .operatore-contatti dt { font-size: .8rem; color: #5a7285; }
+body[data-ruolo="operatore"] .operatore-contatti dd { margin: 0; font-size: .94rem; overflow-wrap: anywhere; }
+body[data-ruolo="operatore"] .operatore-azioni {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 185px), 1fr));
+    gap: .55rem;
+    margin-bottom: 1.2rem;
+}
+body[data-ruolo="operatore"] .operatore-azioni .btn { margin: 0; min-height: 44px; }
+body[data-ruolo="operatore"] #scheda-famiglia > .griglia-cards {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 215px), 1fr));
+}
+body[data-ruolo="operatore"] .operatore-figlio {
+    margin: 0 0 .7rem;
+    padding: 1rem;
+}
+body[data-ruolo="operatore"] .operatore-figlio h3 { margin: 0 0 .75rem; }
+body[data-ruolo="operatore"] .operatore-figlio-azioni {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-top: .8rem;
+}
+body[data-ruolo="operatore"] .operatore-figlio-azioni .btn-azione { margin: 0; }
+body[data-ruolo="operatore"] .operatore-figlio details {
+    border-top: 1px solid #e2eaf2;
+    margin-top: .8rem;
+    padding-top: .5rem;
+}
+body[data-ruolo="operatore"] .operatore-storico {
+    border: 1px solid #d5e2ee;
+    border-radius: 9px;
+    margin-top: .7rem;
+    background: #fff;
+}
+body[data-ruolo="operatore"] .operatore-storico > summary {
+    padding: .75rem .95rem;
+    color: #194d75;
+    font-weight: 700;
+    cursor: pointer;
+}
+body[data-ruolo="operatore"] .operatore-storico[open] > summary { border-bottom: 1px solid #d5e2ee; }
+body[data-ruolo="operatore"] .operatore-storico .tabella-scroll { border: 0; }
+
+/* Admin: configurazioni raggruppate per funzione, campi regolari e tabelle
+   facili da consultare, mantenendo le operazioni disponibili come prima. */
+body[data-ruolo="admin"] .admin-config {
+    border-color: #d5e2ee;
+    box-shadow: 0 2px 9px rgba(18,49,77,.04);
+}
+body[data-ruolo="admin"] .admin-config .riga-filtri {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 205px), 1fr));
+    gap: .75rem 1rem;
+}
+body[data-ruolo="admin"] .admin-config input,
+body[data-ruolo="admin"] .admin-config select {
+    min-height: 44px;
+}
+body[data-ruolo="admin"] .admin-config .btn { margin-top: .65rem; }
+body[data-ruolo="admin"] .admin-form-titolo {
+    font-size: 1.02rem;
+    margin: 1.45rem 0 .55rem;
+    color: #214b6d;
+}
+body[data-ruolo="admin"] .admin-job-azioni {
+    background: #fff;
+    border: 1px solid #d5e2ee;
+    border-radius: 10px;
+    padding: 1rem;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+body[data-ruolo="admin"] .admin-job-azioni .btn { min-height: 46px; }
+
+/* Tabelle mobili: valore e intestazione affiancati, senza scorrimento
+   orizzontale. Il JS aggiunge data-etichetta senza cambiare contenuti. */
+@media (max-width: 980px) {
+    body[data-ruolo="operatore"] .operatore-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="genitore"] .famiglia-calendario-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+@media (max-width: 760px) {
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .schede {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        max-width: 100%;
+        gap: .45rem;
+        padding-bottom: .4rem;
+        scroll-snap-type: x proximity;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"]) .schede .scheda {
+        flex: 0 0 auto;
+        min-width: 125px;
+        scroll-snap-align: start;
+    }
+    body[data-ruolo="genitore"] .famiglia-filtri,
+    body[data-ruolo="operatore"] .operatore-ricerca,
+    body[data-ruolo="admin"] .admin-job-azioni {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="genitore"] .famiglia-filtri .btn,
+    body[data-ruolo="operatore"] .operatore-ricerca .btn {
+        width: 100%;
+    }
+    body[data-ruolo="genitore"] .calendario .giorno {
+        min-height: 55px;
+        padding: .25rem .15rem;
+        text-align: center;
+    }
+    body[data-ruolo="genitore"] .calendario .giorno strong {
+        font-size: .95rem;
+    }
+    body[data-ruolo="genitore"] .calendario .giorno small { display: none; }
+    body[data-ruolo="genitore"] .famiglia-calendario-legenda { font-size: .77rem; }
+
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll:not(.operatore-risultati .tabella-scroll) {
+        overflow-x: visible;
+        border: 0;
+        background: transparent;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table thead {
+        position: absolute;
+        height: 1px;
+        width: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table tbody {
+        display: grid;
+        gap: .65rem;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table tbody tr {
+        display: block;
+        background: #fff;
+        border: 1px solid #d5e2ee;
+        border-radius: 9px;
+        padding: .45rem .75rem;
+        min-width: 0;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table tbody td {
+        display: grid;
+        grid-template-columns: minmax(0, 36%) minmax(0, 1fr);
+        gap: .5rem;
+        align-items: start;
+        border-bottom: 1px solid #eef2f6;
+        padding: .5rem 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        font-size: .9rem;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table tbody td::before {
+        content: attr(data-etichetta);
+        color: #50687f;
+        font-size: .82rem;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table tbody td:last-child { border-bottom: 0; }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table tbody td[colspan] {
+        display: block;
+        text-align: center;
+    }
+    body:is([data-ruolo="genitore"], [data-ruolo="operatore"], [data-ruolo="admin"])
+        .tabella-scroll > table.table tbody td[colspan]::before {
+        display: none;
+    }
+    body[data-ruolo="operatore"] .operatore-risultati .tabella-scroll > table.table tbody td {
+        display: block;
+        padding: 0;
+        border: 0;
+    }
+    body[data-ruolo="operatore"] .operatore-risultati .tabella-scroll > table.table tbody td::before {
+        display: none;
+    }
+    body[data-ruolo="operatore"] #scheda-famiglia { padding: .9rem; }
+    body[data-ruolo="operatore"] .operatore-azioni { grid-template-columns: minmax(0, 1fr); }
+    body[data-ruolo="operatore"] .operatore-figlio-azioni .btn-azione { flex: 1 1 130px; }
+    body[data-ruolo="admin"] .admin-config .riga-filtri {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* Moduli Operatore: coppie etichetta/campo e azioni sempre leggibili. */
+body[data-ruolo="operatore"] .operatore-modale {
+    width: min(760px, 100%);
+    max-width: 100%;
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+body[data-ruolo="operatore"] .operatore-modale .modale__testa {
+    border-bottom: 1px solid #d5e2ee;
+    padding-bottom: .7rem;
+    margin-bottom: 1rem;
+}
+body[data-ruolo="operatore"] .operatore-modale .modale__testa h2 {
+    font-size: 1.18rem;
+    margin: 0;
+}
+body[data-ruolo="operatore"] .operatore-modale form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .85rem 1rem;
+    align-items: end;
+}
+body[data-ruolo="operatore"] .operatore-modale form .campo-filtro {
+    min-width: 0;
+}
+body[data-ruolo="operatore"] .operatore-modale form > :is(p, .banner, .stato-operazione, .riga-filtri) {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+body[data-ruolo="operatore"] .operatore-modale form > button[type="submit"] {
+    grid-column: 1 / -1;
+    justify-self: end;
+    min-width: min(100%, 220px);
+    margin-top: .3rem;
+}
+@media (max-width: 600px) {
+    body[data-ruolo="operatore"] .operatore-modale { padding: .85rem; }
+    body[data-ruolo="operatore"] .operatore-modale form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="operatore"] .operatore-modale form > button[type="submit"] {
+        width: 100%;
+        justify-self: stretch;
+    }
+}
+
+
+/* ---------------------------------------------------------------------
+   Admin: calendario e classi — layout dedicato, senza riga-filtri generica.
+   La casella di ogni giorno conserva dimensioni normali anche in presenza
+   delle regole Bootstrap Italia per input e form.
+   --------------------------------------------------------------------- */
+body[data-ruolo="admin"] .admin-calendario-scuola {
+    display: grid;
+    gap: .3rem;
+    margin: 1rem 0 1rem;
+    max-width: 700px;
+}
+body[data-ruolo="admin"] .admin-calendario-scuola label,
+body[data-ruolo="admin"] .admin-calendario-date label,
+body[data-ruolo="admin"] .admin-calendario-verifica label,
+body[data-ruolo="admin"] .admin-classe-campi label,
+body[data-ruolo="admin"] .admin-classi-consulta label,
+body[data-ruolo="admin"] .admin-config .campo-filtro > label {
+    display: block;
+    margin: 0 0 .3rem;
+    text-align: left;
+    position: static;
+    width: auto;
+    transform: none;
+    line-height: 1.4;
+}
+body[data-ruolo="admin"] .admin-calendario-scuola select {
+    width: 100%;
+    max-width: 700px;
+}
+body[data-ruolo="admin"] .admin-calendario-form {
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.35rem 1.5rem;
+}
+body[data-ruolo="admin"] .admin-calendario-form h2 {
+    margin: 0;
+    font-size: 1.16rem;
+}
+body[data-ruolo="admin"] .admin-calendario-date {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 1.5rem;
+    width: 100%;
+    max-width: 720px;
+    align-items: start;
+}
+body[data-ruolo="admin"] .admin-calendario-date .campo-filtro {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+}
+body[data-ruolo="admin"] .admin-calendario-date input[type="date"] {
+    width: min(100%, 260px) !important;
+    max-width: 100%;
+}
+body[data-ruolo="admin"] .admin-calendario-giorni {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+body[data-ruolo="admin"] .admin-calendario-giorni legend {
+    display: block;
+    width: 100%;
+    padding: 0;
+    margin: 0 0 .7rem;
+    font-size: .98rem;
+    font-weight: 700;
+    color: #334d65;
+}
+body[data-ruolo="admin"] .admin-calendario-giorni__griglia {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .6rem;
+    width: 100%;
+}
+body[data-ruolo="admin"] .admin-calendario-giorno {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: .6rem;
+    min-width: 0;
+    min-height: 48px;
+    margin: 0;
+    padding: .55rem .7rem;
+    border: 1px solid #d5e2ee;
+    border-radius: 9px;
+    background: #f8fafc;
+    color: #263f57;
+    font-size: .94rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    position: static;
+    transform: none;
+}
+body[data-ruolo="admin"] .admin-calendario-giorno:has(input:checked) {
+    border-color: #8ab0d7;
+    background: #edf5fd;
+}
+body[data-ruolo="admin"] .admin-calendario-giorno input[type="checkbox"] {
+    appearance: auto !important;
+    -webkit-appearance: checkbox !important;
+    display: inline-block !important;
+    position: static !important;
+    flex: 0 0 19px !important;
+    width: 19px !important;
+    min-width: 19px !important;
+    max-width: 19px !important;
+    height: 19px !important;
+    min-height: 19px !important;
+    max-height: 19px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 3px !important;
+    background: initial !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    vertical-align: middle;
+    cursor: pointer;
+    accent-color: #0066cc;
+    transform: none !important;
+}
+body[data-ruolo="admin"] .admin-calendario-giorno input[type="checkbox"]::before,
+body[data-ruolo="admin"] .admin-calendario-giorno input[type="checkbox"]::after {
+    content: none !important;
+    display: none !important;
+}
+body[data-ruolo="admin"] .admin-calendario-giorno input[type="checkbox"]:focus-visible {
+    outline: 3px solid #0066cc !important;
+    outline-offset: 3px;
+}
+body[data-ruolo="admin"] .admin-calendario-giorno span {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    line-height: 1.3;
+}
+body[data-ruolo="admin"] .admin-form-azioni {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: .65rem;
+    flex-wrap: wrap;
+    margin-top: .15rem;
+}
+body[data-ruolo="admin"] .admin-calendario-form .admin-form-azioni {
+    padding-top: 1rem;
+    margin: 0;
+    border-top: 1px solid #e2eaf2;
+}
+body[data-ruolo="admin"] .admin-calendario-eccezione {
+    margin-top: .7rem;
+}
+body[data-ruolo="admin"] .admin-calendario-eccezione .riga-filtri {
+    grid-template-columns: minmax(0, 200px) minmax(0, 230px) minmax(0, 1fr);
+    align-items: end;
+}
+body[data-ruolo="admin"] .admin-calendario-eccezione .campo-filtro,
+body[data-ruolo="admin"] .admin-calendario-eccezione .campo-filtro > input,
+body[data-ruolo="admin"] .admin-calendario-eccezione .campo-filtro > select {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+body[data-ruolo="admin"] .admin-calendario-eccezione input[type="date"] {
+    width: 100% !important;
+}
+body[data-ruolo="admin"] .admin-calendario-verifica {
+    display: grid;
+    grid-template-columns: minmax(0, 220px) max-content minmax(0, 1fr);
+    gap: .8rem;
+    align-items: end;
+    margin: .75rem 0 1.5rem;
+}
+body[data-ruolo="admin"] .admin-calendario-verifica #calendario-verifica-esito {
+    align-self: center;
+    font-size: .93rem;
+    font-weight: 600;
+    color: #194d75;
+}
+body[data-ruolo="admin"] .admin-calendario-verifica #calendario-verifica-esito:empty {
+    display: none;
+}
+
+/* Classi: una scelta per la scuola, elenco dipendente e creazione separata. */
+body[data-ruolo="admin"] .admin-classi-consulta {
+    display: grid;
+    grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
+    align-items: end;
+    gap: .5rem 1rem;
+    margin-bottom: 1rem;
+}
+body[data-ruolo="admin"] .admin-classi-consulta .campo-filtro { min-width: 0; }
+body[data-ruolo="admin"] .admin-classi-consulta p { margin: 0 0 .5rem; }
+body[data-ruolo="admin"] .admin-aggiungi-sezione {
+    margin: 1rem 0 1.35rem;
+    border: 1px solid #d5e2ee;
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+}
+body[data-ruolo="admin"] .admin-aggiungi-sezione > summary {
+    cursor: pointer;
+    padding: 1rem 1.15rem;
+    font-weight: 700;
+    color: #184d76;
+}
+body[data-ruolo="admin"] .admin-aggiungi-sezione[open] > summary {
+    border-bottom: 1px solid #d5e2ee;
+}
+body[data-ruolo="admin"] .admin-aggiungi-sezione form {
+    padding: 1.1rem;
+}
+body[data-ruolo="admin"] .admin-classe-campi {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .8rem 1rem;
+    margin-bottom: 1rem;
+}
+body[data-ruolo="admin"] .admin-classe-campi .campo-filtro {
+    min-width: 0;
+    max-width: 100%;
+}
+body[data-ruolo="admin"] .admin-classe-campi input,
+body[data-ruolo="admin"] .admin-classe-campi select {
+    max-width: 100%;
+    width: 100%;
+}
+body[data-ruolo="admin"] .admin-classe-campi .campo-filtro[hidden] {
+    display: none !important;
+}
+
+/* Allineamenti delle altre configurazioni admin: nessuna etichetta isolata. */
+body[data-ruolo="admin"] .admin-config .riga-filtri {
+    align-items: end;
+    gap: .85rem 1rem;
+}
+body[data-ruolo="admin"] .admin-config .riga-filtri > .campo-filtro {
+    align-self: stretch;
+    justify-content: flex-end;
+    min-width: 0;
+    max-width: 100%;
+}
+body[data-ruolo="admin"] .admin-config .riga-filtri > .campo-filtro :is(input, select, textarea) {
+    display: block;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    min-height: 44px;
+}
+body[data-ruolo="admin"] .admin-config .riga-filtri > button[type="submit"] {
+    align-self: end;
+}
+body[data-ruolo="admin"] .admin-config .riga-filtri > label {
+    align-self: end;
+    text-align: left;
+}
+body[data-ruolo="admin"] .admin-job-azioni .campo-filtro label {
+    display: block;
+    margin-bottom: .3rem;
+    text-align: left;
+}
+
+@media (max-width: 900px) {
+    body[data-ruolo="admin"] .admin-calendario-giorni__griglia {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    body[data-ruolo="admin"] .admin-calendario-eccezione .riga-filtri {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    body[data-ruolo="admin"] .admin-calendario-eccezione .riga-filtri > .campo-filtro:last-child {
+        grid-column: 1 / -1;
+    }
+}
+@media (max-width: 600px) {
+    body[data-ruolo="admin"] .admin-calendario-form {
+        padding: 1rem;
+        gap: 1rem;
+    }
+    body[data-ruolo="admin"] .admin-calendario-date {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="admin"] .admin-calendario-giorni__griglia {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .45rem;
+    }
+    body[data-ruolo="admin"] .admin-calendario-giorno {
+        min-height: 46px;
+        padding: .5rem .55rem;
+        font-size: .9rem;
+    }
+    body[data-ruolo="admin"] .admin-calendario-eccezione .riga-filtri {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="admin"] .admin-calendario-eccezione .riga-filtri > .campo-filtro:last-child {
+        grid-column: auto;
+    }
+    body[data-ruolo="admin"] .admin-calendario-verifica {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+    }
+    body[data-ruolo="admin"] .admin-calendario-verifica .btn {
+        width: 100%;
+    }
+    body[data-ruolo="admin"] .admin-classi-consulta,
+    body[data-ruolo="admin"] .admin-classe-campi {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+
+/* Admin: ordine logico nei dati scuola e azioni a fine modulo. */
+body[data-ruolo="admin"] .admin-plesso-sezioni {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+body[data-ruolo="admin"] .admin-sezione-campi {
+    min-width: 0;
+    margin: 0;
+    padding: 0 0 1rem;
+    border: 0;
+    border-bottom: 1px solid #e1eaf2;
+}
+body[data-ruolo="admin"] .admin-sezione-campi:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+body[data-ruolo="admin"] .admin-sezione-campi legend {
+    display: block;
+    width: 100%;
+    margin: 0 0 .65rem;
+    padding: 0;
+    color: #214b6d;
+    font-size: .99rem;
+    font-weight: 700;
+}
+body[data-ruolo="admin"] .admin-sezione-campi .riga-filtri {
+    margin: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+body[data-ruolo="admin"] .admin-sezione-campi:first-child .riga-filtri {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 680px;
+}
+body[data-ruolo="admin"] .admin-sezione-campi:last-child .riga-filtri {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+body[data-ruolo="admin"] .admin-modulo-breve .riga-filtri {
+    grid-template-columns: minmax(0, 450px);
+}
+body[data-ruolo="admin"] .admin-config .admin-form-azioni {
+    margin-top: 1rem;
+}
+body[data-ruolo="admin"] .admin-config .admin-form-azioni .btn { margin: 0; }
+body[data-ruolo="admin"] .admin-config fieldset :is(input, select) {
+    max-width: 100%;
+}
+@media (max-width: 760px) {
+    body[data-ruolo="admin"] .admin-sezione-campi .riga-filtri,
+    body[data-ruolo="admin"] .admin-sezione-campi:last-child .riga-filtri {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+@media (max-width: 600px) {
+    body[data-ruolo="admin"] .admin-config .admin-form-azioni .btn {
+        width: 100%;
+    }
+}
+
+/* La regola legacy .riga-filtri label usava align-self:center:
+   nei contenitori verticali centrava le etichette sopra i campi.
+   Forziamo la stessa larghezza e lo stesso margine sinistro dell'input. */
+body[data-ruolo="admin"] .riga-filtri > .campo-filtro > label,
+body[data-ruolo="admin"] .admin-sezione-campi .riga-filtri > .campo-filtro > label {
+    align-self: stretch !important;
+    width: 100% !important;
+    max-width: 100%;
+    flex: none;
+    margin: 0 0 .3rem !important;
+    padding: 0;
+    text-align: left !important;
+}
+
+
+/* Admin — Chiusura giornaliera dei pasti. Consultazione prima delle azioni. */
+body[data-ruolo="admin"] .admin-job-intro {
+    color: #425c73;
+    line-height: 1.55;
+    max-width: 95ch;
+    margin: .25rem 0 1.15rem;
+}
+body[data-ruolo="admin"] .admin-job-intro p { margin: 0; }
+body[data-ruolo="admin"] #vista-job .area-sezione-testa {
+    align-items: center;
+}
+body[data-ruolo="admin"] #job-data-oggi {
+    font-size: .92rem;
+    font-weight: 500;
+    color: #597087;
+}
+body[data-ruolo="admin"] .admin-job-scuole {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .85rem;
+}
+body[data-ruolo="admin"] .admin-job-scuola {
+    min-width: 0;
+    padding: 1.05rem 1.15rem;
+    border: 1px solid #d5e2ee;
+    border-radius: 10px;
+    background: #fff;
+}
+body[data-ruolo="admin"] .admin-job-scuola__testa {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .6rem;
+}
+body[data-ruolo="admin"] .admin-job-scuola__testa h3 {
+    margin: 0 0 .25rem;
+    font-size: 1.05rem;
+}
+body[data-ruolo="admin"] .admin-job-scuola__testa .nota { margin: 0; }
+body[data-ruolo="admin"] .admin-job-scuola__testa .badge-stato {
+    max-width: 100%;
+    text-align: center;
+    white-space: normal;
+}
+body[data-ruolo="admin"] .admin-job-scuola__numeri {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .45rem .9rem;
+    padding-top: .8rem;
+    margin-top: .75rem;
+    border-top: 1px solid #e6edf3;
+    font-size: .87rem;
+    line-height: 1.4;
+}
+body[data-ruolo="admin"] .admin-job-scuola__numeri strong {
+    font-size: 1.07rem;
+    color: #173e62;
+}
+body[data-ruolo="admin"] .admin-job-errore {
+    color: #963c24;
+    font-weight: 700;
+}
+body[data-ruolo="admin"] .admin-job-scuola__nota {
+    margin: .8rem 0 0;
+    line-height: 1.45;
+}
+body[data-ruolo="admin"] .admin-job-storico {
+    margin: .75rem 0 1.65rem;
+}
+body[data-ruolo="admin"] .admin-job-storico td,
+body[data-ruolo="admin"] .admin-job-storico th {
+    vertical-align: middle;
+}
+body[data-ruolo="admin"] .admin-job-storico .badge-stato {
+    display: inline-block;
+    white-space: normal;
+}
+body[data-ruolo="admin"] .admin-job-manuale {
+    border: 1px solid #d5e2ee;
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+    margin: 1.2rem 0 2rem;
+}
+body[data-ruolo="admin"] .admin-job-manuale > summary {
+    cursor: pointer;
+    padding: 1rem 1.15rem;
+    color: #194d75;
+    font-weight: 700;
+    font-size: 1rem;
+}
+body[data-ruolo="admin"] .admin-job-manuale[open] > summary {
+    border-bottom: 1px solid #d5e2ee;
+}
+body[data-ruolo="admin"] .admin-job-manuale__contenuto {
+    padding: 1.15rem;
+}
+body[data-ruolo="admin"] .admin-job-manuale__contenuto > p {
+    max-width: 85ch;
+    margin: 0 0 1rem;
+    line-height: 1.5;
+}
+body[data-ruolo="admin"] .admin-job-manuale__azioni {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: end;
+    gap: .8rem;
+}
+body[data-ruolo="admin"] .admin-job-manuale__azioni .campo-filtro {
+    min-width: 0;
+}
+body[data-ruolo="admin"] .admin-job-manuale__azioni .campo-filtro label {
+    display: block;
+    width: 100%;
+    text-align: left;
+    margin: 0 0 .3rem;
+    align-self: stretch;
+}
+body[data-ruolo="admin"] .admin-job-manuale__azioni select {
+    min-height: 44px;
+    width: 100%;
+}
+body[data-ruolo="admin"] .admin-job-manuale__azioni .btn {
+    margin: 0;
+    min-height: 44px;
+    white-space: normal;
+}
+body[data-ruolo="admin"] .admin-job-esito {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+    gap: .65rem;
+    margin-top: 1rem;
+}
+body[data-ruolo="admin"] .admin-job-esito[hidden] { display: none; }
+body[data-ruolo="admin"] .admin-job-risultato {
+    border: 1px solid #d5e2ee;
+    border-radius: 9px;
+    padding: .9rem 1rem;
+}
+body[data-ruolo="admin"] .admin-job-risultato h3 {
+    font-size: 1rem;
+    margin: 0 0 .5rem;
+}
+body[data-ruolo="admin"] .admin-job-risultato p {
+    margin: .6rem 0 0;
+    font-size: .91rem;
+}
+@media (max-width: 980px) {
+    body[data-ruolo="admin"] .admin-job-scuole {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="admin"] .admin-job-manuale__azioni {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    body[data-ruolo="admin"] .admin-job-manuale__azioni .campo-filtro {
+        grid-column: 1 / -1;
+    }
+}
+@media (max-width: 600px) {
+    body[data-ruolo="admin"] .admin-job-scuola { padding: .9rem; }
+    body[data-ruolo="admin"] .admin-job-scuola__testa { flex-direction: column; }
+    body[data-ruolo="admin"] .admin-job-manuale__azioni {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="admin"] .admin-job-manuale__azioni .campo-filtro {
+        grid-column: auto;
+    }
+    body[data-ruolo="admin"] .admin-job-manuale__azioni .btn {
+        width: 100%;
+    }
+}
+
+/* Calendario Admin — periodo ordinario e aperture/chiusure straordinarie. */
+body[data-ruolo="admin"] .admin-calendario-nota {
+    margin: -.5rem 0 .15rem;
+    line-height: 1.5;
+    max-width: 85ch;
+}
+body[data-ruolo="admin"] .admin-periodo-campi {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .85rem 1rem;
+    align-items: start;
+}
+body[data-ruolo="admin"] .admin-periodo-campi > .campo-filtro {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+}
+body[data-ruolo="admin"] .admin-periodo-campi .campo-filtro > label {
+    align-self: stretch !important;
+    text-align: left !important;
+    width: 100%;
+    margin: 0 0 .35rem !important;
+}
+body[data-ruolo="admin"] .admin-periodo-campi input,
+body[data-ruolo="admin"] .admin-periodo-campi select {
+    min-width: 0;
+    width: 100% !important;
+    max-width: 100%;
+    min-height: 44px;
+}
+body[data-ruolo="admin"] .admin-periodo-campi small.nota {
+    font-size: .79rem;
+    margin-top: .35rem;
+}
+body[data-ruolo="admin"] .admin-periodo-campi .admin-periodo-motivazione {
+    grid-column: 1 / -1;
+}
+body[data-ruolo="admin"] .admin-periodo-messaggio {
+    border: 1px solid #bdd4e8;
+    border-radius: 8px;
+    padding: .75rem .9rem;
+    background: #f1f7fd;
+    color: #174b76;
+    margin: .85rem 0;
+    font-size: .9rem;
+}
+body[data-ruolo="admin"] .admin-periodo-messaggio[hidden] {
+    display: none;
+}
+body[data-ruolo="admin"] .admin-periodo-messaggio--errore {
+    border-color: #e6b2a9;
+    background: #fff1ef;
+    color: #8f2e1a;
+}
+body[data-ruolo="admin"] .admin-periodo-azioni {
+    white-space: nowrap;
+}
+body[data-ruolo="admin"] .admin-periodo-azioni .btn-azione {
+    margin: 0 .35rem .25rem 0;
+}
+body[data-ruolo="admin"] #eccezione-annulla[hidden] {
+    display: none;
+}
+@media (max-width: 900px) {
+    body[data-ruolo="admin"] .admin-periodo-campi {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 600px) {
+    body[data-ruolo="admin"] .admin-periodo-campi {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-ruolo="admin"] .admin-periodo-campi .admin-periodo-motivazione {
+        grid-column: auto;
+    }
+    body[data-ruolo="admin"] .admin-periodo-azioni {
+        white-space: normal;
+    }
+}
+
+/* Admin — verifica di una data su tutte le scuole, classi per anno scolastico.
+   Limitare a otto plessi per pagina evita elenchi verticali interminabili.
+   Ogni scuola può mostrare le classi senza cambiare lo stato del calendario. */
+body[data-ruolo="admin"] .admin-calendario-verifica {
+    grid-template-columns: minmax(0, 280px) max-content;
+    justify-content: start;
+    max-width: 650px;
+    margin-bottom: .45rem;
+}
+body[data-ruolo="admin"] .admin-calendario-verifica .btn { min-height: 44px; }
+body[data-ruolo="admin"] .admin-verifica-pannello {
+    min-width: 0;
+    padding: 0 0 1.5rem;
+}
+body[data-ruolo="admin"] .admin-verifica-pannello[hidden] { display: none !important; }
+body[data-ruolo="admin"] .admin-verifica-intestazione {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .35rem 1rem;
+    margin: 1.15rem 0 .75rem;
+}
+body[data-ruolo="admin"] .admin-verifica-intestazione h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #1d4669;
+}
+body[data-ruolo="admin"] .admin-verifica-sommario {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .65rem;
+    margin-bottom: 1rem;
+}
+body[data-ruolo="admin"] .admin-verifica-numero {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: .1rem;
+    min-width: 0;
+    padding: .75rem .9rem;
+    border: 1px solid #d8e4ed;
+    border-radius: 9px;
+    background: #f8fafc;
+}
+body[data-ruolo="admin"] .admin-verifica-numero strong {
+    font-size: 1.35rem;
+    color: #183f62;
+    line-height: 1.2;
+}
+body[data-ruolo="admin"] .admin-verifica-numero span {
+    font-size: .81rem;
+    color: #4b6174;
+    line-height: 1.3;
+}
+body[data-ruolo="admin"] .admin-verifica-filtri {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 260px);
+    gap: .7rem 1rem;
+    margin: .8rem 0 .35rem;
+    align-items: end;
+}
+body[data-ruolo="admin"] .admin-verifica-filtri .campo-filtro {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    align-items: stretch;
+}
+body[data-ruolo="admin"] .admin-verifica-filtri .campo-filtro label {
+    align-self: stretch !important;
+    width: 100%;
+    margin: 0 0 .3rem !important;
+    text-align: left !important;
+}
+body[data-ruolo="admin"] .admin-verifica-filtri :is(input, select) {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+}
+body[data-ruolo="admin"] .admin-verifica-contatore {
+    margin: .7rem 0;
+    font-size: .86rem;
+    color: #546d82;
+}
+body[data-ruolo="admin"] .admin-verifica-scuole {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem;
+    align-items: start;
+}
+body[data-ruolo="admin"] .admin-verifica-scuola {
+    min-width: 0;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #d5e2ee;
+    border-left: 4px solid #9daebc;
+    border-radius: 9px;
+}
+body[data-ruolo="admin"] .admin-verifica-scuola--aperta { border-left-color: #33885c; }
+body[data-ruolo="admin"] .admin-verifica-scuola--chiusa { border-left-color: #c86a62; }
+body[data-ruolo="admin"] .admin-verifica-scuola__testa {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .55rem .9rem;
+    padding: .85rem 1rem;
+}
+body[data-ruolo="admin"] .admin-verifica-scuola__titolo {
+    flex: 1 1 185px;
+    min-width: 0;
+}
+body[data-ruolo="admin"] .admin-verifica-scuola__titolo h4 {
+    margin: 0 0 .25rem;
+    font-size: .98rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+body[data-ruolo="admin"] .admin-verifica-scuola__titolo p {
+    margin: 0;
+    font-size: .84rem;
+    color: #526c81;
+    line-height: 1.35;
+}
+body[data-ruolo="admin"] .admin-verifica-scuola__testa .badge-stato {
+    align-self: start;
+    text-align: center;
+    white-space: normal;
+}
+body[data-ruolo="admin"] .admin-verifica-classi {
+    border-top: 1px solid #e2eaf2;
+}
+body[data-ruolo="admin"] .admin-verifica-classi summary {
+    display: list-item;
+    list-style: disclosure-closed inside;
+    padding: .6rem 1rem;
+    cursor: pointer;
+    color: #245779;
+    font-size: .87rem;
+    font-weight: 650;
+}
+body[data-ruolo="admin"] .admin-verifica-classi[open] summary {
+    border-bottom: 1px solid #e9eff4;
+}
+body[data-ruolo="admin"] .admin-verifica-classi__interno {
+    padding: .75rem 1rem;
+}
+body[data-ruolo="admin"] .admin-verifica-classi__interno p.nota {
+    margin: 0 0 .6rem;
+    line-height: 1.4;
+}
+body[data-ruolo="admin"] .admin-verifica-classi__lista {
+    list-style: none;
+    margin: 0;
+    padding: 0 .2rem .2rem 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    max-height: 220px;
+    overflow: auto;
+    align-content: flex-start;
+}
+body[data-ruolo="admin"] .admin-verifica-classi__lista li {
+    padding: .28rem .55rem;
+    font-size: .82rem;
+    color: #29485e;
+    border: 1px solid #dce6ed;
+    border-radius: 7px;
+    background: #f5f8fb;
+    overflow-wrap: anywhere;
+}
+body[data-ruolo="admin"] .admin-verifica-vuoto {
+    grid-column: 1 / -1;
+    padding: 1.2rem;
+    border: 1px dashed #bbccda;
+    border-radius: 9px;
+    color: #52687a;
+}
+body[data-ruolo="admin"] .admin-verifica-pagine {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .75rem;
+    margin-top: 1.15rem;
+    font-size: .89rem;
+}
+body[data-ruolo="admin"] .admin-verifica-pagine[hidden] { display: none !important; }
+body[data-ruolo="admin"] .admin-verifica-pagine .btn { margin: 0; min-height: 40px; }
+body[data-ruolo="admin"] .admin-verifica-pagine .btn:disabled { opacity: .45; }
+@media (max-width: 950px) {
+    body[data-ruolo="admin"] .admin-verifica-scuole {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+@media (max-width: 760px) {
+    body[data-ruolo="admin"] .admin-verifica-sommario {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 600px) {
+    body[data-ruolo="admin"] .admin-calendario-verifica,
+    body[data-ruolo="admin"] .admin-verifica-filtri {
+        grid-template-columns: minmax(0, 1fr);
+        width: 100%;
+    }
+    body[data-ruolo="admin"] .admin-calendario-verifica .btn {
+        width: 100%;
+    }
+    body[data-ruolo="admin"] .admin-verifica-scuola__testa {
+        padding: .75rem .85rem;
+    }
+    body[data-ruolo="admin"] .admin-verifica-pagine {
+        gap: .5rem;
+    }
+    body[data-ruolo="admin"] .admin-verifica-pagine .btn {
+        flex: 1 1 0;
+        padding: .55rem;
+    }
+}
+
+/* Moduli operativi: campi leggibili anche su telefono, senza overflow della pagina. */
+#vista-servizio form, #vista-personale .griglia-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:1rem; align-items:end; margin-block:1rem; }
+#vista-servizio label, #vista-personale label, #vista-riepilogo-pasti label, #solleciti-filtri label { display:flex; flex-direction:column; gap:.35rem; min-width:0; }
+#vista-servizio input, #vista-servizio select, #vista-personale input, #vista-personale select { max-width:100%; min-width:0; }
+#vista-personale input[type=number] { width:6rem; }
+#vista-servizio form h2, #vista-servizio form p { grid-column:1/-1; }
+#vista-servizio form button, #vista-personale form button { justify-self:start; }
+@media (max-width: 640px) {
+    #vista-personale .tabella-scroll, #vista-riepilogo-pasti .tabella-scroll { border:0; background:transparent; overflow:visible; }
+    #vista-personale table.table, #vista-riepilogo-pasti table.table { display:block; width:100%; min-width:0; }
+    #vista-personale table.table thead, #vista-riepilogo-pasti table.table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+    #vista-personale table.table tbody, #vista-riepilogo-pasti table.table tbody { display:block; }
+    #vista-personale table.table tr, #vista-riepilogo-pasti table.table tr { display:block; background:white; border:1px solid var(--grigio-bordo); border-radius:8px; margin-bottom:1rem; padding:.5rem; }
+    #vista-personale table.table td, #vista-riepilogo-pasti table.table td { display:grid; grid-template-columns:35% minmax(0,1fr); gap:.7rem; min-width:0; width:auto; padding:.65rem .25rem; white-space:normal; overflow-wrap:anywhere; }
+    #vista-personale table.table td::before, #vista-riepilogo-pasti table.table td::before { content:attr(data-label); font-weight:600; font-size:.85rem; }
+    #vista-personale table.table td:last-child, #vista-riepilogo-pasti table.table td:last-child { border-bottom:0; }
+}
+
+#vista-personale .aut-giorni { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:1rem; border:1px solid var(--grigio-bordo); padding:1rem; }
+#vista-personale .aut-giorni label { flex-direction:row; align-items:center; }
+#vista-personale .aut-giorni input { width:auto; }
+
+/* Famiglie: pagine brevi, elenco compatto e dettaglio separato su telefono/tablet. */
+body[data-ruolo="operatore"] .operatore-ricerca { display:grid; grid-template-columns:minmax(0,1fr) 210px auto; align-items:end; }
+.famiglie-ricerca-barra { display:flex; align-items:center; gap:.5rem; min-width:0; }
+.famiglie-ricerca-barra input { flex:1; min-width:0; margin:0; }
+.famiglie-ricerca-barra .btn { flex:0 0 auto; margin:0; }
+.famiglie-stato { display:flex; flex-direction:column; gap:.25rem; margin:0; font-size:.85rem; }
+.famiglie-stato select { min-height:44px; margin:0; }
+.famiglie-elenco-testa { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+.famiglie-elenco-testa label { display:flex; align-items:center; gap:.35rem; font-size:.8rem; margin:0; }
+.famiglie-elenco-testa select { width:auto; min-height:44px; margin:0; padding:.4rem; }
+#famiglie-intervallo { margin:.5rem .2rem; }
+.famiglie-paginazione { display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:.45rem; margin-top:.8rem; }
+.famiglie-paginazione .btn { margin:0; min-height:44px; padding:.5rem; font-size:.85rem; }
+#famiglie-pagina { grid-column:1/-1; grid-row:1; text-align:center; font-size:.85rem; }
+.famiglia-dettaglio { min-width:0; }
+#famiglie-indietro, #btn-altre-operazioni { display:none; }
+#famiglia-azioni-secondarie { grid-column:1/-1; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,185px),1fr)); gap:.5rem; }
+body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:.2rem .5rem; align-items:center; }
+body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] td:not(:last-child) { grid-column:1; }
+body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] td:last-child { grid-column:2; grid-row:1/4; align-self:center; }
+body[data-ruolo="operatore"] .operatore-risultati .btn-azione { min-height:44px; min-width:58px; margin:0; }
+body[data-ruolo="operatore"] .operatore-risultati .table tbody tr.famiglia-selezionata { border-color:#0066cc; background:#f0f7ff; }
+.famiglia-stato-badge { display:block; color:#8b3232; font-size:.78rem; font-weight:400; }
+@media(max-width:980px) {
+    body[data-ruolo="operatore"] .operatore-ricerca { grid-template-columns:minmax(0,1fr) auto; }
+    .famiglie-ricerca-barra { grid-column:1/-1; }
+    body[data-ruolo="operatore"] .operatore-ricerca .famiglie-ricerca-barra .btn { width:auto; }
+    #vista-famiglie:not(.famiglia-aperta) .famiglia-dettaglio { display:none; }
+    #vista-famiglie.famiglia-aperta > .area-intro,
+    #vista-famiglie.famiglia-aperta > #famiglie-filtri,
+    #vista-famiglie.famiglia-aperta > #ricerca-stato,
+    #vista-famiglie.famiglia-aperta .operatore-risultati { display:none; }
+    #famiglie-indietro { display:block; min-height:44px; margin:0 0 .75rem; scroll-margin-top:1rem; }
+    #btn-altre-operazioni { display:block; }
+    #famiglia-azioni-secondarie:not(.azioni-aperte) { display:none; }
+    #vista-famiglie .operatore-layout { gap:0; }
+    body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] td:nth-child(3) { display:none; }
+    body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] td:last-child { grid-row:1/3; }
+    body[data-ruolo="operatore"] .operatore-famiglia-testa h2 { font-size:1.2rem; }
+}
+@media(max-width:420px) {
+    body[data-ruolo="operatore"] .operatore-ricerca { padding:.75rem; gap:.6rem; grid-template-columns:minmax(0,1fr); }
+    body[data-ruolo="operatore"] .operatore-ricerca > .btn { padding:.5rem; font-size:.85rem; }
+    .famiglie-stato select { font-size:.85rem; }
+}
+
+/* Personale: consultazione della settimana distinta dalle variazioni del giorno. */
+#vista-personale .personale-contesto { background:#fff; border:1px solid var(--grigio-bordo); border-radius:10px; padding:1rem; align-items:end; }
+.personale-viste { display:flex; gap:.5rem; margin:1rem 0; }
+.personale-viste button { flex:1; padding:.9rem; min-height:48px; border:1px solid #b8cbdc; background:white; border-radius:8px; color:#174a70; font-weight:700; }
+.personale-viste button.attiva { background:#0066cc; border-color:#0066cc; color:white; }
+.personale-sezione { background:white; border:1px solid var(--grigio-bordo); border-radius:12px; padding:1.25rem; margin-bottom:1rem; }
+.personale-sezione-testa { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; }
+.personale-sezione-testa h2 { margin:.15rem 0; font-size:1.4rem; }
+.personale-sezione-testa > span { font-size:.9rem; max-width:100%; }
+.personale-sopratitolo { margin:0; font-size:.8rem; font-weight:700; color:#526d82; text-transform:uppercase; letter-spacing:.04em; }
+.personale-settimana { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:.6rem; margin:1.25rem 0; align-items:start; }
+.personale-giorno { min-width:0; border:1px solid #c3d6e5; border-radius:10px; background:#f5f9fd; padding:.7rem; }
+.personale-giorno summary { cursor:pointer; list-style:none; padding:0; }
+.personale-giorno summary::-webkit-details-marker { display:none; }
+.personale-giorno summary::after { content:'Dettaglio ⌄'; display:block; font-size:.75rem; color:#0066cc; margin-top:.5rem; }
+.personale-giorno[open] summary::after { content:'Chiudi ⌃'; }
+.personale-giorno h3 { margin:0; font-size:.9rem; }
+.personale-numero { margin:.45rem 0 0; font-size:1.6rem; font-weight:700; line-height:1.1; }
+.personale-numero span { display:block; font-size:.8rem; font-weight:400; margin-top:.3rem; }
+.personale-da-impostare { background:#f7f7f7; border-style:dashed; color:#536575; }
+.personale-voci { list-style:none; padding:0; margin:.8rem 0 0; }
+.personale-voci li { display:flex; align-items:baseline; justify-content:space-between; gap:.4rem; border-top:1px solid #dce5ed; padding:.6rem 0; font-size:.85rem; }
+.personale-voci small { display:block; color:#526575; font-size:.75rem; }
+.personale-voci strong { flex-shrink:0; }
+.personale-editor { margin-top:1rem; border-top:1px solid #dce5ed; padding-top:1rem; }
+.personale-editor > summary { color:#0066cc; font-weight:700; cursor:pointer; padding:.6rem 0; min-height:44px; }
+.personale-editor form { margin-top:1rem; }
+.personale-form-nota { grid-column:1/-1; margin:.25rem 0; }
+.personale-futura { border-left:3px solid #0878ca; background:#f5f9fd; padding:.75rem 1rem; margin:.75rem 0; }
+.personale-futura h4 { margin:0 0 .5rem; }
+.personale-futura ul { margin:0; padding-left:1.2rem; }
+.personale-futura li { padding:.3rem 0; }
+.personale-avviso { border-left:3px solid #d7941e; background:#fff8e8; padding:1rem; }
+.personale-fonte { padding:.4rem .7rem; background:#e8f3ed; color:#24543a; border-radius:6px; }
+.personale-fonte-variazione { background:#fff0ce; color:#745207; }
+.personale-confronto { display:grid; grid-template-columns:1fr 1fr; border:1px solid #dce5ed; border-radius:10px; margin:1rem 0; overflow:hidden; }
+.personale-confronto > div { padding:1rem; background:#f5f9fd; }
+.personale-confronto > div:first-child { background:#eaf3fc; }
+.personale-confronto span { display:block; font-size:.85rem; }
+.personale-confronto strong { display:block; font-size:2rem; margin-top:.3rem; }
+.personale-confronto small { font-size:.9rem; font-weight:400; }
+.personale-categorie, .personale-campi { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+.personale-categorie article { padding:1rem; border:1px solid #dce5ed; border-radius:8px; }
+.personale-categorie h3 { display:flex; justify-content:space-between; margin:0; font-size:1rem; }
+.personale-campi fieldset { min-width:0; border:1px solid #b8cbdc; padding:1rem; border-radius:8px; }
+.personale-campi legend { width:auto; padding:0 .3rem; font-size:1rem; font-weight:700; }
+#vista-personale .personale-campi label { display:grid; grid-template-columns:minmax(0,1fr) 6rem; align-items:center; margin-bottom:.5rem; }
+.personale-totale-bozza { font-weight:700; background:#eaf3fc; border-radius:6px; padding:.8rem; }
+.personale-salvataggio { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1rem; }
+@media(max-width:1100px) { .personale-settimana { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+@media(max-width:640px) {
+ .personale-sezione { padding:.85rem; }
+ .personale-sezione-testa h2 { font-size:1.2rem; }
+ .personale-viste button { padding:.65rem .4rem; font-size:.9rem; }
+ .personale-settimana { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .personale-categorie, .personale-campi { grid-template-columns:minmax(0,1fr); }
+ .personale-confronto > div { padding:.75rem; }
+ .personale-confronto strong { font-size:1.6rem; }
+ .personale-confronto small { display:block; }
+ .personale-salvataggio .btn { width:100%; min-height:44px; }
+ #vista-personale .aut-giorni { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; padding:.75rem; }
+}
+
+#aut-personale-stato:empty { display:none; }
+.personale-sintesi { display:block; margin-top:.65rem; font-size:.8rem; }
+.personale-sintesi > span { display:flex; justify-content:space-between; gap:.4rem; margin-top:.25rem; }
+#aut-programmazione-futura > h3 { font-size:1.1rem; margin:1.5rem 0 .7rem; }
+.personale-futura h4 { font-size:1rem; }
+
+.personale-fonte-inattiva { background:#edf0f3; color:#405363; }
+
+/* Spaziatura delle aree operative: 4 px nei campi, 8 tra controlli,
+   12 nei gruppi e 16 tra sezioni. I pulsanti restano alti almeno 44 px. */
+:is(#vista-famiglie, #vista-personale, #vista-riepilogo-pasti, #vista-servizio) {
+    --spazio-campo: 4px;
+    --spazio-elementi: 8px;
+    --spazio-gruppi: 12px;
+    --spazio-sezioni: 16px;
+}
+:is(#vista-famiglie, #vista-personale, #vista-riepilogo-pasti, #vista-servizio) > .area-intro {
+    margin: var(--spazio-gruppi) 0;
+    padding-bottom: var(--spazio-elementi);
+}
+:is(#vista-famiglie, #vista-personale, #vista-riepilogo-pasti, #vista-servizio) > .area-intro h1 { margin: 0 0 var(--spazio-campo); }
+:is(#vista-famiglie, #vista-personale, #vista-riepilogo-pasti, #vista-servizio) > .area-intro p { margin: 0; line-height: 1.45; }
+:is(#vista-personale, #vista-riepilogo-pasti, #vista-servizio) .riga-filtri {
+    gap: var(--spazio-elementi) var(--spazio-gruppi); margin: 0 0 var(--spazio-gruppi); align-items: end;
+}
+:is(#vista-personale, #vista-riepilogo-pasti, #vista-servizio) form label { margin: 0; gap: var(--spazio-campo); line-height: 1.4; }
+:is(#vista-personale, #vista-riepilogo-pasti, #vista-servizio) form label :is(input,select,textarea) { margin: 0; }
+:is(#vista-personale, #vista-riepilogo-pasti, #vista-servizio) form .btn { margin: 0; min-height: 44px; }
+:is(#vista-famiglie, #vista-personale, #vista-riepilogo-pasti, #vista-servizio) .stato-operazione {
+    margin: var(--spazio-elementi) 0 var(--spazio-gruppi); padding: var(--spazio-elementi) var(--spazio-gruppi); line-height: 1.45;
+}
+:is(#vista-famiglie, #vista-personale, #vista-riepilogo-pasti, #vista-servizio) .tabella-scroll > table { margin-bottom: 0; }
+:is(#vista-riepilogo-pasti, #vista-servizio) > h2 { margin: var(--spazio-sezioni) 0 var(--spazio-elementi); }
+#vista-servizio form, #vista-personale .griglia-form { gap: var(--spazio-gruppi); margin-block: var(--spazio-gruppi); }
+#vista-personale .personale-contesto { padding: var(--spazio-gruppi); }
+#vista-personale .personale-viste { margin: var(--spazio-gruppi) 0; gap: var(--spazio-elementi); }
+#vista-personale .personale-viste button { min-height: 44px; padding: var(--spazio-elementi) var(--spazio-gruppi); }
+#vista-personale .personale-sezione { padding: var(--spazio-sezioni); margin-bottom: var(--spazio-gruppi); }
+#vista-personale .personale-sezione-testa { gap: var(--spazio-elementi); margin-bottom: var(--spazio-elementi); }
+#vista-personale .personale-sezione > p { margin: 0 0 var(--spazio-gruppi); line-height: 1.45; }
+#vista-personale .personale-settimana { gap: var(--spazio-elementi); margin: var(--spazio-gruppi) 0; }
+#vista-personale .personale-giorno { padding: var(--spazio-gruppi); }
+#vista-personale .personale-voci { margin: var(--spazio-elementi) 0 0; }
+#vista-personale .personale-voci li { padding: 6px 0; }
+#vista-personale .personale-voci li:last-child { padding-bottom: 0; }
+#vista-personale .personale-editor { margin-top: var(--spazio-gruppi); padding-top: var(--spazio-elementi); }
+#vista-personale .personale-editor > summary { padding: var(--spazio-elementi) 0; }
+#vista-personale .personale-editor > p { margin: var(--spazio-elementi) 0 var(--spazio-gruppi); line-height: 1.45; }
+#vista-personale .personale-editor form { margin: var(--spazio-elementi) 0 0; }
+#vista-personale :is(.personale-categorie, .personale-campi) { gap: var(--spazio-gruppi); }
+#vista-personale :is(.personale-categorie article, .personale-campi fieldset, .aut-giorni, .personale-confronto > div) { padding: var(--spazio-gruppi); }
+#vista-personale .personale-campi label { gap: var(--spazio-elementi); margin-bottom: var(--spazio-elementi); }
+#vista-personale .personale-campi label:last-child { margin-bottom: 0; }
+#vista-personale .personale-confronto { margin: var(--spazio-gruppi) 0; }
+#vista-personale .personale-totale-bozza { padding: var(--spazio-elementi) var(--spazio-gruppi); margin: var(--spazio-gruppi) 0; }
+#vista-personale .personale-salvataggio { margin-top: var(--spazio-gruppi); gap: var(--spazio-elementi); }
+#vista-personale .personale-salvataggio + .nota { margin: var(--spazio-elementi) 0 0; }
+#vista-personale .personale-futura { padding: var(--spazio-gruppi); margin: var(--spazio-elementi) 0; }
+#vista-personale #aut-programmazione-futura > h3 { margin: var(--spazio-sezioni) 0 var(--spazio-elementi); }
+#vista-personale .personale-futuro-vuoto { margin: var(--spazio-gruppi) 0 0; }
+#vista-famiglie .operatore-ricerca { padding: var(--spazio-gruppi); gap: var(--spazio-elementi); }
+#vista-famiglie #scheda-famiglia { padding: var(--spazio-sezioni); }
+#vista-famiglie .operatore-famiglia-testa { padding-bottom: var(--spazio-gruppi); margin-bottom: var(--spazio-gruppi); }
+#vista-famiglie .operatore-contatti { gap: var(--spazio-elementi) var(--spazio-gruppi); margin-top: var(--spazio-elementi); }
+#vista-famiglie .operatore-azioni { gap: var(--spazio-elementi); margin-bottom: var(--spazio-gruppi); }
+#vista-famiglie .area-sezione-testa { margin: var(--spazio-sezioni) 0 var(--spazio-elementi); padding-bottom: var(--spazio-elementi); }
+@media(max-width:640px) {
+    #vista-personale .personale-sezione, #vista-famiglie #scheda-famiglia { padding: var(--spazio-gruppi); }
+    #vista-personale .personale-viste button { padding-inline: var(--spazio-elementi); }
+}
+
+#vista-personale form :is(input:not([type=checkbox]):not([type=hidden]), select) { min-height: 44px; }
+
+#vista-riepilogo-pasti > label { margin: 0 0 var(--spazio-gruppi); gap: var(--spazio-campo); }
+#vista-riepilogo-pasti > p { margin: var(--spazio-elementi) 0 var(--spazio-gruppi); }
+#aut-report-totali:not(:empty) { margin: var(--spazio-elementi) 0; line-height: 1.45; }
+.aut-report-esportazioni { display:flex; flex-wrap:wrap; gap:var(--spazio-elementi); margin:var(--spazio-gruppi) 0; }
+.aut-report-esportazioni .btn { margin:0; min-height:44px; }
+
+.personale-storico { margin-top:16px; border-top:1px solid #dce5ed; padding-top:12px; }
+.personale-storico h3 { font-size:1.05rem; margin:0 0 8px; }
+.personale-storico-voce { background:#f5f9fd; border-left:3px solid #8baabd; padding:10px 12px; margin:8px 0; overflow-wrap:anywhere; }
+.personale-storico-voce p { margin:0 0 6px; }
+.personale-storico-voce ul { margin:6px 0 0; padding-left:18px; }
+.personale-storico > details > summary { min-height:44px; padding:10px 0; cursor:pointer; }
+
+/* Configurazione email: opzioni compatte con etichetta interamente cliccabile. */
+body[data-ruolo="admin"] #vista-email .pannello { padding: 16px; margin: 12px 0; }
+body[data-ruolo="admin"] #vista-email form h2 { margin: 0 0 12px; }
+body[data-ruolo="admin"] #vista-email > h2 { margin: 20px 0 8px; }
+body[data-ruolo="admin"] #vista-email p { margin: 8px 0; }
+body[data-ruolo="admin"] #vista-email .email-opzione { display: flex; flex-direction: row; align-items: center; gap: 10px; min-height: 44px; margin: 8px 0; }
+body[data-ruolo="admin"] #vista-email .email-opzione input[type="checkbox"] { appearance: checkbox; width: 20px; height: 20px; min-width: 20px; min-height: 20px; flex: 0 0 20px; padding: 0; margin: 0; accent-color: var(--blu-italia); }
+
+/* Personale nella distribuzione catering, distinto dalle classi. */
+.catering-scuola__personale { border-top: 1px solid #d5e2ee; margin-top: .75rem; padding-top: .65rem; }
+.catering-scuola__personale h4 { margin: 0 0 .35rem; }
+.catering-scuola__personale > .nota { margin: .25rem 0 .5rem; }
+
+.catering-scuola__cutoff { margin: .2rem 0 .45rem; font-size: .83rem; }

@@ -1,0 +1,87 @@
+name: Ticket 2 autonomy and security
+on:
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+jobs:
+  ticket2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare browser and isolated services
+        run: |
+          mkdir -p /tmp/ticket2-browser
+          cd /tmp/ticket2-browser
+          npm install playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start synthetic staging only
+        run: docker compose -p mensa-ticket2 -f compose.staging.yml up --build -d --wait
+      - name: Excel format, values and safe text
+        run: |
+          node tests/report_excel.cjs
+          docker exec mensa-ticket2-app-1 php tests/ticket2_mensili.php
+      - name: Ten tickets, permissions, additive migration and accounting preservation
+        env:
+          MENSA_TICKET2_BASE: http://127.0.0.1:18080
+          MENSA_TICKET2_DB_CONTAINER: mensa-ticket2-database-1
+        run: |
+          python3 staging/ticket2_smoke.py
+          python3 staging/ticket2_revision_smoke.py
+      - name: Five roles on desktop, tablet and mobile
+        env:
+          MENSA_TICKET2_BASE: http://127.0.0.1:18080
+          NODE_PATH: /tmp/ticket2-browser/node_modules
+        run: |
+          docker exec mensa-ticket2-database-1 sh -c 'mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" mensa_staging -e "UPDATE plessi SET cutoff_orario=\"23:59:59\" WHERE id=1"'
+          node staging/ticket2_browser.cjs
+          node staging/ticket2_excel_browser.cjs
+          node staging/ticket2_revision_browser.cjs
+          node staging/personale_ui_browser.cjs
+      - name: Family pagination and mobile workflow with 220 synthetic records
+        env:
+          MENSA_TICKET2_BASE: http://127.0.0.1:18080
+          MENSA_TICKET2_DB_CONTAINER: mensa-ticket2-database-1
+          NODE_PATH: /tmp/ticket2-browser/node_modules
+        run: |
+          python3 staging/famiglie_smoke.py
+          node staging/famiglie_browser.cjs
+      - name: Staff frontend/backend consistency, history and date permissions
+        env:
+          MENSA_TICKET2_BASE: http://127.0.0.1:18080
+          MENSA_TICKET2_DB_CONTAINER: mensa-ticket2-database-1
+          NODE_PATH: /tmp/ticket2-browser/node_modules
+        run: |
+          python3 staging/personale_coerenza_smoke.py
+          node staging/personale_coerenza_browser.cjs
+      - name: Full staff and calendar lifecycle, real forms versus API and SQL
+        env:
+          MENSA_TICKET2_BASE: http://127.0.0.1:18080
+          MENSA_TICKET2_DB_CONTAINER: mensa-ticket2-database-1
+          NODE_PATH: /tmp/ticket2-browser/node_modules
+        run: node staging/personale_calendario_ciclo.cjs
+      - name: Consolidation, repeated job, historical diets and service end
+        run: |
+          docker exec mensa-ticket2-app-1 php tests/ticket2_consolidamento.php
+          docker exec mensa-ticket2-app-1 php tests/ticket2_catering_personale.php
+      - name: Admin email activation, SMTP transport and selected-template tests
+        env:
+          MENSA_TICKET2_BASE: http://127.0.0.1:18080
+          MENSA_TICKET2_DB_CONTAINER: mensa-ticket2-database-1
+          NODE_PATH: /tmp/ticket2-browser/node_modules
+        run: |
+          docker exec mensa-ticket2-app-1 php tests/mailer_smtp.php
+          python3 staging/email_admin_smoke.py
+          node staging/email_admin_browser.cjs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ticket2-synthetic-browser-evidence
+          path: staging/ticket2-artifacts/
+          retention-days: 7
+      - name: Stop dedicated test containers
+        if: always()
+        run: docker compose -p mensa-ticket2 -f compose.staging.yml down -v

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Core\HttpException;
 use App\Core\Repository;
 
 final class CreditoRepository extends Repository
@@ -47,7 +48,46 @@ final class CreditoRepository extends Repository
 
     public function registraMovimento(array $dati): int
     {
+        // Dopo il reset T0 e' vietato reintrodurre ticket di date precedenti,
+        // anche attraverso conferme di presenza o recuperi manuali.
+        // Il marker nel DB e' indipendente dal codice/configura locale.
+        $t0 = $this->valore(
+            "SELECT valore FROM impostazioni WHERE chiave = 'contabilita_t0'"
+        );
+        $data = (string) ($dati['data'] ?? date('Y-m-d'));
+        if (is_string($t0) && $t0 !== '' && $data < $t0) {
+            throw HttpException::nonValido(
+                'La contabilita dei buoni e ripartita dal ' . $t0
+                . ': non sono ammessi movimenti precedenti a T0.'
+            );
+        }
         return $this->inserisci('movimenti_crediti', $dati);
+    }
+
+    /**
+     * Identificativo unico della richiesta di acquisto: usato in caso di retry
+     * o risposta HTTP persa. Il vincolo UNIQUE DB e' l'arbitro della concorrenza.
+     */
+    public function acquistoPerRichiesta(string $richiestaId): ?array
+    {
+        return $this->uno(
+            "SELECT m.*, pc.genitore_id, pc.plesso_id
+             FROM movimenti_crediti m
+             JOIN pool_crediti pc ON pc.id = m.pool_id
+             WHERE m.richiesta_id = :id AND m.tipo = 'acquisto'",
+            ['id' => $richiestaId]
+        );
+    }
+
+    public function rettificaPerRichiesta(string $richiestaId): ?array
+    {
+        return $this->uno(
+            "SELECT m.*, pc.genitore_id, pc.plesso_id
+             FROM movimenti_crediti m
+             JOIN pool_crediti pc ON pc.id = m.pool_id
+             WHERE m.richiesta_id = :id AND m.tipo = 'rettifica_manuale'",
+            ['id' => $richiestaId]
+        );
     }
 
     public function movimenti(int $genitoreId, ?string $tipo = null, int $limite = 200): array

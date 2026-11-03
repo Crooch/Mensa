@@ -186,9 +186,19 @@ L'importo non è accettato in input: viene sempre calcolato come `numero_buoni �
 
 | Metodo | Endpoint | Ruoli | Descrizione |
 |---|---|---|---|
-| GET | `/api/catering/report?data&plesso_id` | catering, admin, operatore | Pasti da preparare per plesso e tipologia |
-| GET | `/api/catering/menu?data&plesso_id` | catering, admin, operatore, scuola | Menu pubblicati |
-| POST | `/api/catering/menu` | catering, admin | Pubblicazione menu (`multipart/form-data`) |
+| GET | `/api/catering/report?data&plesso_id` | catering, admin, operatore | Pasti da preparare per plesso, classe, tipologia e richiesta di pasta in bianco |
+| GET | `/api/catering/menu?data&plesso_id` | catering, admin, operatore, scuola | Menù effettivi per il giorno: variazione giornaliera, altrimenti modello settimanale |
+| POST | `/api/catering/menu` | catering, admin | Crea o modifica la variazione di una singola data (`multipart/form-data`) |
+| GET | `/api/catering/menu/variazioni?pagina=1` | catering, admin | Variazioni programmate, ordinate dalla data più lontana; 10 per pagina |
+| POST | `/api/catering/menu/annulla` | catering, admin | Annulla una variazione; se presente, torna il modello settimanale |
+| POST | `/api/catering/menu/ripristina` | catering, admin | Ripristina il modello settimanale del giorno, se esistente |
+| GET | `/api/catering/menu-settimanali` | catering, admin | Catalogo dei modelli settimanali |
+| POST | `/api/catering/menu-settimanali` | catering, admin | Nuovo modello settimanale, inclusi allegati fotografici |
+| PUT | `/api/catering/menu-settimanali/{id}` | catering, admin | Modifica un modello (crea revisione) |
+| POST | `/api/catering/menu-settimanali/{id}/aggiorna` | catering, admin | Modifica tramite invio multipart, inclusi allegati fotografici |
+| POST | `/api/catering/menu-settimanali/{id}/duplica` | catering, admin | Duplica un modello settimanale |
+| GET | `/api/catering/menu-settimanali/assegnazioni` | catering, admin | Assegnazioni attive per plesso e tipologia |
+| POST | `/api/catering/menu-settimanali/assegnazioni` | catering, admin | Assegna un modello a uno o più plessi |
 | GET | `/api/catering/feedback?data_da&data_a&plesso_id&classe_id&tipologia_id` | catering, admin, operatore | Feedback in sola lettura |
 
 **GET /api/catering/report**
@@ -203,6 +213,13 @@ L'importo non è accettato in input: viene sempre calcolato come `numero_buoni �
 Il report non contiene alcuna informazione economica o di credito: un alunno presente genera
 sempre un pasto, qualunque sia il saldo della famiglia.
 
+Il risultato completo comprende anche `sezioni`, quantità `pasti_ordinari` e
+`pasta_in_bianco`, richieste con nominativo indispensabile alla distribuzione,
+oltre a `menu_nome`, `menu_descrizione` e `menu_origine` per le tipologie.
+**La pasta in bianco è già inclusa nel totale:** non deve essere aggiunta una
+seconda volta. Il nome di riserva «Menù standard» è una dicitura
+dell'interfaccia, non una pietanza registrata automaticamente nel database.
+
 **POST /api/catering/menu** (`multipart/form-data`)
 
 | Campo | Tipo | Note |
@@ -212,11 +229,46 @@ sempre un pasto, qualunque sia il saldo della famiglia.
 | `data` | date | default oggi |
 | `descrizione` | string | almeno uno tra descrizione e foto |
 | `foto` | file | jpg/png/webp, max 4 MB |
+| `rimuovi_foto` | `0` o `1` | consente la rimozione esplicita della foto; l'assenza del campo non elimina la foto salvata |
 
-La foto è salvata in `storage/menu/{plesso_id}_{tipologia_id}/{data}.jpg` ed è servita da
-`GET /storage/menu/{plesso_id}_{tipologia_id}/{data}.jpg` (richiede utente autenticato).
+L'archivio immagini è gestito dal servizio applicativo. Le immagini vengono
+consultate con percorsi `/storage/menu/...` **solo dopo autenticazione**:
+non costruire il percorso assumendo che tutti i file siano JPEG.
 
-Il feedback per il catering è anonimizzato: solo iniziali dell'alunno, classe, plesso, tipologia.
+Le operazioni di pubblicazione e annullamento sono valide esclusivamente
+per una data futura o per oggi **prima dell'orario limite del plesso**;
+non possono alterare giornate senza servizio o già consolidate.
+
+**GET /api/catering/menu/variazioni?pagina=1** — esempio di struttura:
+```json
+{
+  "ok": true,
+  "dati": {
+    "righe": [{ "id": 12, "data": "2026-11-09", "plesso_id": 1,
+      "tipologia_menu_id": 1, "descrizione": "Piatto del giorno",
+      "modificabile": true, "ha_modello_settimanale": true }],
+    "pagina": 1, "per_pagina": 10, "totale": 1, "pagine": 1
+  }
+}
+```
+I campi di ciascuna riga includono anche il nome del plesso, della tipologia
+e l'eventuale riferimento alla fotografia.
+
+**POST /api/catering/menu/annulla**
+```json
+{ "plesso_id": 1, "tipologia_menu_id": 1, "data": "2026-11-09" }
+```
+
+**Modelli settimanali:** `giorni` indica le descrizioni dei giorni da 1
+(lunedì) a 7 (domenica), in JSON o come stringa JSON nel multipart;
+`foto_giorno_1` … `foto_giorno_7` sono file facoltativi.
+`rimuovi_foto` elenca i giorni per cui viene chiesta esplicitamente la
+rimozione. L'assegnazione usa `menu_id`, `tipologia_menu_id` e
+`plesso_ids`. Le revisioni e le date di decorrenza preservano lo storico
+dei giorni già serviti.
+
+Il feedback restituito al catering usa dati sintetici/aggregati o nominativi
+ridotti alle iniziali secondo le regole applicative: non include saldi e crediti.
 
 ---
 
@@ -236,7 +288,8 @@ Il feedback per il catering è anonimizzato: solo iniziali dell'alunno, classe, 
 | GET/POST | `/api/admin/destinatari` | Lista unica destinatari in CC |
 | PUT | `/api/admin/destinatari/{id}` | Modifica/attivazione destinatario |
 | GET/POST | `/api/admin/impostazioni` | Configurazione SMTP ed email protocollo |
-| POST | `/api/admin/email-prova` | Invio email di prova |
+| POST | `/api/admin/email-prova` | Modello salvato di `plesso_id` a `email`, con dati dimostrativi e senza CC |
+| POST | `/api/admin/smtp-verifica` | Verifica connessione SMTP senza invio |
 
 **POST /api/admin/plessi**
 ```json
@@ -259,13 +312,83 @@ sovrascrive il valore memorizzato.
 
 ---
 
+## Calendario mensa e periodi straordinari
+
+Il calendario ordinario (giorni settimanali, data di inizio e data di fine
+facoltativa) rimane associato al plesso. L'interfaccia identifica l'anno
+scolastico della data di avvio, ad esempio **2026/2027**: non viene creato
+automaticamente un nuovo calendario ogni settembre. Se non viene impostata
+una fine, la configurazione ordinaria rimane valida anche negli anni successivi.
+
+| Metodo | Endpoint | Ruoli | Descrizione |
+|---|---|---|---|
+| GET | `/api/admin/calendari/riepilogo?data=YYYY-MM-DD` | admin | Situazione di tutte le scuole attive e classi dell'anno scolastico, **sola lettura** |
+| GET | `/api/admin/calendari/{id}` | admin | Configurazione e periodi per la scuola |
+| PUT | `/api/admin/calendari/{id}` | admin | Salva il calendario ordinario |
+| GET | `/api/admin/calendari/{id}/verifica?data=YYYY-MM-DD` | admin | Verifica il servizio nella data, senza addebiti |
+| POST | `/api/admin/calendari/{id}/periodi` | admin | Crea un'apertura o una chiusura di uno o più giorni |
+| PUT | `/api/admin/calendari/{id}/periodi/{periodo_id}` | admin | Modifica un periodo già registrato |
+| DELETE | `/api/admin/calendari/{id}/periodi/{periodo_id}` | admin | Elimina un periodo, ripristinando le regole ordinarie |
+
+Esempio `POST /api/admin/calendari/1/periodi`:
+
+```json
+{
+  "data_inizio": "2026-12-23",
+  "data_fine": "2027-01-06",
+  "servizio_attivo": 0,
+  "motivazione": "Vacanze natalizie"
+}
+```
+
+Per una data singola è sufficiente omettere `data_fine` o valorizzarla
+con la stessa data iniziale. In tabella i record storici a giorno singolo
+rimangono validi con `giorno_fine = NULL`; è richiesta la migrazione
+`database/migrations/009_intervalli_calendario.sql`.
+
+**Verifica complessiva:** `GET /api/admin/calendari/riepilogo?data=2026-10-19`
+restituisce `data`, `anno_scolastico`, `totali` (scuole e classi
+con e senza servizio) e `scuole[]`. Ogni scuola comprende `plesso_id`,
+`plesso_nome`, `attivo`, `motivo`, `totale_classi` e `classi[]`
+(con soli ID e nomi). Non sono restituiti dati personali degli alunni,
+né sono creati movimenti o esecuzioni del job.
+
+**Il calendario è per scuola:** tutte le classi della medesima scuola
+ereditano l'esito, non esiste una configurazione autonoma per classe.
+Sono mostrate esclusivamente le classi attive con `anno_scolastico`
+corrispondente alla data richiesta (settembre–agosto). Una scuola può
+essere aperta anche se non ha classi registrate per quell'anno;
+l'assenza di classi non equivale alla chiusura del servizio.
+La pagina Amministratore applica filtri e paginazione lato browser,
+con otto scuole per pagina e classi espandibili.
+
+**Precedenza:** ogni chiusura o apertura straordinaria esplicita prevale
+sul calendario ordinario, anche su fine settimana, festività nazionali e
+date di inizio/fine servizio. Un'apertura straordinaria è dunque
+un'operazione che può autorizzare la contabilizzazione anche in giornate
+normalmente escluse. I plessi disattivati restano invece esclusi.
+
+**Sovrapposizioni:** due periodi possono condividere soltanto il giorno
+finale/inziale, e soltanto se hanno lo stesso tipo (due aperture o due
+chiusure). Qualsiasi intersezione interna, o anche il solo confine con
+stati diversi, genera HTTP `422` e un messaggio con le date del periodo
+già esistente. La verifica avviene nel servizio PHP con un lock per scuola,
+quindi non è aggirabile inviando richieste direttamente alle API.
+
+Gli endpoint storici `/eccezioni/{data}` rimangono compatibili per
+giorni singoli, ma non possono sovrascrivere o cancellare accidentalmente
+un periodo di più giorni.
+
+---
+
 ## Job giornaliero
 
 | Metodo | Endpoint | Ruoli | Descrizione |
 |---|---|---|---|
-| POST | `/api/job/scheduler` | admin | Valuta tutti i plessi ed esegue quelli oltre cutoff non ancora elaborati |
-| POST | `/api/job/plessi/{id}` | admin | Forza l'esecuzione per un plesso (`{"data": "YYYY-MM-DD"}` opzionale) |
-| GET | `/api/job/esecuzioni` | admin, operatore | Storico esecuzioni |
+| GET | `/api/job/stato` | admin | Stato della chiusura di oggi per ogni scuola attiva; **sola lettura**, nessun addebito |
+| POST | `/api/job/scheduler` | admin | Controllo manuale di tutte le scuole, con le stesse regole dello scheduler automatico |
+| POST | `/api/job/plessi/{id}` | admin | Esecuzione manuale di una scuola (`{"data": "YYYY-MM-DD"}` opzionale); rispetta comunque calendario, orario limite e protezioni sui consumi |
+| GET | `/api/job/esecuzioni` | admin, operatore | Storico delle elaborazioni e dettagli aggregati |
 | GET | `/scheduler?key=…` | — (chiave) | Endpoint per cron HTTP del pannello hosting |
 
 Esito tipico di un'esecuzione:
@@ -274,6 +397,36 @@ Esito tipico di un'esecuzione:
   "presenze": { "presente": 7, "assente": 1 }, "consumi": 7, "pasti_report": 7,
   "solleciti": { "controllati": 3, "inviati": 3, "errori": 0, "dettagli": [ … ] } }
 ```
-Stati possibili: `eseguito`, `gia_eseguito`, `cutoff_non_raggiunto`, `errore`.
+Stati possibili: `eseguito`, `gia_eseguito`, `cutoff_non_raggiunto`,
+`fuori_calendario`, `in_corso`, `errore`, `errore_precedente`.
 Il job è idempotente: i consumi non vengono duplicati e i solleciti sono inviati una sola volta
 per genitore/plesso/giorno.
+
+**Recupero dopo un errore:** lo scheduler restituisce `errore_precedente` per una
+scuola/giorno con esito `errore` già registrato, **senza** riavviare
+automaticamente la chiusura. Occorre prima riconciliare consumi, presenze
+congelate, solleciti e log; un successivo intervento manuale da Admin è
+una nuova operazione reale, da autorizzare dopo le verifiche. Per
+`in_corso` persistente non esiste alcun ripristino automatico.
+
+Il monitoraggio usa `GET /api/job/stato` e non richiama il job. Restituisce:
+`data`, `scuole[]`, `plesso_id`, `plesso_nome`, `orario_limite`,
+`stato`, `pasti_confermati`, `buoni_utilizzati`,
+`solleciti_inviati`, `errori_comunicazioni` e `concluso_il`.
+Gli aggregati numerici sono disponibili **solo dopo una chiusura completata**.
+Gli stati possibili sono: `non_prevista`, `in_attesa`, `da_eseguire`,
+`in_corso`, `completata`, `errore`.
+
+I valori `consumi`/`buoni_utilizzati` indicano gli **addebiti registrati
+nell'esecuzione**, non un secondo conteggio da sottrarre allo stato dei conti.
+Inoltre un esito `ok` può avere `solleciti.errori > 0`: in quel caso i pasti
+risultano contabilizzati, ma le comunicazioni devono essere verificate.
+
+**Importante:** l'applicazione non può dedurre dall'API di monitoraggio se
+il cron esterno sul server sia attivo. La periodicità (ad esempio 5 minuti)
+dipende dalla configurazione effettiva del sistema e deve essere verificata
+separatamente. Non avviare scheduler o comandi manuali sulla produzione per
+verificarne lo stato.
+
+
+L'Admin può salvare `solleciti_automatici_enabled` (booleano) in `/api/admin/impostazioni`. La scelta prevale sul precedente flag nel file di configurazione; nessuna email viene inviata dal salvataggio. La lettura include `scheduler_abilitato`, `invio_simulato` e password SMTP mascherata. Le prove email restituiscono `simulato`, e `inviata`/`verificata` è falso nella demo. L'invio di prova restituisce anche `destinatario`, `oggetto` e `testo` effettivamente usati.
