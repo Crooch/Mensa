@@ -37,6 +37,8 @@ async function caricaDashboard() {
                 </dl>
             </article>`).join('');
 
+    document.getElementById('crediti-storici').innerHTML = (dati.crediti_storici || []).map(c => `<p><strong>${esc(c.plesso_nome)}</strong>: ${Number(c.saldo)} buoni. Movimenti conservati nello storico.</p>`).join('') || '<p>Nessuna posizione storica.</p>';
+
     document.getElementById('figli-lista').innerHTML = dati.figli.map((f) => {
         const s = f.stato_oggi;
         const dichiarazione = s ? testoScelta(s.dichiarazione_genitore) : 'Nessuna comunicazione';
@@ -129,6 +131,7 @@ async function caricaDashboard() {
 
     mostraFeedback(dati.feedback);
     riempiSelectFigli();
+    aggiornaDisponibilitaFeedback();
     caricaMenu();
 }
 
@@ -419,3 +422,11 @@ function mostraFeedback(elenco) {
 }
 
 caricaDashboard().catch((e) => avviso(e.message, 'errore'));
+
+function aggiornaDisponibilitaFeedback() {
+    const f = statoApp.figli.find(f => Number(f.id) === Number(document.getElementById('fb-figlio').value));
+    const chiuso = !!(f?.fine_servizio && oggi() >= f.fine_servizio);
+    document.querySelector('#form-feedback [type=submit]').disabled = chiuso;
+    document.getElementById('fb-stato-servizio').textContent = chiuso ? 'Servizio concluso: le valutazioni precedenti restano consultabili. Non è possibile inviarne di nuove.' : '';
+}
+document.getElementById('fb-figlio').addEventListener('change', aggiornaDisponibilitaFeedback);

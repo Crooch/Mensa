@@ -4,6 +4,7 @@ $ruoloPagina = 'admin';
 $scriptPagina = 'admin';
 require __DIR__ . '/partials/testa.php';
 ?>
+<p><a class="btn btn-outline-primary" href="<?= $basePath ?>/operatore">Ufficio comunale — famiglie e solleciti</a></p>
 <nav class="schede" role="tablist">
     <button class="scheda attiva" data-vista="plessi" data-testid="tab-plessi">Plessi</button>
     <button class="scheda" data-vista="calendario" data-testid="tab-calendario">Calendario mensa</button>
@@ -12,6 +13,9 @@ require __DIR__ . '/partials/testa.php';
     <button class="scheda" data-vista="email" data-testid="tab-email">Email e solleciti</button>
     <button class="scheda" data-vista="utenti" data-testid="tab-utenti">Utenze</button>
     <button class="scheda" data-vista="job" data-testid="tab-job">Chiusura pasti</button>
+<button class="scheda" data-vista="riepilogo-pasti">Riepilogo pasti</button>
+<button class="scheda" data-vista="personale">Pasti del personale</button>
+<button class="scheda" data-vista="servizio">Calendario e servizio</button>
 </nav>
 
 <section id="vista-plessi" class="vista">
@@ -392,4 +396,5 @@ require __DIR__ . '/partials/testa.php';
         </div>
     </details>
 </section>
+<?php require __DIR__ . '/partials/autonomia.php'; ?>
 <?php require __DIR__ . '/partials/piede.php'; ?>

@@ -121,3 +121,10 @@ Il repository include la [European Union Public Licence v1.2 (EUPL)](LICENSE).
 ## Funzioni non incluse nell'attuale applicazione
 
 Pagamenti PagoPA integrati, accesso SPID/CIE, app mobile nativa e notifiche push. Non considerarle disponibili finché non sono effettivamente implementate e collaudate.
+
+## Ticket 2 — autonomia degli operatori
+
+- [Guida Comune, Scuole, Catering e matrice permessi](docs/TICKET2_GUIDA_OPERATORI.md).
+- [Baseline verificata, test, limiti, migrazione 010 e piano di rilascio/rollback](docs/TICKET2_BASELINE_E_RILASCIO.md).
+
+Il codice candidato parte da `dev`, confrontato con la versione installata. Non eseguire automaticamente installazione, seed o migrazioni sul database comunale. Le operazioni sui casi reali restano agli operatori dopo il rilascio autorizzato.

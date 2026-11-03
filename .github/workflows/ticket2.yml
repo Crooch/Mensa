@@ -1,0 +1,44 @@
+name: Ticket 2 autonomy and security
+on:
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+jobs:
+  ticket2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare browser and isolated services
+        run: |
+          mkdir -p /tmp/ticket2-browser
+          cd /tmp/ticket2-browser
+          npm install playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start synthetic staging only
+        run: docker compose -p mensa-ticket2 -f compose.staging.yml up --build -d --wait
+      - name: Ten tickets, permissions, additive migration and accounting preservation
+        env:
+          MENSA_TICKET2_BASE: http://127.0.0.1:18080
+        run: python3 staging/ticket2_smoke.py
+      - name: Five roles on desktop, tablet and mobile
+        env:
+          MENSA_TICKET2_BASE: http://127.0.0.1:18080
+          NODE_PATH: /tmp/ticket2-browser/node_modules
+        run: |
+          docker exec mensa-ticket2-database-1 sh -c 'mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" mensa_staging -e "UPDATE plessi SET cutoff_orario=\"23:59:59\" WHERE id=1"'
+          node staging/ticket2_browser.cjs
+      - name: Consolidation, repeated job, historical diets and service end
+        run: docker exec mensa-ticket2-app-1 php tests/ticket2_consolidamento.php
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ticket2-synthetic-browser-evidence
+          path: staging/ticket2-artifacts/
+          retention-days: 7
+      - name: Stop dedicated test containers
+        if: always()
+        run: docker compose -p mensa-ticket2 -f compose.staging.yml down -v

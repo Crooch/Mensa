@@ -34,5 +34,8 @@ $paginaJsVersione = is_file($paginaJsPath) ? (int) filemtime($paginaJsPath) : 0;
 ?>
 <script src="<?= $basePath ?>/assets/js/<?= htmlspecialchars($scriptExtraPagina) ?>.js?v=<?= $versioneExtra ?>"></script>
 <?php endif; ?>
+<?php if (in_array($ruoloPagina ?? '', ['admin','operatore','scuola','catering'], true)): ?>
+<script src="<?= $basePath ?>/assets/js/autonomia.js?v=<?= (int)filemtime(APP_ROOT . '/public/assets/js/autonomia.js') ?>"></script>
+<?php endif; ?>
 </body>
 </html>

@@ -27,6 +27,7 @@ $scuola = new ScuolaController($container);
 $catering = new CateringController($container);
 $admin = new AdminController($container);
 $job = new JobController($container);
+$autonomia = new \App\Controller\AutonomiaController($container);
 
 const RUOLI_UFFICIO = ['admin', 'operatore'];
 const RUOLI_TUTTI = ['admin', 'operatore', 'scuola', 'catering', 'genitore'];
@@ -55,10 +56,10 @@ $router->get('/api/famiglie', [$operatore, 'cercaFamiglie'], RUOLI_UFFICIO);
 $router->get('/api/famiglie/{id}', [$operatore, 'schedaFamiglia'], RUOLI_UFFICIO);
 $router->post('/api/famiglie', [$operatore, 'creaGenitore'], RUOLI_UFFICIO);
 $router->put('/api/famiglie/{id}', [$operatore, 'modificaGenitore'], RUOLI_UFFICIO);
-$router->delete('/api/famiglie/{id}', [$operatore, 'cancellaGenitore'], RUOLI_UFFICIO);
+$router->delete('/api/famiglie/{id}', [$autonomia, 'disattiva'], RUOLI_UFFICIO);
 $router->post('/api/bambini', [$operatore, 'creaBambino'], RUOLI_UFFICIO);
-$router->put('/api/bambini/{id}', [$operatore, 'modificaBambino'], RUOLI_UFFICIO);
-$router->delete('/api/bambini/{id}', [$operatore, 'cancellaBambino'], RUOLI_UFFICIO);
+$router->put('/api/bambini/{id}', [$autonomia, 'nome'], RUOLI_UFFICIO);
+$router->delete('/api/bambini/{id}', [$autonomia, 'disattivaBambino'], RUOLI_UFFICIO);
 $router->post('/api/bambini/{id}/assegnazioni', [$operatore, 'assegnaClasse'], RUOLI_UFFICIO);
 $router->get('/api/bambini/{id}/assegnazioni', [$operatore, 'storicoClassi'], RUOLI_UFFICIO);
 $router->get('/api/tariffe/attiva', [$operatore, 'tariffaAttiva'], RUOLI_UFFICIO);
@@ -134,4 +135,14 @@ $router->post('/api/job/plessi/{id}', [$job, 'eseguiPlesso'], ['admin']);
 $router->get('/api/job/stato', [$job, 'stato'], ['admin']);
 $router->get('/api/job/esecuzioni', [$job, 'esecuzioni'], ['admin', 'operatore']);
 
+// Autonomia nelle aree esistenti; nessun accesso alle impostazioni tecniche.
+$router->get('/api/famiglie/{id}/verifica', [$autonomia, 'verifica'], RUOLI_UFFICIO);
+$router->get('/api/servizio/plessi/{id}', [$autonomia, 'configurazione'], RUOLI_UFFICIO);
+$router->put('/api/servizio/plessi/{id}', [$autonomia, 'configura'], RUOLI_UFFICIO);
+$router->post('/api/servizio/plessi/{id}/chiusure', [$autonomia, 'chiusura'], RUOLI_UFFICIO);
+$router->get('/api/personale/plessi/{id}', [$autonomia, 'personale'], ['admin','operatore','scuola','catering']);
+$router->post('/api/personale/plessi/{id}/regole', [$autonomia, 'regola'], RUOLI_UFFICIO);
+$router->put('/api/personale/plessi/{id}/giorno', [$autonomia, 'giorno'], ['admin','operatore','scuola']);
+$router->get('/api/report/pasti', [$autonomia, 'report'], ['admin','operatore','scuola','catering']);
+$router->get('/api/solleciti/consultazione', [$autonomia, 'solleciti'], RUOLI_UFFICIO);
 return $router;

@@ -29,3 +29,9 @@
 .DS_Store
 Thumbs.db
 /config/scheduler_enabled.flag
+
+# Evidence from synthetic browser tests
+/staging/ticket2-artifacts/
+/staging/browser-artifacts/
+__pycache__/
+*.pyc

@@ -10,6 +10,8 @@ require __DIR__ . '/partials/testa.php';
     <button class="scheda" data-vista="menu" data-testid="tab-menu">Menu del giorno</button>
     <button class="scheda" data-vista="settimane" data-testid="tab-settimane">Menu settimanali</button>
     <button class="scheda" data-vista="feedback" data-testid="tab-feedback">Feedback</button>
+<button class="scheda" data-vista="riepilogo-pasti">Riepilogo pasti</button>
+<button class="scheda" data-vista="personale">Pasti del personale</button>
 </nav>
 
 <section id="vista-report" class="vista">
@@ -171,4 +173,5 @@ require __DIR__ . '/partials/testa.php';
         </table>
     </div>
 </section>
+<?php require __DIR__ . '/partials/autonomia.php'; ?>
 <?php require __DIR__ . '/partials/piede.php'; ?>

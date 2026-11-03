@@ -75,7 +75,7 @@ async function cerca() {
     UI.stato('ricerca-stato', 'Sto cercando le famiglie…', 'caricamento');
     let elenco;
     try {
-        elenco = await API.get('/api/famiglie?q=' + encodeURIComponent(q));
+        elenco = await API.get('/api/famiglie?q=' + encodeURIComponent(q) + '&includi_cancellati=1');
     } catch (errore) {
         if (versione === ultimaRicerca) UI.stato('ricerca-stato', 'Ricerca non riuscita: ' + errore.message, 'errore');
         return;
@@ -116,6 +116,7 @@ async function apriFamiglia(id) {
             </dl>
         </header>
         <div class="operatore-azioni">
+            <button class="btn btn-outline-primary btn-sm" id="btn-verifica-famiglia">Verifica associazioni e disattivazione</button>
             <button class="btn btn-primary btn-sm" id="btn-acquisto" data-testid="acquisto-buoni-button">Registra buoni acquistati</button>
             <button class="btn btn-outline-primary btn-sm" id="btn-override" data-testid="override-tariffa-button">Tariffa agevolata</button>
             <button class="btn btn-outline-primary btn-sm" id="btn-rettifica" data-testid="rettifica-button">Correggi il saldo buoni</button>
@@ -143,6 +144,7 @@ async function apriFamiglia(id) {
                     <ul class="nota">${f.storico_classi.map((a) => `<li>${esc(a.plesso_nome)} · ${esc(a.classe_nome)} (${esc(a.anno_scolastico)}) dal ${dataIt(a.data_inizio)} ${a.data_fine ? 'al ' + dataIt(a.data_fine) : '(corrente)'}</li>`).join('')}</ul>
                 </details>
                 <div class="operatore-figlio-azioni">
+                    <button class="btn-azione" data-nome="${f.id}">Modifica anagrafica</button>
                     <button class="btn-azione" data-cambio-classe="${f.id}" data-testid="cambia-classe-${f.id}">Cambia classe</button>
                     <button class="btn-azione" data-dieta="${f.id}" data-testid="cambia-dieta-${f.id}">Cambia dieta</button>
                     <button class="btn-azione" data-cancella-figlio="${f.id}" data-testid="cancella-figlio-${f.id}">Disattiva bambino</button>
@@ -173,6 +175,8 @@ async function apriFamiglia(id) {
 }
 
 function collegaAzioniFamiglia(genitoreId) {
+    document.getElementById('btn-verifica-famiglia').onclick = () => verificaFamiglia(genitoreId).catch(e => avviso(e.message, 'errore'));
+    document.querySelectorAll('[data-nome]').forEach(b => b.onclick = () => formNome(Number(b.dataset.nome)));
     document.getElementById('btn-acquisto').addEventListener('click', () => formAcquisto(genitoreId));
     document.getElementById('btn-override').addEventListener('click', () => formOverride(genitoreId));
     document.getElementById('btn-rettifica').addEventListener('click', () => formRettifica(genitoreId));
@@ -351,7 +355,8 @@ function formDieta(bambinoId) {
             <label for="op-dieta-select">Nuovo tipo di menu</label><select id="op-dieta-select" name="tipologia_menu_id" data-testid="dieta-select">${opzioniTipologie()}</select>
             <button class="btn btn-primary" type="submit" data-testid="dieta-submit-button">Salva</button>
         </form>`, async (fd) => {
-        await API.put('/api/bambini/' + bambinoId, { tipologia_menu_id: Number(fd.get('tipologia_menu_id')) });
+        if (!confirm('Confermi il nuovo menù per questo alunno?')) return false;
+        await API.put('/api/bambini/' + bambinoId, { tipologia_menu_id: Number(fd.get('tipologia_menu_id')), conferma: true, motivazione: 'Modifica dieta dalla scheda alunno' });
         avviso('Tipologia aggiornata.');
         apriFamiglia(famigliaCorrente.genitore.id);
     });
@@ -368,7 +373,11 @@ async function caricaSituazione() {
 }
 
 async function caricaSolleciti() {
-    const elenco = await API.get('/api/solleciti');
+    const v = Object.fromEntries(new FormData(document.getElementById('solleciti-filtri')));
+    const result = await API.get('/api/solleciti/consultazione?' + new URLSearchParams(v));
+    const elenco = result.log;
+    document.getElementById('solleciti-posizioni').innerHTML = '<h2>Posizioni oltre fido</h2>' + result.posizioni.map(r => `<p>Famiglia ID ${r.genitore_id} · ${esc(r.genitore_cognome)} ${esc(r.genitore_nome)} · ${esc(r.plesso_nome)} · saldo ${r.saldo}, fido ${r.fido_buoni}</p>`).join('');
+    document.getElementById('solleciti-stato').textContent = result.invii + (result.limite_raggiunto ? ' Raggiunto limite di 1000 risultati: restringi i filtri.' : '');
     document.getElementById('solleciti-corpo').innerHTML = elenco.map((r) => `
         <tr><td>${dataIt(r.data_invio)}</td><td>${esc(r.genitore_cognome)} ${esc(r.genitore_nome)}</td>
         <td>${esc(r.plesso_nome)}</td><td>${r.saldo_al_momento_invio}</td>
@@ -385,3 +394,24 @@ document.getElementById('btn-nuovo-genitore').addEventListener('click', formNuov
     riferimenti = await API.get('/api/riferimenti');
     await cerca();
 })().catch((e) => avviso(e.message, 'errore'));
+
+function formNome(bambinoId) {
+    const f = famigliaCorrente.figli.find(f => Number(f.id) === bambinoId);
+    apriModale('Modifica anagrafica', `<form><p>Alunno ID ${f.id} · ${esc(f.cognome)} ${esc(f.nome)}<br>Famiglia ID ${famigliaCorrente.genitore.id} · ${esc(f.genitore_cognome)} ${esc(f.genitore_nome)}<br>${esc(f.plesso_nome || 'Nessun plesso')} · ${esc(f.classe_nome || '')}</p><label>Nome <input name="nome" value="${esc(f.nome)}" maxlength="80" required></label><label>Cognome <input name="cognome" value="${esc(f.cognome)}" maxlength="80" required></label><label>Motivazione <input name="motivazione" maxlength="255" required></label><button type="submit" class="btn btn-primary">Salva anagrafica</button></form>`, async fd => {
+        const v=Object.fromEntries(fd);
+        if(!confirm(`Alunno ID ${f.id}: ${f.cognome} ${f.nome} → ${v.cognome} ${v.nome}. Confermi?`))return false;
+        await API.put('/api/bambini/'+f.id,{...v,precedente:{nome:f.nome,cognome:f.cognome},conferma:true});
+        await apriFamiglia(famigliaCorrente.genitore.id);avviso('Anagrafica aggiornata. Collegamenti e buoni conservati.');
+    });
+}
+async function verificaFamiglia(gid) {
+    const v=await API.get('/api/famiglie/'+gid+'/verifica');
+    apriModale('Verifica associazioni e disattivazione', `<form><p><strong>${esc(v.genitore.cognome)} ${esc(v.genitore.nome)}</strong> · Famiglia ID ${gid} · Utenza ID ${v.genitore.utente_id || 'assente'}</p><p>Figli attivi: ${v.figli_attivi} · Posizioni con saldo non nullo: ${v.saldi_non_zero} · Movimenti conservati: ${v.movimenti}</p><h3>Associazioni correnti e storiche</h3>${v.figli.map(f=>`<p>Alunno ID ${f.id} · ${esc(f.cognome)} ${esc(f.nome)} · ${esc(f.plesso_nome||'Nessuno')} / ${esc(f.classe_nome||'')} · dal ${esc(f.data_inizio||'—')} al ${esc(f.data_fine||'aperta')} · ${Number(f.cancellato_logicamente)?'disattivato':'attivo'}</p>`).join('')||'<p>Nessun alunno associato.</p>'}<h3>Possibili omonimie</h3>${v.possibili_duplicati.map(f=>`<p>Alunno ID ${f.id} · ${esc(f.cognome)} ${esc(f.nome)} · Famiglia ID ${f.genitore_id}: ${esc(f.genitore_cognome)} ${esc(f.genitore_nome)}</p>`).join('')||'<p>Nessuna omonimia esatta trovata. Verificare comunque le anagrafiche.</p>'}<p>${esc(v.avvertenza)}</p>${v.disattivabile&&!Number(v.genitore.cancellato_logicamente)?'<p>La disattivazione revoca l’accesso del genitore e conserva lo storico.</p><label>Motivazione <input name="motivazione" maxlength="255" required></label><button type="submit" class="btn btn-primary">Disattiva genitore</button>':'<p>Disattivazione non disponibile: genitore già disattivato oppure figli attivi o saldi non nulli. Per conflitti anagrafici o contabili richiedere assistenza.</p>'}</form>`,async fd=>{
+        if(!confirm(`Disattivare ${v.genitore.cognome} ${v.genitore.nome}, famiglia ID ${gid}, revocando gli accessi?`))return false;
+        await API.del('/api/famiglie/'+gid,{conferma:true,motivazione:fd.get('motivazione')});await apriFamiglia(gid);avviso('Genitore disattivato. Storico conservato e accessi revocati.');
+    });
+}
+
+document.getElementById('solleciti-filtri').addEventListener('submit',ev=>{ev.preventDefault();caricaSolleciti().catch(err=>avviso(err.message,'errore'));});
+document.getElementById('solleciti-filtri').elements.dal.value=oggi().slice(0,7)+'-01';
+document.getElementById('solleciti-filtri').elements.al.value=oggi();

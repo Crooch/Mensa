@@ -131,6 +131,7 @@ final class JobGiornalieroService
                 }
             }
 
+            (new \App\Core\Container())->autonomia()->consolidaPersonale($plessoId, $data);
             $report = $this->presenze->reportPasti($data, $plessoId);
             // Dopo T0 i saldi ripartono da zero: non inviare automaticamente
             // solleciti di debito alla prima giornata. La riattivazione

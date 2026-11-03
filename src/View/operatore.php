@@ -7,7 +7,10 @@ require __DIR__ . '/partials/testa.php';
 <nav class="schede" role="tablist">
     <button class="scheda attiva" data-vista="famiglie" data-testid="tab-famiglie">Famiglie</button>
     <button class="scheda" data-vista="crediti" data-testid="tab-crediti">Situazione buoni mensa</button>
-    <button class="scheda" data-vista="solleciti" data-testid="tab-solleciti">Solleciti inviati</button>
+    <button class="scheda" data-vista="solleciti" data-testid="tab-solleciti">Solleciti pagamento</button>
+<button class="scheda" data-vista="riepilogo-pasti">Riepilogo pasti</button>
+<button class="scheda" data-vista="personale">Pasti del personale</button>
+<button class="scheda" data-vista="servizio">Calendario e servizio</button>
 </nav>
 
 <section id="vista-famiglie" class="vista">
@@ -46,7 +49,8 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-solleciti" class="vista" hidden>
-    <header class="area-intro"><h1>Comunicazioni di sollecito</h1><p>Elenco delle comunicazioni già registrate.</p></header>
+    <header class="area-intro"><h1>Comunicazioni di sollecito</h1><p>Consulta posizioni oltre fido e storico. Gli invii restano gestiti dalla configurazione esistente.</p></header>
+    <form id="solleciti-filtri" class="riga-filtri"><label>Dal <input type="date" name="dal" required></label><label>Al <input type="date" name="al" required></label><label>Famiglia <input name="q" type="search"></label><label>Plesso <select name="plesso_id" class="aut-plessi"><option value="">Tutti</option></select></label><button class="btn btn-primary">Filtra solleciti</button></form><p id="solleciti-stato" role="status"></p><div id="solleciti-posizioni"></div>
     <div class="tabella-scroll">
         <table class="table" data-testid="solleciti-tabella">
             <thead><tr><th>Data</th><th>Famiglia</th><th>Plesso</th><th>Saldo</th><th>Esito</th><th>Destinatari</th></tr></thead>
@@ -64,4 +68,5 @@ require __DIR__ . '/partials/testa.php';
         <div id="modale-corpo"></div>
     </div>
 </div>
+<?php require __DIR__ . '/partials/autonomia.php'; ?>
 <?php require __DIR__ . '/partials/piede.php'; ?>

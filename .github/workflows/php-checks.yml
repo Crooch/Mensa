@@ -34,6 +34,7 @@ jobs:
           bash -n bin/attiva_prod_t0.sh
       - name: Browser script syntax and asynchronous report regression
         run: |
+          node --check public/assets/js/autonomia.js
           node --check public/assets/js/api.js
           node --check public/assets/js/genitore.js
           node --check public/assets/js/scuola.js
@@ -114,7 +115,9 @@ jobs:
           $DB < database/migrations/007_storico_nomi_modelli.sql
           $DB < database/migrations/008_foto_menu_settimanali.sql
           $DB < database/migrations/008_foto_menu_settimanali.sql
+          $DB < database/migrations/010_autonomia_operatori.sql
           $DB < database/migrations/009_intervalli_calendario.sql
+          $DB < database/migrations/010_autonomia_operatori.sql
           $DB < database/migrations/009_intervalli_calendario.sql
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name="eccezioni_calendario" AND column_name="giorno_fine"')" = "1"
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM calendari_servizio')" = "2"

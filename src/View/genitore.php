@@ -59,6 +59,7 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-feedback" class="vista" hidden>
     <header class="area-intro"><h1>Come è andato il pasto?</h1><p>Lascia una valutazione per il giorno e il figlio selezionati.</p></header>
+    <p id="fb-stato-servizio" role="status"></p>
     <form id="form-feedback" class="pannello famiglia-feedback-form" data-testid="feedback-form">
         <div class="riga-filtri famiglia-filtri">
             <label for="fb-figlio">Scegli il figlio</label>
@@ -80,4 +81,5 @@ require __DIR__ . '/partials/testa.php';
         </table>
     </div>
 </section>
+<details class="pannello"><summary>Posizioni buoni storiche</summary><div id="crediti-storici"></div></details>
 <?php require __DIR__ . '/partials/piede.php'; ?>

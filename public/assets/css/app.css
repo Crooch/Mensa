@@ -2708,3 +2708,21 @@ body[data-ruolo="admin"] .admin-verifica-pagine .btn:disabled { opacity: .45; }
         padding: .55rem;
     }
 }
+
+/* Moduli operativi: campi leggibili anche su telefono, senza overflow della pagina. */
+#vista-servizio form, #vista-personale .griglia-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:1rem; align-items:end; margin-block:1rem; }
+#vista-servizio label, #vista-personale label, #vista-riepilogo-pasti label, #solleciti-filtri label { display:flex; flex-direction:column; gap:.35rem; min-width:0; }
+#vista-servizio input, #vista-servizio select, #vista-personale input, #vista-personale select { max-width:100%; min-width:0; }
+#vista-personale input[type=number] { width:6rem; }
+#vista-servizio form h2, #vista-servizio form p { grid-column:1/-1; }
+#vista-servizio form button, #vista-personale form button { justify-self:start; }
+@media (max-width: 640px) {
+    #vista-personale .tabella-scroll, #vista-riepilogo-pasti .tabella-scroll { border:0; background:transparent; overflow:visible; }
+    #vista-personale table.table, #vista-riepilogo-pasti table.table { display:block; width:100%; min-width:0; }
+    #vista-personale table.table thead, #vista-riepilogo-pasti table.table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+    #vista-personale table.table tbody, #vista-riepilogo-pasti table.table tbody { display:block; }
+    #vista-personale table.table tr, #vista-riepilogo-pasti table.table tr { display:block; background:white; border:1px solid var(--grigio-bordo); border-radius:8px; margin-bottom:1rem; padding:.5rem; }
+    #vista-personale table.table td, #vista-riepilogo-pasti table.table td { display:grid; grid-template-columns:35% minmax(0,1fr); gap:.7rem; min-width:0; width:auto; padding:.65rem .25rem; white-space:normal; overflow-wrap:anywhere; }
+    #vista-personale table.table td::before, #vista-riepilogo-pasti table.table td::before { content:attr(data-label); font-weight:600; font-size:.85rem; }
+    #vista-personale table.table td:last-child, #vista-riepilogo-pasti table.table td:last-child { border-bottom:0; }
+}

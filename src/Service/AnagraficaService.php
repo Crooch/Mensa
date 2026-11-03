@@ -114,6 +114,8 @@ final class AnagraficaService
             }
         }
         return Database::inTransazione(function () use ($dati) {
+            $g = (new \App\Repository\AutonomiaRepository())->famiglia((int)$dati['genitore_id'], true);
+            if (!$g || (int)$g['cancellato_logicamente']) throw HttpException::nonValido('Famiglia non attiva.');
             $bambinoId = $this->bambini->crea([
                 'nome'              => trim((string) $dati['nome']),
                 'cognome'           => trim((string) $dati['cognome']),

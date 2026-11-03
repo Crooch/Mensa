@@ -48,6 +48,8 @@ final class CalendarioService
         if ($plesso === null || (int) $plesso['cancellato_logicamente'] === 1) {
             return ['attivo' => false, 'motivo' => 'plesso_non_attivo'];
         }
+        $fine = (new \App\Repository\AutonomiaRepository())->impostazioni($plessoId)['primo_giorno_sospensione'];
+        if ($fine !== null && $data >= $fine) return ['attivo'=>false,'motivo'=>'servizio_terminato'];
         $config = $this->calendari->configurazione($plessoId);
         $eccezione = $this->calendari->eccezione($plessoId, $data);
         if ($config === null && $eccezione === null) {
@@ -139,9 +141,7 @@ final class CalendarioService
             $id = (int) $plesso['id'];
             $config = $configurazioni[$id] ?? null;
             $eccezione = $eccezioni[$id] ?? null;
-            $esito = $config === null && $eccezione === null
-                ? ['attivo' => false, 'motivo' => 'calendario_non_configurato']
-                : self::valutaRegole($config ?? [], $eccezione, $data);
+            $esito = $this->previsto($id, $data);
             $classi = $perPlesso[$id] ?? [];
             $numero = count($classi);
             if ($esito['attivo']) {

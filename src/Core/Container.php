@@ -212,6 +212,11 @@ final class Container
         ));
     }
 
+    public function autonomia(): S\AutonomiaService
+    {
+        return $this->ottieni("s.autonomia", fn () => new S\AutonomiaService($this));
+    }
+
     public function autenticazione(): Auth
     {
         return $this->ottieni('core.auth', fn () => new Auth($this->utenti()));

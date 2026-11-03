@@ -279,7 +279,9 @@ final class PresenzaService
                     }
                 }
 
+                if ($esecuzione !== null && $esecuzione['esito'] === 'ok' && $stato === 'presente') $aggiornamenti['congelato'] = 1;
                 $this->presenze->modificaPresenza((int) $record['id'], $aggiornamenti);
+                if ($data === date('Y-m-d')) (new \App\Repository\AutonomiaRepository())->storicizzaTipologie($plessoId, $data);
                 $this->presenze->registraAudit(
                     $bambinoId, $data, 'override_scuola',
                     $record['override_scuola'], $stato, $utenteId, $motivazione
@@ -568,6 +570,7 @@ final class PresenzaService
             }
             $conteggi[$record['stato_effettivo']]++;
         }
+        (new \App\Repository\AutonomiaRepository())->storicizzaTipologie($plessoId, $data);
         return $conteggi;
     }
 
