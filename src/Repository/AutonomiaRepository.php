@@ -40,9 +40,10 @@ final class AutonomiaRepository extends Repository
   $this->esegui('INSERT INTO pasti_personale_regole (plesso_id,dal,giorno,categoria,tipologia_menu_id,quantita) VALUES (:id,:dal,:giorno,:categoria,:tipologia_menu_id,:quantita) ON DUPLICATE KEY UPDATE quantita=VALUES(quantita)',['id'=>$id]+$v);
  }
  public function giorno(int $id,string $data): ?array { return $this->uno('SELECT * FROM pasti_personale_giorni WHERE plesso_id=:id AND data=:d',['id'=>$id,'d'=>$data]); }
- public function salvaGiorno(int $id,string $data,array $righe,bool $consolidato): void {
-  $this->esegui('INSERT INTO pasti_personale_giorni (plesso_id,data,righe,consolidato) VALUES (:id,:d,:r,:c) ON DUPLICATE KEY UPDATE righe=VALUES(righe),consolidato=VALUES(consolidato)',['id'=>$id,'d'=>$data,'r'=>json_encode($righe),'c'=>(int)$consolidato]);
+ public function salvaGiorno(int $id,string $data,array $righe,bool $consolidato,string $origine='variazione'): void {
+  $this->esegui('INSERT INTO pasti_personale_giorni (plesso_id,data,righe,consolidato,origine) VALUES (:id,:d,:r,:c,:o) ON DUPLICATE KEY UPDATE righe=VALUES(righe),consolidato=VALUES(consolidato),origine=VALUES(origine)',['id'=>$id,'d'=>$data,'r'=>json_encode($righe),'c'=>(int)$consolidato,'o'=>$origine]);
  }
+ public function eliminaGiorno(int $id,string $data): void { $this->esegui('DELETE FROM pasti_personale_giorni WHERE plesso_id=:id AND data=:d',['id'=>$id,'d'=>$data]); }
  public function pastiConfermati(int $id,string $data): array {
   return $this->tutti("SELECT st.tipologia_menu_id AS tipologia_id,COALESCE(st.tipologia_nome,'Non storicizzata') AS tipologia_nome,COUNT(DISTINCT pg.id) AS pasti FROM presenze_giornaliere pg JOIN bambini b ON b.id=pg.bambino_id LEFT JOIN presenze_tipologie_storiche st ON st.presenza_id=pg.id JOIN assegnazioni_classe ac ON ac.bambino_id=b.id AND ac.data_inizio<=pg.data AND (ac.data_fine IS NULL OR ac.data_fine>=pg.data) JOIN classi_sezioni cs ON cs.id=ac.classe_sezione_id WHERE cs.plesso_id=:id AND pg.data=:d AND pg.congelato=1 AND pg.stato_effettivo='presente' GROUP BY st.tipologia_menu_id,st.tipologia_nome",['id'=>$id,'d'=>$data]);
  }

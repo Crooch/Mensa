@@ -35,7 +35,7 @@ protected=['pool_crediti','movimenti_crediti','presenze_giornaliere','assegnazio
 original=snapshot(protected)
 # additive schema repeated without altering prior rows
 migration=open('database/migrations/010_autonomia_operatori.sql').read()
-sql(migration);sql(migration);assert snapshot(protected)==original
+sql(migration);sql(migration);sql(open('database/migrations/011_origine_personale.sql').read());sql(open('database/migrations/011_origine_personale.sql').read());assert snapshot(protected)==original
 ok('migrazione 010 ripetibile; dati precedenti invariati')
 # complete permission matrix, direct HTTP and anonymous
 writes=[('/api/famiglie/1','DELETE',confirm),('/api/bambini/1','PUT',dict(confirm,nome='Tentativo')),('/api/servizio/plessi/1','PUT',dict(confirm,fido_buoni=20)),('/api/servizio/plessi/1/chiusure','POST',dict(confirm,data_inizio=str(tomorrow),data_fine=str(tomorrow))),('/api/personale/plessi/1/regole','POST',dict(confirm,dal=str(tomorrow),giorno=1,categoria='ata',tipologia_menu_id=1,quantita=3))]
@@ -97,7 +97,7 @@ call('/api/admin/calendari/1/eccezioni/'+str(monday),{'servizio_attivo':1,'motiv
 p=call('/api/personale/plessi/1?data='+str(monday),token=comune)
 assert sum(x['quantita'] for x in p['righe'])==5
 assert sum(x['quantita'] for x in p['righe'] if x['tipologia_menu_id']==veggie)==1
-call('/api/personale/plessi/1/regole',dict(confirm,dal=str(today),giorno=1,categoria='ata',tipologia_menu_id=1,quantita=3),comune,expected=422)
+call('/api/personale/plessi/1/regole',dict(confirm,dal=str(today-dt.timedelta(days=1)),giorno=1,categoria='ata',tipologia_menu_id=1,quantita=3),comune,expected=422)
 # prepare isolated today's calendar and cutoff; never production
 oldcut=sql('SELECT cutoff_orario FROM plessi WHERE id=1')
 sql("UPDATE plessi SET cutoff_orario='23:59:59' WHERE id=1")
@@ -108,11 +108,11 @@ call('/api/personale/plessi/1/giorno',dict(confirm,data=str(today),righe=righe,p
 call('/api/personale/plessi/1/giorno',dict(confirm,data=str(today),righe=righe,precedente=righe),school,'PUT')
 call('/api/personale/plessi/3/giorno',dict(confirm,data=str(today),righe=righe,precedente=[]),school,'PUT',403)
 sql("UPDATE plessi SET cutoff_orario='00:00:00' WHERE id=1")
-call('/api/personale/plessi/1/giorno',dict(confirm,data=str(today),righe=[],precedente=righe),school,'PUT',403)
+call('/api/personale/plessi/1/giorno',dict(confirm,data=str(today),righe=righe,precedente=righe),school,'PUT')
 call('/api/personale/plessi/1/giorno',dict(confirm,data=str(today),righe=[dict(righe[0],quantita=2)],precedente=righe),comune,'PUT')
 sql("UPDATE plessi SET cutoff_orario='"+oldcut+"' WHERE id=1")
 assert snapshot(protected)==original
-ok('T04 ricorrenze, vegetariano incluso, Scuola proprio plesso prima cutoff, rettifica Comune dopo cutoff, nessun addebito')
+ok('T04 ricorrenze, vegetariano incluso, Scuola proprio plesso senza cutoff, rettifica Comune, nessun addebito')
 # reports and privacy
 query='/api/report/pasti?dal='+str(today)+'&al='+str(monday)
 r=call(query,token=comune);assert r==call(query,token=catering)

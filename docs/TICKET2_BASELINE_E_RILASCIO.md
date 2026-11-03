@@ -18,11 +18,11 @@ Le funzioni sono nelle aree esistenti. Nessun nuovo ruolo, utente di sistema o p
 | Ticket | Funzione predisposta | Natura |
 |---|---|---|
 | T01 | Verifica associazioni e omonimie, disattivazione logica sicura, revoca accessi | Assistenza anagrafica supportata da correttivo |
-| T02 | Riepilogo per intervallo/plesso/ordine, alunni/personale, CSV ed Excel formattato, stati distinti | Sviluppo evolutivo |
+| T02 | Riepilogo per intervallo/plesso/ordine, alunni/personale, totali mensili aggregati per ordine, CSV ed Excel a due fogli, stati distinti | Sviluppo evolutivo |
 | T03 | Stesso report per Catering, senza anagrafiche o dati economici | Sviluppo evolutivo |
-| T04 | Ricorrenze con decorrenza, quantità giornaliere per plesso, rettifiche motivate, consolidamento | Sviluppo evolutivo |
+| T04 | Ricorrenze con decorrenza, quantità giornaliere per plesso, rettifiche motivate senza cutoff e ripristino programmazione | Sviluppo evolutivo |
 | T05 | Filtri, posizioni oltre fido, storico/esiti/errori; sola consultazione | Completamento funzionale; nessuna attivazione invii |
-| T06 | Inserimento chiusure future con controllo intervalli e duplicazioni | Configurazione assistita e permessi |
+| T06 | Inserimento, modifica ed eliminazione chiusure future, con controllo intervalli, duplicazioni e concorrenza | Configurazione assistita e permessi |
 | T07 | Buoni correnti separati dallo storico; verifica comunale delle associazioni | Correttivo di visualizzazione |
 | T08 | Modifica nome/cognome sullo stesso record, conferma, controllo concorrenza, audit | Assistenza anagrafica supportata da interfaccia |
 | T09 | Fido del singolo plesso, validazione e audit | Configurazione e permessi |
@@ -42,7 +42,7 @@ Tutti i casi reali devono ancora essere eseguiti dagli utenti dopo il rilascio a
 
 Nessun valore di calendario, fido, ordine scolastico o personale viene precaricato. Non esegue UPDATE, DELETE, INSERT, reset o seed sulle tabelle esistenti. Esecuzione ripetuta collaudata su dati sintetici.
 
-Il codice nuovo richiede la 010. Non usare `bin/install.php`, le migrazioni 001–009, `bin/seed.php` o gli script T0 sulla produzione per questo rilascio.
+Il codice nuovo richiede la 010 e la **011_origine_personale.sql**. La 011 aggiunge solo `origine` alla tabella dei giorni del personale; i conteggi esistenti restano invariati e sono classificati `registrato`. I nuovi record distinguono programmazione e variazione. È ripetibile con ADD COLUMN IF NOT EXISTS. Non usare `bin/install.php`, le migrazioni 001–009, `bin/seed.php` o gli script T0 sulla produzione per questo rilascio.
 
 ## Collaudo effettuato
 
@@ -62,9 +62,9 @@ I test sono riproducibili con `.github/workflows/ticket2.yml`. Gli script rifiut
 - Omonimie non equivalgono a duplicati certi. Il sistema non fonde record, trasferisce figli, cancella movimenti o sposta saldi. Genitori con figli attivi, saldo non nullo o utenza condivisa/privilegiata non sono disattivabili; richiedono assistenza. I figli con presenze o assegnazioni correnti/future non sono disattivabili da questa procedura.
 - L'ordine scolastico va scelto dal Comune per ciascun plesso. Fino ad allora compare «Da configurare»: nessuna deduzione automatica dal nome della scuola.
 - La baseline non registrava la dieta al momento del pasto. Per presenze pregresse senza fotografia compare «Non storicizzata»; il totale dei pasti confermati resta ricavato dalle presenze congelate e dalle assegnazioni alla data. Non vengono inventati dati storici. Il nuovo dettaglio viene conservato per le nuove elaborazioni.
-- I pasti del personale delle giornate precedenti non sono inventati: se manca il consolidamento, il report mostra dato non disponibile e giornata incompleta. Eventuali rettifiche richiedono una quantità effettivamente verificata dal Comune e una motivazione.
-- Le ricorrenze decorrono dal futuro. Per oggi si usa la correzione giornaliera. La Scuola corregge solo oggi prima del cutoff; il Comune può rettificare con motivazione. Una voce ricorrente termina impostando quantità zero da una nuova decorrenza.
-- Per modificare/eliminare una chiusura già inserita usare la gestione calendario Admin esistente con verifica tecnica degli effetti; l'interfaccia comunale introdotta inserisce chiusure future. Non modifica periodi storici.
+- I pasti del personale delle giornate precedenti non sono inventati: se mancano sia una registrazione sia regole valide alla data, il report mostra dato non disponibile e giornata incompleta. Eventuali rettifiche richiedono una quantità effettivamente verificata dal Comune e una motivazione.
+- Le ricorrenze decorrono da oggi o dal futuro e si ripetono indefinitamente nei giorni di servizio. Più giorni sono configurabili insieme. La Scuola corregge oggi e futuro senza cutoff; Comune/Admin possono rettificare anche il passato. Le variazioni prevalgono sulle regole e possono essere rimosse per oggi/futuro tramite ripristino programmazione. Nessuna conferma giornaliera o settimanale obbligatoria. Una voce ricorrente termina impostando quantità zero da una nuova decorrenza.
+- Il Comune può modificare/eliminare una chiusura non ancora iniziata, con conferma, audit e controllo del valore precedente; aperture e periodi già iniziati sono esclusi. Non modifica periodi storici.
 - La riapertura dopo una sospensione già iniziata richiede assistenza. Non introdotta un'attivazione automatica del nuovo anno.
 - Nessun invio manuale o automatico aggiunto al Comune. L'eventuale attivazione dei solleciti rimane una decisione separata, con verifica dei destinatari.
 - Concorrenza: serializzazione delle scritture del personale per plesso, controllo del valore precedente per le rettifiche giornaliere e per la modifica del nominativo. Le configurazioni amministrative sono tracciate; coordinare le modifiche contemporanee tra operatori.
@@ -75,7 +75,7 @@ I test sono riproducibili con `.github/workflows/ticket2.yml`. Gli script rifiut
 2. Ricontrollare gli hash della VPS rispetto alla baseline per intercettare modifiche intervenute dopo la ricognizione; confrontare lo schema reale con le precondizioni 001–009.
 3. Preparare una copia protetta di staging e verificare il ripristino di un backup recente del DB, dei file menù e della configurazione. Non pubblicare dati personali su GitHub o CI. Questa prova sui dati reali non è stata eseguita nell'incarico.
 4. Concordare una finestra fuori dai cutoff e dalle operazioni comunali. Conservare l'esatto stato di cron/switch/email; la sospensione temporanea del solo job Mensa e l'eventuale manutenzione rientrano nella futura finestra autorizzata, senza toccare altri servizi.
-5. Backup verificato immediatamente precedente; applicare esclusivamente la 010 dopo approvazione esplicita alla migrazione reale. Il DDL non è annullabile con un semplice ROLLBACK SQL.
+5. Backup verificato immediatamente precedente; applicare esclusivamente la 010 e poi la 011 dopo approvazione esplicita alla migrazione reale. Il DDL non è annullabile con un semplice ROLLBACK SQL.
 6. Distribuire il codice del commit approvato preservando `config.local.php`, flag scheduler, foto e log. Nessun seed o import di staging. Non alterare le impostazioni effettive di posta.
 7. Verificare login e letture con i ruoli effettivi; nessun job finanziario manuale come test. Ripristinare la pianificazione nello stato concordato dopo le verifiche, controllando l'assenza di doppie esecuzioni.
 8. Consegnare la guida al Comune, alle Scuole e al Catering. Il Comune verifica i casi e inserisce autonomamente ordine, ricorrenze, chiusure, fido e sospensione; non applicare i valori al suo posto.
@@ -91,6 +91,14 @@ Stato rilascio: NON ESEGUITO. La verifica di ripristino su copia protetta e l'au
 
 ### Estensione Excel
 
-Esportazione `.xlsx` dal medesimo risultato autorizzato del CSV, disponibile a Comune, Admin, Scuola e Catering. Nessuna migrazione o nuova API. La libreria ExcelJS 4.4.0 (MIT) è inclusa in `public/assets/js/vendor`, caricata solo alla richiesta di Excel e servita dallo stesso sito, anche con installazione in sottocartella; nessun CDN. Distribuire anche `report_export.js`, la cartella vendor e i partial aggiornati.
+Esportazione `.xlsx` dal medesimo risultato autorizzato del CSV, disponibile a Comune, Admin, Scuola e Catering. Nessuna migrazione o nuova API. Il file contiene dettaglio giornaliero e riepilogo mensile per ordine; è disponibile anche CSV mensile. La libreria ExcelJS 4.4.0 (MIT) è inclusa in `public/assets/js/vendor`, caricata solo alla richiesta di Excel e servita dallo stesso sito, anche con installazione in sottocartella; nessun CDN. Distribuire anche `report_export.js`, la cartella vendor e i partial aggiornati.
 
 Verifiche: `node tests/report_excel.cjs` riapre il file e verifica tipi data/numeri, zero e dati mancanti, testo non interpretato come formula, Unicode, stili, filtri, intestazioni bloccate e risultato vuoto. `staging/ticket2_excel_browser.cjs` verifica i download Excel/CSV per i quattro ruoli abilitati a 375/768/1366 px, confronta ogni cella con il risultato API e verifica che filtri modificati ma non ricaricati non cambino il contenuto esportato.
+
+## Revisione personale, mensili e chiusure
+
+Il cutoff degli alunni resta invariato. I permessi e i report del personale non dipendono più dal cutoff né dal successo del job degli alunni. Le regole sono versionate per decorrenza e giorno; non si accettano decorrenze passate. Le fotografie automatiche odierne seguono gli aggiornamenti alla regola, quelle pregresse restano conservate; le variazioni esplicite prevalgono sempre. Il job mantiene la fotografia delle diete degli alunni e quella del personale quando configurato, ma non chiude le modifiche della Scuola.
+
+I riepiloghi mensili usano gli stessi filtri/permessi del dettaglio e raggruppano per mese e ordine. Alunni elaborati e personale delle giornate elaborate sono separati dalle previsioni; il totale disponibile esclude giornate incomplete. Le giornate sono unità plesso/data e il periodo può coprire una parte del mese. Le rettifiche del personale aggiornano le esportazioni successive.
+
+Nuovi controlli: `tests/ticket2_mensili.php`, `staging/ticket2_revision_smoke.py`, `staging/ticket2_revision_browser.cjs`; estesi i test di consolidamento e degli export Excel/CSV. Le chiusure del Comune condividono il lock calendario con le modifiche Admin, rifiutano cambiamenti concorrenti, sovrapposizioni, date iniziate e riferimenti ad altri plessi. Nessuna nuova configurazione reale viene applicata automaticamente.

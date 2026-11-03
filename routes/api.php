@@ -145,4 +145,9 @@ $router->post('/api/personale/plessi/{id}/regole', [$autonomia, 'regola'], RUOLI
 $router->put('/api/personale/plessi/{id}/giorno', [$autonomia, 'giorno'], ['admin','operatore','scuola']);
 $router->get('/api/report/pasti', [$autonomia, 'report'], ['admin','operatore','scuola','catering']);
 $router->get('/api/solleciti/consultazione', [$autonomia, 'solleciti'], RUOLI_UFFICIO);
+
+
+$router->put('/api/servizio/plessi/{id}/chiusure/{periodo}', [$autonomia, 'modificaChiusura'], RUOLI_UFFICIO);
+$router->delete('/api/servizio/plessi/{id}/chiusure/{periodo}', [$autonomia, 'eliminaChiusura'], RUOLI_UFFICIO);
+
 return $router;

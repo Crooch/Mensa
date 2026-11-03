@@ -127,11 +127,46 @@ final class AutonomiaService
    return ['id'=>$eid];
   });
  }
+ public function modificaChiusura(array $u,int $id,int $periodo,array $v,bool $elimina=false): array {
+  $this->ufficio($u); $this->ambito($u,$id); $motivo=$this->conferma($v);
+  $repo=new \App\Repository\CalendarioRepository();
+  if (!$repo->acquisisciLockPeriodi($id)) throw HttpException::nonValido('Calendario in modifica. Riprova.');
+  try {
+   return Database::inTransazione(function() use($u,$id,$periodo,$v,$elimina,$motivo,$repo) {
+    $p=$repo->trovaPeriodo($id,$periodo);
+    if (!$p) throw HttpException::nonTrovato('Chiusura non trovata per questa scuola. Ricarica il calendario.');
+    if ((int)$p['servizio_attivo'] || $p['giorno']<=date('Y-m-d')) throw HttpException::nonValido('Si possono modificare o eliminare solo chiusure non ancora iniziate.');
+    $prima=['data_inizio'=>$p['giorno'],'data_fine'=>$p['fine_effettiva'],'motivazione'=>$p['motivazione']];
+    if (($v['precedente']??null)!=$prima) throw HttpException::nonValido('La chiusura è cambiata. Ricarica il calendario.');
+    $dopo=null;
+    if ($elimina) $this->c->calendario()->cancellaPeriodo($id,$periodo);
+    else {
+     $dal=self::data((string)($v['data_inizio']??'')); $al=self::data((string)($v['data_fine']??''));
+     if ($dal<=date('Y-m-d') || $al<$dal) throw HttpException::nonValido('Indica un intervallo interamente futuro.');
+     $dopo=['data_inizio'=>$dal,'data_fine'=>$al,'motivazione'=>$motivo];
+     $this->c->calendario()->salvaPeriodo($id,$dopo+['servizio_attivo'=>0],$periodo);
+    }
+    $this->r->audit((int)$u['id'],$elimina?'eliminazione_chiusura':'modifica_chiusura',$id.':'.$periodo,$prima,$dopo,$motivo);
+    return ['salvato'=>true];
+   });
+  } finally {$repo->rilasciaLockPeriodi($id);}
+ }
  public function personale(array $u,int $id,string $data): array {
-  $p=$this->ambito($u,$id,true); self::data($data);
+  $this->ambito($u,$id,true); self::data($data);
   $g=$this->r->giorno($id,$data); $attivo=$this->c->calendario()->previsto($id,$data)['attivo'];
-  $righe=(!$attivo && (!$g || !(int)$g['consolidato'])) ? [] : ($g ? json_decode($g['righe'],true,512,JSON_THROW_ON_ERROR) : $this->ricorrenti($id,$data));
-  return ['plesso_id'=>$id,'data'=>$data,'attivo'=>$attivo,'righe'=>$righe,'consolidato'=>$g?(bool)$g['consolidato']:false,'modificabile'=>in_array($u['ruolo'],['admin','operatore'],true) || ($u['ruolo']==='scuola' && $data===date('Y-m-d') && $attivo && !$this->c->presenzaService()->oltreCutoff($p,$data)), 'cutoff'=>substr($p['cutoff_orario'],0,5),'regole'=>in_array($u['ruolo'],['admin','operatore'],true)?$this->r->regole($id):[]];
+  $base=$this->ricorrenti($id,$data);
+  $storico=$g && (bool)$g['consolidato'] && $data<=date('Y-m-d');
+  $usaGiorno=$g && ($g['origine']!=='programmazione' || $data<date('Y-m-d'));
+  $righe=$usaGiorno?json_decode($g['righe'],true,512,JSON_THROW_ON_ERROR):$base;
+  $disponibile=$usaGiorno || count($base)>0;
+  $fonte=$usaGiorno?($g['origine']==='programmazione'?'Da programmazione':($g['origine']==='registrato'?'Registrato':'Variazione giornaliera')):($disponibile?'Da programmazione':'Da configurare');
+  if (!$attivo && !$storico) { $righe=[]; $disponibile=true; $fonte='Fuori servizio'; }
+  $ufficio=in_array($u['ruolo'],['admin','operatore'],true);
+  $modificabile=($attivo || ($ufficio && $storico)) && ($ufficio || ($u['ruolo']==='scuola' && $data>=date('Y-m-d')));
+  return ['plesso_id'=>$id,'data'=>$data,'attivo'=>$attivo,'righe'=>$righe,'disponibile'=>$disponibile,'fonte'=>$fonte,
+   'consolidato'=>$g?(bool)$g['consolidato']:false,'modificabile'=>$modificabile,
+   'ripristinabile'=>$modificabile && $data>=date('Y-m-d') && $g && $g['origine']!=='programmazione',
+   'regole'=>$ufficio?$this->r->regole($id):[]];
  }
  private function ricorrenti(int $id,string $data): array {
   $out=[]; $giorno=(int)(new \DateTimeImmutable($data))->format('N');
@@ -147,38 +182,52 @@ final class AutonomiaService
  }
  public function regola(array $u,int $id,array $v): array {
   $this->ufficio($u); $this->ambito($u,$id); $motivo=$this->conferma($v);
-  $dal=self::data((string)($v['dal']??'')); $g=filter_var($v['giorno']??null,FILTER_VALIDATE_INT);
-  if ($dal<=date('Y-m-d') || $g===false || $g<1 || $g>7) throw HttpException::nonValido('Le nuove ricorrenze devono iniziare da domani; seleziona il giorno della settimana.');
-  $riga=$this->riga($v)+['dal'=>$dal,'giorno'=>$g];
-  return Database::inTransazione(function() use($u,$id,$riga,$motivo) {
+  $dal=self::data((string)($v['dal']??'')); $giorni=$v['giorni']??[$v['giorno']??null];
+  if ($dal<date('Y-m-d') || !is_array($giorni) || !$giorni || count($giorni)>7) throw HttpException::nonValido('La decorrenza deve essere oggi o futura. Seleziona almeno un giorno.');
+  foreach($giorni as &$g) { $g=filter_var($g,FILTER_VALIDATE_INT); if ($g===false || $g<1 || $g>7) throw HttpException::nonValido('Giorno della settimana non valido.'); } unset($g);
+  $giorni=array_unique($giorni); $riga=$this->riga($v);
+  return Database::inTransazione(function() use($u,$id,$riga,$dal,$giorni,$motivo) {
    $this->r->lockPlesso($id); $prima=$this->r->regole($id);
-   $this->r->salvaRegola($id,$riga); $dopo=$this->r->regole($id);
+   foreach($giorni as $g) $this->r->salvaRegola($id,$riga+['dal'=>$dal,'giorno'=>$g]);
+   $dopo=$this->r->regole($id);
+   // Una fotografia automatica odierna segue le nuove regole; le variazioni esplicite restano prioritarie.
+   $oggi=date('Y-m-d'); $snapshot=$this->r->giorno($id,$oggi);
+   if ($dal===$oggi && $snapshot && $snapshot['origine']==='programmazione') $this->r->salvaGiorno($id,$oggi,$this->ricorrenti($id,$oggi),true,'programmazione');
    $this->r->audit((int)$u['id'],'ricorrenza_personale',(string)$id,$prima,$dopo,$motivo);
    return ['salvato'=>true];
   });
  }
  public function correggiGiorno(array $u,int $id,array $v): array {
-  $p=$this->ambito($u,$id);
-  if ($u['ruolo']==='catering') throw HttpException::nonAutorizzato();
+  $this->ambito($u,$id);
+  if (!in_array($u['ruolo'],['admin','operatore','scuola'],true)) throw HttpException::nonAutorizzato();
   $motivo=$this->conferma($v); $data=self::data((string)($v['data']??''));
-  if ($u['ruolo']==='scuola' && ($data!==date('Y-m-d') || $this->c->presenzaService()->oltreCutoff($p,$data))) throw HttpException::nonAutorizzato('La Scuola può correggere solo oggi prima del cutoff. Richiedere una rettifica motivata al Comune.');
-  if (!$this->c->calendario()->previsto($id,$data)['attivo'] && !$this->r->giorno($id,$data)) throw HttpException::nonValido('Nessun servizio previsto per questa data.');
+  $ripristina=($v['ripristina']??false)===true;
   $righe=[]; $chiavi=[];
-  if (!is_array($v['righe']??null) || count($v['righe'])>100) throw HttpException::nonValido('Elenco pasti non valido.');
-  foreach ($v['righe'] as $r) {
-   if (!is_array($r)) throw HttpException::nonValido('Riga non valida.');
-   $r=$this->riga($r); $k=$r['categoria'].':'.$r['tipologia_menu_id'];
-   if (isset($chiavi[$k])) throw HttpException::nonValido('Categoria e tipologia duplicate: indica un unico totale.');
-   $chiavi[$k]=true; $righe[]=$r;
+  if (!$ripristina) {
+   if (!is_array($v['righe']??null) || count($v['righe'])>100) throw HttpException::nonValido('Elenco pasti non valido.');
+   foreach ($v['righe'] as $r) {
+    if (!is_array($r)) throw HttpException::nonValido('Riga non valida.');
+    $r=$this->riga($r); $k=$r['categoria'].':'.$r['tipologia_menu_id'];
+    if (isset($chiavi[$k])) throw HttpException::nonValido('Categoria e tipologia duplicate: indica un unico totale.');
+    $chiavi[$k]=true; $righe[]=$r;
+   }
   }
-  return Database::inTransazione(function() use($u,$id,$data,$righe,$v,$motivo,$p) {
+  return Database::inTransazione(function() use($u,$id,$data,$righe,$v,$motivo,$ripristina) {
    $this->r->lockPlesso($id);
-   if ($u['ruolo']==='scuola' && ($data!==date('Y-m-d') || $this->c->presenzaService()->oltreCutoff($p,$data))) throw HttpException::nonAutorizzato('Cutoff raggiunto durante il salvataggio. Richiedere una rettifica al Comune.');
-   $prima=$this->personale($u,$id,$data)['righe'];
+   if ($u['ruolo']==='scuola' && $data<date('Y-m-d')) throw HttpException::nonAutorizzato('Per le date passate richiedere una rettifica al Comune.');
+   $stato=$this->personale($u,$id,$data); $prima=$stato['righe'];
+   if (!$stato['modificabile']) throw HttpException::nonValido('Nessun servizio modificabile per questa data.');
    if (!array_key_exists('precedente',$v) || $v['precedente']!=$prima) throw HttpException::nonValido('I conteggi sono cambiati. Ricarica prima di salvare.');
-   if ($prima!=$righe) {
-    $this->r->salvaGiorno($id,$data,$righe,$this->c->presenzaService()->oltreCutoff($p,$data));
-    $this->r->audit((int)$u['id'],'personale_giorno',$id.':'.$data,$prima,$righe,$motivo);
+   $g=$this->r->giorno($id,$data);
+   if ($ripristina) {
+    if ($data<date('Y-m-d')) throw HttpException::nonValido('Per il passato indicare le quantità effettive, senza ripristinare la programmazione.');
+    if ($g && $g['origine']!=='programmazione') {
+     $this->r->eliminaGiorno($id,$data);
+     $this->r->audit((int)$u['id'],'ripristino_personale',$id.':'.$data,['righe'=>$prima,'fonte'=>$stato['fonte']],['righe'=>$this->ricorrenti($id,$data),'fonte'=>'Da programmazione'],$motivo);
+    }
+   } elseif ($prima!=$righe || !$stato['disponibile']) {
+    $this->r->salvaGiorno($id,$data,$righe,$data<date('Y-m-d') || (bool)($g['consolidato']??false),'variazione');
+    $this->r->audit((int)$u['id'],'personale_giorno',$id.':'.$data,['righe'=>$prima,'disponibile'=>$stato['disponibile']],['righe'=>$righe,'disponibile'=>true],$motivo);
    }
    return ['salvato'=>true];
   });
@@ -186,7 +235,10 @@ final class AutonomiaService
  public function consolidaPersonale(int $id,string $data): void {
   Database::inTransazione(function() use($id,$data) {
    $this->r->lockPlesso($id); $this->r->storicizzaTipologie($id,$data); $g=$this->r->giorno($id,$data);
-   if (!$g || !(int)$g['consolidato']) $this->r->salvaGiorno($id,$data,$g?json_decode($g['righe'],true):$this->ricorrenti($id,$data),true);
+   $base=$this->ricorrenti($id,$data);
+   // Nessuna configurazione non equivale a zero pasti. Il job non limita le correzioni della Scuola.
+   if (!$g && $base) $this->r->salvaGiorno($id,$data,$base,true,'programmazione');
+   elseif ($g && !(int)$g['consolidato']) $this->r->salvaGiorno($id,$data,json_decode($g['righe'],true),true,$g['origine']);
   });
  }
  public function report(array $u,string $dal,string $al,?int $pid,string $ordine=''): array {
@@ -207,14 +259,31 @@ final class AutonomiaService
     if ($ok) { $tipi=$this->r->pastiConfermati($id,$d); $alunni=array_sum(array_column($tipi,'pasti')); }
     elseif ($stato==='Previsto') { $rp=$this->c->catering()->report($d,$id); $alunni=$rp['totale_pasti']; $tipi=$rp['plessi'][0]['tipologie']??[]; }
     elseif ($stato==='Fuori servizio') $alunni=0;
-    $pg=$this->personale($u,$id,$d); $pc=$pg['consolidato'];
-    $personale=($ok && !$pc)?null:array_sum(array_column($pg['righe'],'quantita'));
-    $righe[]=['data'=>$d,'plesso_id'=>$id,'plesso_nome'=>$p['nome'],'ordine'=>$s['ordine_scolastico']??'Da configurare','stato'=>$stato,'alunni'=>$alunni,'personale'=>$personale,'totale'=>($alunni===null || $personale===null)?null:$alunni+$personale,'tipologie_alunni'=>$tipi,'tipologie_personale'=>$pg['righe'],'personale_consolidato'=>$pc,'nota'=>$ok && in_array(null,array_column($tipi,'tipologia_id'),true)?'Tipologie pregresse non storicizzate: totale pasti disponibile, dettaglio dieta non ricostruibile con certezza.':''];
+    $pg=$this->personale($u,$id,$d); $pc=$pg['disponibile'];
+    $personale=$pc?array_sum(array_column($pg['righe'],'quantita')):null;
+    $righe[]=['data'=>$d,'plesso_id'=>$id,'plesso_nome'=>$p['nome'],'ordine'=>$s['ordine_scolastico']??'Da configurare','stato'=>$stato,'alunni'=>$alunni,'personale'=>$personale,'totale'=>($alunni===null || $personale===null)?null:$alunni+$personale,'tipologie_alunni'=>$tipi,'tipologie_personale'=>$pg['righe'],'personale_consolidato'=>$pc,'fonte_personale'=>$pg['fonte'],'nota'=>$ok && in_array(null,array_column($tipi,'tipologia_id'),true)?'Tipologie pregresse non storicizzate: totale pasti disponibile, dettaglio dieta non ricostruibile con certezza.':''];
     if ($ok) { $tot['alunni_confermati']+=$alunni; if ($pc) { $tot['personale_confermato']+=$personale; $tot['totale_confermato']+=$alunni+$personale; } }
     if ($stato==='Previsto' || $stato==='Non elaborato' || ($ok && !$pc)) $tot['giorni_non_consolidati']++;
    }
   }
-  return ['righe'=>$righe,'totali'=>$tot];
+  return ['righe'=>$righe,'totali'=>$tot,'mensili'=>self::riepiloghiMensili($righe,$dal,$al)];
+ }
+ public static function riepiloghiMensili(array $righe,string $dal,string $al): array {
+  $out=[];
+  foreach($righe as $r) {
+   $mese=substr($r['data'],0,7); $key=$mese.':'.$r['ordine'];
+   if (!isset($out[$key])) $out[$key]=['mese'=>$mese,'ordine'=>$r['ordine'],'dal'=>max($dal,$mese.'-01'),'al'=>min($al,(new \DateTimeImmutable($mese.'-01'))->format('Y-m-t')),'alunni'=>0,'personale'=>0,'totale'=>0,'previsti'=>0,'giornate_complete'=>0,'giornate_incomplete'=>0,'giornate_previste'=>0];
+   $m=&$out[$key];
+   if ($r['stato']==='Confermato') {
+    $m['alunni']+=$r['alunni'];
+    if ($r['personale']!==null) {$m['personale']+=$r['personale']; $m['totale']+=$r['totale']; $m['giornate_complete']++;}
+    else $m['giornate_incomplete']++;
+   } elseif ($r['stato']==='Previsto') {
+    $m['giornate_previste']++; if ($r['totale']!==null) $m['previsti']+=$r['totale']; else $m['giornate_incomplete']++;
+   } elseif ($r['stato']==='Non elaborato') $m['giornate_incomplete']++;
+   unset($m);
+  }
+  ksort($out); return array_values($out);
  }
  public function solleciti(array $u,array $v): array {
   $this->ufficio($u); $dal=self::data((string)($v['dal']??date('Y-m-01'))); $al=self::data((string)($v['al']??date('Y-m-d')));

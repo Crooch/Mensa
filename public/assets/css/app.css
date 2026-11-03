@@ -2726,3 +2726,7 @@ body[data-ruolo="admin"] .admin-verifica-pagine .btn:disabled { opacity: .45; }
     #vista-personale table.table td::before, #vista-riepilogo-pasti table.table td::before { content:attr(data-label); font-weight:600; font-size:.85rem; }
     #vista-personale table.table td:last-child, #vista-riepilogo-pasti table.table td:last-child { border-bottom:0; }
 }
+
+#vista-personale .aut-giorni { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:1rem; border:1px solid var(--grigio-bordo); padding:1rem; }
+#vista-personale .aut-giorni label { flex-direction:row; align-items:center; }
+#vista-personale .aut-giorni input { width:auto; }

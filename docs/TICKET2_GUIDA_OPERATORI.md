@@ -55,7 +55,7 @@ Percorso: **Calendario e servizio → Plesso → Apri configurazione → Chiusur
 
 Per il Ticket 2, l'interpretazione dell'anno scolastico 2026/27 è: 7 dicembre 2026; 23 dicembre 2026–8 gennaio 2027; 25–30 marzo 2027. Il Comune deve verificare queste date prima di inserirle. Non sono state precaricate.
 
-Sono ammesse solo chiusure future. Sovrapposizioni incompatibili sono rifiutate; la ripetizione dello stesso intervallo di chiusura restituisce il periodo già esistente. Per modificare/eliminare un periodo inserito per errore, rivolgersi all'Admin o all'assistenza per utilizzare la gestione calendario esistente con verifica degli effetti. Le elaborazioni storiche non vengono riscritte.
+Sono ammesse solo chiusure future. Sovrapposizioni incompatibili sono rifiutate; la ripetizione dello stesso intervallo di chiusura restituisce il periodo già esistente. **Modificare o eliminare una chiusura futura:** in **Periodi registrati** premere **Modifica / elimina** sulla chiusura del plesso. Correggere **Dal** e **Al (compreso)**, indicare la **Motivazione della modifica o eliminazione**, premere **Salva chiusura** e confermare. Per rimuoverla usare **Elimina chiusura**, motivare e confermare: torna applicabile il calendario ordinario. Controllare il periodo riletto o la sua scomparsa. **Annulla** chiude il modulo senza salvare. Non sono modificabili da questa funzione aperture, chiusure già iniziate o passate. Le sovrapposizioni e i dati cambiati da un altro operatore sono rifiutati. Le elaborazioni storiche non vengono riscritte.
 
 ### T09 — Configurare il fido dell'Infanzia
 
@@ -86,11 +86,11 @@ Il Comune deve confermare che il ticket richieda la fine dell'erogazione mensa, 
 
 Percorso: **Pasti del personale → Programmazione ricorrente**.
 
-1. Aprire **Programmazione ricorrente** e selezionare **Plesso**, **Decorrenza**, **Giorno**, **Categoria**, **Tipologia menù**, **Quantità** e **Motivazione**.
-2. La decorrenza deve essere futura. Per correggere oggi usare la procedura giornaliera descritta sotto.
+1. Aprire **Programmazione ricorrente** e selezionare **Plesso**, **Decorrenza**, **Giorni della settimana**, **Categoria**, **Tipologia menù**, **Quantità** e **Motivazione**.
+2. La decorrenza può essere oggi o futura. Selezionare insieme tutti i giorni interessati (per esempio lunedì–venerdì). La quantità si ripete automaticamente ogni settimana fino a una nuova regola: non va reinserita giorno per giorno o settimana per settimana.
 3. Premere **Salva ricorrenza** e confermare plesso, decorrenza, giorno, categoria, menù e quantità.
-4. Ripetere per ciascuna combinazione di giorno/categoria/menù necessaria. La programmazione si applica soltanto quando il calendario prevede servizio.
-5. Nel filtro superiore selezionare il plesso e una data successiva alla decorrenza, quindi premere **Mostra pasti personale**. Controllare le quantità, il totale e **Ricorrenze registrate**.
+4. Ripetere soltanto per le altre categorie/menù o per giorni con quantità diverse. La programmazione si applica soltanto quando il calendario prevede servizio.
+5. Nel filtro superiore selezionare il plesso e una data dalla decorrenza in poi, quindi premere **Mostra pasti personale**. Controllare le quantità, il totale e **Settimana abituale alla data**.
 6. Per terminare una voce, salvarla con **Quantità: 0** dalla nuova decorrenza. Non riscrivere le ricorrenze pregresse.
 
 Quantità indicate nel ticket, da verificare e inserire dal Comune:
@@ -106,22 +106,22 @@ Quantità indicate nel ticket, da verificare e inserire dal Comune:
 
 Il lunedì della Secondaria, uno dei cinque insegnanti è vegetariano: inserire **4 insegnanti Standard + 1 insegnante Vegetariano**, non 5+1. Se la tipologia Vegetariano manca, richiederne la predisposizione all'Admin tramite la gestione tipologie esistente. Verificare i giorni effettivi del servizio prima di creare le altre ricorrenze. Nessuna anagrafica nominativa del personale è richiesta.
 
-Per correggere una giornata: **Pasti del personale → Plesso → Data → Mostra pasti personale**; modificare le quantità, compilare **Motivazione**, premere **Salva pasti del giorno**, controllare il totale nella conferma e confermare. Verificare il messaggio e i valori riletti. Comune e Admin possono eseguire rettifiche motivate anche dopo il cutoff; l'operazione modifica solo il personale, senza consumi o rimborsi di buoni familiari.
+Per correggere una giornata: **Pasti del personale → Plesso → Data → Mostra pasti personale**; modificare le quantità, compilare **Motivazione**, premere **Salva pasti del giorno**, controllare il totale nella conferma e confermare. Verificare il messaggio e i valori riletti. Il personale non ha cutoff. Scuola, Comune e Admin possono correggere oggi e le date future di servizio; soltanto Comune e Admin possono rettificare il passato. La variazione prevale sulle regole per quella sola data. Quando compare **Ripristina programmazione**, indicare una motivazione e premere il pulsante per rimuovere la variazione di oggi o futura e tornare alle regole abituali. L'operazione modifica solo il personale, senza consumi o rimborsi di buoni familiari.
 
-Se compare «I conteggi sono cambiati», ricaricare la giornata prima di correggere. Per giornate pregresse prive di dati non dedurre il numero dei pasti dalle ricorrenze attuali: verificare le quantità effettive prima della rettifica.
+Se compare «I conteggi sono cambiati», ricaricare la giornata prima di correggere. Per giornate pregresse prive di regole valide alla data e registrazioni compare **Da configurare / Non disponibile**: verificare le quantità effettive prima della rettifica. **Da programmazione** indica i valori ricorrenti validi alla data; **Variazione giornaliera** una correzione specifica; **Registrato** identifica le registrazioni della versione precedente. Nei giorni chiusi compare **Fuori servizio** e non occorre confermare nulla.
 
 ### T02 — Consultare ed esportare i report
 
 Percorso: **Riepilogo pasti**.
 
-1. Compilare **Dal** e **Al**. Per un giorno usare la stessa data; per un mese usare il primo e l'ultimo giorno. L'intervallo massimo è 93 giorni.
+1. Usare **Seleziona un mese** per compilare inizio/fine mese, oppure compilare **Dal** e **Al**. Per un giorno usare la stessa data. L'intervallo massimo è 93 giorni.
 2. Selezionare eventualmente **Plesso** e **Ordine scolastico**; premere **Mostra riepilogo**.
-3. Controllare alunni confermati, personale confermato, totale delle giornate complete e numero di giornate/plessi incompleti.
+3. Controllare **Riepilogo mensile per ordine scolastico**: una riga per mese e ordine, aggregando i plessi autorizzati. Sono indicati alunni elaborati, personale delle giornate elaborate, totale disponibile, pasti previsti, giornate da verificare e previste. Il totale disponibile somma solo giornate complete; se mancano dati o restano previsioni è segnalato come parziale. Il periodo indicato chiarisce se è stato selezionato un mese incompleto. Le giornate sono conteggiate per plesso. Il **Dettaglio giornaliero** permette di verificare i singoli valori.
 4. Leggere lo stato di ciascuna riga: **Previsto**, **Confermato**, **Non elaborato**, **Fuori servizio**. Il dato non disponibile non equivale a zero.
 5. Aprire **Dettaglio** per tipologie degli alunni e categorie/menù del personale.
-6. Premere **Esporta CSV** oppure **Esporta Excel** per scaricare esattamente il risultato caricato, con stati, totali, dettagli e note. Excel produce un file `.xlsx` con periodo e filtri, intestazioni evidenziate e bloccate, filtri sulle colonne, righe alternate, date e quantità native. I dati mancanti restano “Non disponibile”. Se si cambiano i filtri, premere nuovamente **Mostra riepilogo** prima di esportare il nuovo risultato.
+6. Premere **Esporta CSV** per il dettaglio giornaliero, **Esporta mensile CSV** per il riepilogo per mese/ordine, oppure **Esporta Excel** per entrambi i fogli. Si scarica esattamente il risultato caricato, con stati, totali, dettagli e note. Excel produce un file `.xlsx` con periodo e filtri, intestazioni evidenziate e bloccate, filtri sulle colonne, righe alternate, date e quantità native. I dati mancanti restano “Non disponibile”. Se si cambiano i filtri, premere nuovamente **Mostra riepilogo** prima di esportare il nuovo risultato.
 
-Se l'ordine compare come **Da configurare**, impostarlo in **Calendario e servizio**. Per «Non elaborato» o «Personale non consolidato» non usare i totali come rendiconto definitivo: verificare la giornata e richiedere assistenza per eventuali anomalie del job. Non lanciare ripetutamente il job. Le tipologie delle presenze pregresse prive di fotografia compaiono come **Non storicizzata**, senza inventare la dieta originaria.
+Se l'ordine compare come **Da configurare**, impostarlo in **Calendario e servizio**. Per «Non elaborato» verificare l’elaborazione degli alunni; per personale «Da configurare» verificare le regole o registrare le quantità. I conteggi del personale sono disponibili senza attendere il job degli alunni e restano rettificabili secondo i permessi. Non considerare definitivo un totale con giornate incomplete o previste. Non lanciare ripetutamente il job. Le tipologie delle presenze pregresse prive di fotografia compaiono come **Non storicizzata**, senza inventare la dieta originaria.
 
 ### T05 — Consultare i solleciti
 
@@ -141,13 +141,13 @@ La sezione non invia email e non abilita nuovi automatismi. Per errori di invio 
 
 Percorso: **Pasti del personale**.
 
-1. Selezionare il proprio plesso e la data odierna; premere **Mostra pasti personale**.
-2. Controllare stato del servizio, cutoff, categorie e tipologie.
-3. Prima del cutoff, modificare le **Quantità** delle singole righe. Il totale vegetariano è compreso nel numero complessivo, non aggiuntivo.
+1. Selezionare il proprio plesso e una data odierna o futura; premere **Mostra pasti personale**.
+2. Controllare stato del servizio, origine dei conteggi, categorie e tipologie. Non occorre salvare se le quantità programmate sono corrette.
+3. In caso di assenze o personale aggiuntivo, modificare le **Quantità** delle singole righe. Il totale vegetariano è compreso nel numero complessivo, non aggiuntivo.
 4. Compilare **Motivazione**, premere **Salva pasti del giorno** e confermare data, plesso e totale.
 5. Verificare **Pasti del personale salvati** e i valori riletti.
 
-Dopo il cutoff o per date diverse da oggi la schermata è in sola lettura. Richiedere al Comune una rettifica motivata. Una Scuola priva di plesso assegnato deve rivolgersi all'Admin; non può operare su altri plessi neppure tramite API.
+Per le date passate la schermata è in sola lettura: richiedere al Comune una rettifica motivata. Oggi e le date future non hanno limite orario, anche se il job degli alunni è già stato eseguito. Nei giorni senza servizio non si inseriscono nuovi pasti. **Ripristina programmazione** rimuove una variazione odierna o futura, con motivazione e conferma, senza cambiare le regole settimanali. Una Scuola priva di plesso assegnato deve rivolgersi all'Admin; non può operare su altri plessi neppure tramite API.
 
 La scheda **Riepilogo pasti** consente consultazione ed esportazione del solo proprio plesso con gli stessi campi e stati descritti per il Comune. La Scuola non configura ricorrenze, chiusure, fido o fine servizio e non modifica anagrafiche o saldi.
 
@@ -160,15 +160,15 @@ Percorso: **Riepilogo pasti**.
 1. Impostare **Dal**, **Al**, eventualmente **Plesso** e **Ordine scolastico**.
 2. Premere **Mostra riepilogo** e controllare gli stati delle giornate.
 3. Aprire **Dettaglio** per le tipologie degli alunni e i pasti del personale.
-4. Premere **Esporta CSV** oppure **Esporta Excel**. Il motore e i conteggi sono gli stessi del Comune; non vengono esposti saldi, fidi, pagamenti o anagrafiche delle famiglie.
+4. Premere **Esporta CSV**, **Esporta mensile CSV** oppure **Esporta Excel** (due fogli). Il motore e i conteggi sono gli stessi del Comune; non vengono esposti saldi, fidi, pagamenti o anagrafiche delle famiglie.
 
-Per una rendicontazione mensile attendere che le giornate interessate siano complete. Segnalare al Comune giornate non elaborate, personale non consolidato o ordine scolastico da configurare.
+Per una rendicontazione mensile attendere che le giornate interessate siano complete. Segnalare al Comune giornate non elaborate, personale da configurare o ordine scolastico da configurare.
 
 ### T04 — Consultare il personale
 
 Percorso: **Pasti del personale → Plesso → Data → Mostra pasti personale**.
 
-Verificare categorie, menù, quantità e totale. Il Catering non può modificare le quantità o le ricorrenze. Le rettifiche sono di competenza della Scuola entro il cutoff e del Comune nei casi autorizzati.
+Verificare categorie, menù, quantità e totale. Il Catering non può modificare le quantità o le ricorrenze. Le rettifiche sono di competenza della Scuola per oggi e futuro, senza cutoff, e del Comune anche per il passato.
 
 ## Genitori — consultazione dei buoni
 
@@ -183,10 +183,10 @@ Per nominativi o associazioni errate rivolgersi al Comune. Dopo la conclusione d
 | Verifica famiglie/associazioni | Sì | Sì | No | No | Solo propri dati già disponibili |
 | Disattivazione genitore sicura | Sì | Sì | No | No | No |
 | Modifica nome/cognome alunno | Sì | Sì | No | No | No |
-| Inserimento chiusure future | Sì | Sì | No | No | No |
+| Inserimento, modifica ed eliminazione chiusure future | Sì | Sì | No | No | No |
 | Fido, ordine, sospensione | Sì | Sì | No | No | No |
 | Ricorrenze personale | Sì | Sì | No | No | No |
-| Quantità giornaliere personale | Sì, motivate | Sì, motivate | Solo proprio plesso, oggi prima cutoff | Lettura | No |
+| Quantità giornaliere personale | Sì, motivate | Sì, motivate | Proprio plesso, oggi e futuro senza cutoff | Lettura | No |
 | Riepilogo pasti, CSV ed Excel | Tutti | Tutti | Proprio plesso | Dati operativi, tutti i plessi previsti dal ruolo esistente | No |
 | Posizioni oltre fido/storico solleciti | Sì | Sì | No | No | No |
 | Saldi familiari | Tutti | Tutti | No | No | Solo propri, correnti e storici |

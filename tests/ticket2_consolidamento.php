@@ -31,6 +31,11 @@ $saldo=$db->query("SELECT saldo FROM pool_crediti WHERE genitore_id=$g AND pless
 $c->job()->eseguiPerPlesso($p,$oggi);
 check((int)$db->query("SELECT COUNT(*) FROM movimenti_crediti m JOIN pool_crediti pc ON pc.id=m.pool_id WHERE pc.genitore_id=$g")->fetchColumn()===1,'job ripetuto: un solo consumo alunno');
 check((int)$saldo===-1,'personale non consuma buoni e fido non impedisce pasto');
+$scuola=$db->query("SELECT * FROM utenti WHERE ruolo='scuola' LIMIT 1")->fetch();$scuola['plesso_id']=$p;
+$a->correggiGiorno($scuola,$p,['data'=>$oggi,'righe'=>[['categoria'=>'ata','tipologia_menu_id'=>1,'quantita'=>4]],'precedente'=>$righe,'motivazione'=>'Scuola dopo job e cutoff','conferma'=>true]);
+check($a->report($scuola,$oggi,$oggi,$p)['righe'][0]['personale']===4,'Scuola modifica oggi dopo job e cutoff senza perdere la modifica');
+$a->correggiGiorno($scuola,$p,['data'=>$oggi,'righe'=>$righe,'precedente'=>[['categoria'=>'ata','tipologia_menu_id'=>1,'quantita'=>4]],'motivazione'=>'Ripristino quantità test','conferma'=>true]);
+
 $a->correggiGiorno($u,$p,['data'=>$oggi,'righe'=>[['categoria'=>'ata','tipologia_menu_id'=>1,'quantita'=>2]],'precedente'=>$righe,'motivazione'=>'Rettifica motivata','conferma'=>true]);
 check($a->report($u,$oggi,$oggi,$p)['righe'][0]['totale']===3,'rettifica personale dopo cutoff aggiorna report');
 check((int)$db->query("SELECT saldo FROM pool_crediti WHERE genitore_id=$g AND plesso_id=$p")->fetchColumn()===-1,'rettifica personale lascia contabilità invariata');
@@ -45,3 +50,14 @@ $db->exec("UPDATE impostazioni_servizio_plesso SET primo_giorno_sospensione='$og
 try {$c->feedback()->inserisci($g,$b,$oggi,4,'Test');throw new RuntimeException('Feedback consentito dopo fine');}catch(\App\Core\HttpException $e){check($e->getCode()===422,'Genitore sola lettura dopo fine servizio');}
 $a->configura($u,$p,['fido_buoni'=>20,'primo_giorno_sospensione'=>$oggi,'motivazione'=>'Attività amministrativa','conferma'=>true]);
 check((int)$c->plessi()->trova($p)['fido_buoni']===20,'attività amministrative disponibili dopo fine servizio');
+// Recurring quantities remain editable after the automatic daily snapshot.
+$db->exec("INSERT INTO plessi (nome,cutoff_orario) VALUES ('Collaudo regole senza cutoff','00:00:00')");$p2=(int)$db->lastInsertId();
+$c->calendario()->salvaPeriodo($p2,['data_inizio'=>$oggi,'servizio_attivo'=>1,'motivazione'=>'Test regole']);
+$v=['dal'=>$oggi,'giorno'=>(int)date('N'),'categoria'=>'insegnanti','tipologia_menu_id'=>1,'quantita'=>9,'motivazione'=>'Regola automatica','conferma'=>true];
+$a->regola($u,$p2,$v);$c->job()->eseguiPerPlesso($p2,$oggi);
+check($a->personale($u,$p2,$oggi)['fonte']==='Da programmazione','job fotografa la regola senza richiedere conferma giornaliera');
+$a->regola($u,$p2,array_replace($v,['quantita'=>10]));
+$stored=$db->query("SELECT righe FROM pasti_personale_giorni WHERE plesso_id=$p2 AND data='$oggi'")->fetchColumn();
+check(json_decode($stored,true)[0]['quantita']===10,'regola odierna dopo job aggiorna la fotografia, senza alterare il passato');
+$a->regola($u,$p2,array_replace($v,['dal'=>$domani,'quantita'=>11]));
+check($db->query("SELECT righe FROM pasti_personale_giorni WHERE plesso_id=$p2 AND data='$oggi'")->fetchColumn()===$stored,'decorrenza futura non riscrive la fotografia odierna');

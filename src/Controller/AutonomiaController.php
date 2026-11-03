@@ -13,6 +13,8 @@ final class AutonomiaController
  public function configurazione(Request $r,array $u): array { return $this->c->autonomia()->configurazione($u,(int)$r->parametro('id')); }
  public function configura(Request $r,array $u): array { return $this->c->autonomia()->configura($u,(int)$r->parametro('id'),$r->corpo()); }
  public function chiusura(Request $r,array $u): array { return $this->c->autonomia()->chiusura($u,(int)$r->parametro('id'),$r->corpo()); }
+ public function modificaChiusura(Request $r,array $u): array { return $this->c->autonomia()->modificaChiusura($u,(int)$r->parametro('id'),(int)$r->parametro('periodo'),$r->corpo()); }
+ public function eliminaChiusura(Request $r,array $u): array { return $this->c->autonomia()->modificaChiusura($u,(int)$r->parametro('id'),(int)$r->parametro('periodo'),$r->corpo(),true); }
  public function personale(Request $r,array $u): array { return $this->c->autonomia()->personale($u,(int)$r->parametro('id'),(string)($r->query('data')??date('Y-m-d'))); }
  public function regola(Request $r,array $u): array { return $this->c->autonomia()->regola($u,(int)$r->parametro('id'),$r->corpo()); }
  public function giorno(Request $r,array $u): array { return $this->c->autonomia()->correggiGiorno($u,(int)$r->parametro('id'),$r->corpo()); }

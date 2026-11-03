@@ -47,6 +47,8 @@ jobs:
           node tests/catering_ui.mjs
           node tests/ui_scuola.mjs
           node tests/ui_testi.mjs
+      - name: Revised monthly report
+        run: php tests/ticket2_mensili.php
       - name: Scheduler default-off and read-only diagnostic
         run: |
           set -euo pipefail
@@ -122,6 +124,8 @@ jobs:
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name="eccezioni_calendario" AND column_name="giorno_fine"')" = "1"
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM calendari_servizio')" = "2"
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name = "richieste_pasta_bianco"')" = "1"
+          $DB < database/migrations/011_origine_personale.sql
+          $DB < database/migrations/011_origine_personale.sql
           # Nessuna modifica dei record precedenti, anche eseguendo le migration due volte.
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM movimenti_crediti WHERE note="Preservazione dati CI" AND tipo="acquisto" AND delta=7 AND data="2026-10-01" AND richiesta_id IS NULL')" = "1"
           test "$($DB --batch --skip-column-names -e 'SELECT COUNT(*) FROM pool_crediti WHERE saldo=7')" = "1"
