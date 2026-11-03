@@ -9,9 +9,11 @@
   <button class="btn btn-primary">Mostra riepilogo</button>
  </form>
  <p id="aut-report-stato" role="status"></p><div id="aut-report-totali"></div>
+ <div class="aut-report-esportazioni" role="group" aria-label="Esporta riepilogo">
  <button id="aut-export" class="btn btn-outline-primary" disabled>Esporta CSV</button>
  <button id="aut-export-mensile" class="btn btn-outline-primary" disabled>Esporta mensile CSV</button>
  <button id="aut-export-excel" class="btn btn-outline-primary" disabled>Esporta Excel</button>
+ </div>
  <h2>Riepilogo mensile per ordine scolastico</h2>
  <p>Ogni riga somma i plessi dell’ordine nel periodo selezionato. Il totale disponibile include solo le giornate con alunni elaborati e personale disponibile; le altre sono segnalate separatamente. Le giornate sono conteggiate per plesso.</p>
  <div class="tabella-scroll"><table class="table"><thead><tr><th>Mese / periodo</th><th>Ordine</th><th>Alunni elaborati</th><th>Personale nelle giornate elaborate</th><th>Totale disponibile</th><th>Pasti previsti</th><th>Giornate da verificare / previste</th></tr></thead><tbody id="aut-report-mensile"></tbody></table></div>

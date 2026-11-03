@@ -42,6 +42,10 @@ Due viste distinte mostrano la settimana abituale e i pasti della data scelta. L
 
 Scuola (solo proprio plesso) e Catering possono consultare le quantità aggregate della programmazione; l’API espone soltanto decorrenza, giorno, categoria, tipologia e quantità. I permessi di scrittura restano invariati. Nessuna migrazione o modifica delle regole reali per questo aggiornamento.
 
+## Spaziatura delle pagine operative
+
+Famiglie, personale, riepiloghi e calendario usano distanze coerenti: 4 px tra etichetta e campo, 8 px tra controlli, 12 px nei gruppi e 16 px tra sezioni. Ridotti i margini ridondanti; dimensioni dei testi conservate e pulsanti di almeno 44 px. Le esportazioni hanno un gruppo dedicato con separazione anche quando vanno a capo. Verifica visiva e funzionale su 320/375/768/1366 px e consultazione per i quattro ruoli operativi, senza scritture sui dati della demo.
+
 ## Migrazione 010
 
 `database/migrations/010_autonomia_operatori.sql` contiene esclusivamente CREATE TABLE IF NOT EXISTS:
