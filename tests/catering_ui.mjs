@@ -550,3 +550,15 @@ assert.equal(elemento('menu-variazioni-lista').innerHTML, '',
 assert.equal(elemento('menu-variazioni-pagine').hidden, true);
 assert.doesNotMatch(elemento('menu-variazioni-lista').innerHTML, /undefined|Nessuna variazione/);
 console.log('OK: nessun messaggio aggiuntivo quando l’elenco variazioni è vuoto.');
+
+context.esc = val => String(val ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+const renderStaff = vm.runInContext('schedaDistribuzioneScuola', context);
+const staffHtml = renderStaff({plesso_id: 7, plesso_nome: 'Scuola test', totale_pasti: 10,
+ totale_alunni: 4, totale_personale: 6, cutoff_orario: '00:00', definitivo: true,
+ personale_disponibile: true, fonte_personale: 'Variazione giornaliera',
+ personale: [{categoria:'insegnanti',tipologia_nome:'Senza glutine',pasti:6,menu_nome:'Menu personale <test>'}],sezioni:[],tipologie:[]});
+assert.match(staffHtml,/4 alunni · 6 personale/);assert.match(staffHtml,/Pasti del personale · 6/);
+assert.match(staffHtml,/Alunni: conteggio confermato/);assert.match(staffHtml,/senza cutoff/);
+assert.match(staffHtml,/Docenti/);assert.match(staffHtml,/Senza glutine/);assert.match(staffHtml,/Menu personale &lt;test&gt;/);
+assert.match(renderStaff({plesso_id:7,totale_pasti:4,personale_disponibile:false}),/totale potrebbe essere incompleto/);
+console.log('OK: totale alunni/personale distinto, menù personale, nessun cutoff personale e dati mancanti espliciti.');

@@ -34,6 +34,7 @@ check((int)$saldo===-1,'personale non consuma buoni e fido non impedisce pasto')
 $scuola=$db->query("SELECT * FROM utenti WHERE ruolo='scuola' LIMIT 1")->fetch();$scuola['plesso_id']=$p;
 $a->correggiGiorno($scuola,$p,['data'=>$oggi,'righe'=>[['categoria'=>'ata','tipologia_menu_id'=>1,'quantita'=>4]],'precedente'=>$righe,'motivazione'=>'Scuola dopo job e cutoff','conferma'=>true]);
 check($a->report($scuola,$oggi,$oggi,$p)['righe'][0]['personale']===4,'Scuola modifica oggi dopo job e cutoff senza perdere la modifica');
+check($c->catering()->report($oggi,$p)['totale_personale']===4,'catering riceve la modifica personale dopo job e cutoff');
 $a->correggiGiorno($scuola,$p,['data'=>$oggi,'righe'=>$righe,'precedente'=>[['categoria'=>'ata','tipologia_menu_id'=>1,'quantita'=>4]],'motivazione'=>'Ripristino quantità test','conferma'=>true]);
 
 $a->correggiGiorno($u,$p,['data'=>$oggi,'righe'=>[['categoria'=>'ata','tipologia_menu_id'=>1,'quantita'=>2]],'precedente'=>$righe,'motivazione'=>'Rettifica motivata','conferma'=>true]);

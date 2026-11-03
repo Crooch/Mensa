@@ -31,7 +31,7 @@
  let report=null, reportFiltri=null, versioneReport=0, reportDaAggiornare=false;
  function invalidaReport(messaggio='I pasti sono cambiati. Aggiorna il riepilogo prima di esportare.') {
   ++versioneReport;report=null;reportFiltri=null;reportDaAggiornare=true;
-  for(const x of ['aut-export','aut-export-mensile','aut-export-excel'])id(x).disabled=true;
+  for(const x of ['aut-export','aut-export-excel'])id(x).disabled=true;
   for(const x of ['aut-report-corpo','aut-report-mensile','aut-report-totali'])id(x).innerHTML='';
   id('aut-report').querySelector('button').disabled=false;stato('aut-report-stato',messaggio);
  }
@@ -39,7 +39,7 @@
  id('aut-report').addEventListener('change',()=>invalidaReport('Filtri modificati. Premi Mostra riepilogo per aggiornare i dati.'));
  document.querySelectorAll('[data-vista="riepilogo-pasti"]').forEach(b=>b.addEventListener('click',()=>{if(reportDaAggiornare)id('aut-report').requestSubmit();}));
  id('aut-report').addEventListener('submit', async ev=>{ev.preventDefault();const v=dati(ev.target),versione=++versioneReport;id('aut-report').querySelector('button').disabled=true;try{
-  report=null;reportFiltri=null;id('aut-export').disabled=true;id('aut-export-mensile').disabled=true;id('aut-report-mensile').innerHTML='';id('aut-export-excel').disabled=true;id('aut-report-corpo').innerHTML='';id('aut-report-totali').textContent='';
+  report=null;reportFiltri=null;id('aut-export').disabled=true;id('aut-report-mensile').innerHTML='';id('aut-export-excel').disabled=true;id('aut-report-corpo').innerHTML='';id('aut-report-totali').textContent='';
   stato('aut-report-stato','Caricamento…');
   const risposta=await API.get('/api/report/pasti?'+new URLSearchParams(v));if(versione!==versioneReport)return;report=risposta;reportDaAggiornare=false;
   reportFiltri={dal:v.dal,al:v.al,plesso:v.plesso_id?nomePlesso(v.plesso_id):(ruolo==='scuola'?nomePlesso(utente.plesso_id):'Tutti'),ordine:v.ordine||'Tutti'};
@@ -48,7 +48,7 @@
   id('aut-report-corpo').innerHTML=report.righe.map(r=>`<tr><td>${e(r.data)}</td><td>${e(r.plesso_nome)}<br>${e(r.ordine)}</td><td>${e(r.stato)}${r.personale===null?'<br>Personale da configurare':''}</td><td>${valore(r.alunni)}</td><td>${valore(r.personale)}</td><td>${valore(r.totale)}</td><td><details><summary>Dettaglio</summary><p>Personale: ${e(r.fonte_personale)}</p>${r.tipologie_alunni.map(t=>`<p>Alunni · ${e(t.tipologia_nome)}: ${Number(t.pasti)}</p>`).join('')}${r.tipologie_personale.map(t=>`<p>${e(categorie[t.categoria])} · ${e(nomeTipo(t.tipologia_menu_id))}: ${Number(t.quantita)}</p>`).join('')}<p>${e(r.nota)}</p></details></td></tr>`).join('');
   id('aut-report-mensile').innerHTML=report.mensili.map(m=>`<tr><td>${e(m.mese)}<br>${e(m.dal)} – ${e(m.al)}</td><td>${e(m.ordine)}</td><td>${m.alunni}</td><td>${m.personale}</td><td>${m.totale}${m.giornate_incomplete||m.giornate_previste?' (parziale)':''}</td><td>${m.previsti}</td><td>${m.giornate_incomplete} da verificare · ${m.giornate_previste} previste</td></tr>`).join('');
   etichetteTabella(id('vista-riepilogo-pasti'));
-  stato('aut-report-stato',`${report.righe.length} giornate/plessi. I dati non disponibili non sono conteggiati come zero.`);id('aut-export').disabled=false;id('aut-export-mensile').disabled=false;id('aut-export-excel').disabled=false;
+  stato('aut-report-stato',`${report.righe.length} giornate/plessi. I dati non disponibili non sono conteggiati come zero.`);id('aut-export').disabled=false;id('aut-export-excel').disabled=false;
  }catch(err){if(versione===versioneReport)stato('aut-report-stato',err.message,true);}finally{if(versione===versioneReport)id('aut-report').querySelector('button').disabled=false;}
  });
  function csvDownload(headers,rows,name) {
@@ -56,7 +56,6 @@
   MensaReportExport.download('\ufeff'+csv,'text/csv;charset=utf-8',name);
  }
  id('aut-export').addEventListener('click',()=>{if(report)csvDownload(MensaReportExport.headers,MensaReportExport.rows(report,nomeTipo),'riepilogo-pasti.csv');});
- id('aut-export-mensile').addEventListener('click',()=>{if(report)csvDownload(MensaReportExport.monthlyHeaders,MensaReportExport.monthlyRows(report),'riepilogo-mensile.csv');});
  id('aut-export-excel').addEventListener('click',async()=>{
   if(!report || id('aut-export-excel').disabled)return;
   const current=report, filters=reportFiltri;

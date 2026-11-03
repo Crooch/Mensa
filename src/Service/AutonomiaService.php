@@ -317,7 +317,7 @@ final class AutonomiaService
     $stato=$ok?'Confermato':(!$attivo?'Fuori servizio':($this->c->presenzaService()->oltreCutoff($p,$d)?'Non elaborato':'Previsto'));
     $tipi=[]; $alunni=null;
     if ($ok) { $tipi=$this->r->pastiConfermati($id,$d); $alunni=array_sum(array_column($tipi,'pasti')); }
-    elseif ($stato==='Previsto') { $rp=$this->c->catering()->report($d,$id); $alunni=$rp['totale_pasti']; $tipi=$rp['plessi'][0]['tipologie']??[]; }
+    elseif ($stato==='Previsto') { $rp=$this->c->catering()->report($d,$id); $alunni=$rp['totale_alunni']; $tipi=$rp['plessi'][0]['tipologie_alunni']??[]; }
     elseif ($stato==='Fuori servizio') $alunni=0;
     $pg=$this->personale($u,$id,$d); $pc=$pg['disponibile'];
     $personale=$pc?array_sum(array_column($pg['righe'],'quantita')):null;

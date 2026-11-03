@@ -22,6 +22,9 @@ const log=[];function pass(s){console.log('PASS '+s);log.push(s);}
   await p.goto(base+'/login');await p.locator('[name=username]').fill('admin.staging');await p.locator('[name=password]').fill('Collaudo2026!');await p.locator('button[type=submit]').click();await p.waitForURL('**/admin');
   const pid=Number(await p.evaluate(async width=>(await API.post('/api/admin/plessi',{nome:'ZZ Ciclo '+width+' '+Date.now(),cutoff_orario:'00:00:00'})).id,width));assert(Number.isInteger(pid)&&pid>0);
   const root='/api/personale/plessi/'+pid;
+  const catering=await b.newPage({viewport:{width,height:950}});catering.on('pageerror',e=>errors.push(e.message));
+  await catering.goto(base+'/login');await catering.locator('[name=username]').fill('catering.staging');await catering.locator('[name=password]').fill('Collaudo2026!');await catering.locator('button[type=submit]').click();await catering.waitForURL('**/catering');
+
   await p.reload();await p.locator('#calendario-plesso option[value="'+pid+'"]').waitFor({state:'attached'});
   async function get(path){return p.evaluate(path=>API.get(path),path);}
   async function submit(selector,url,method='POST'){
@@ -42,11 +45,20 @@ const log=[];function pass(s){console.log('PASS '+s);log.push(s);}
    const calendar=await get(`/api/admin/calendari/${pid}/verifica?data=${D(n)}`);assert.equal(calendar.attivo,active,label);assert.equal(calendar.motivo,v.motivo_servizio,label);
    const all=await get(`/api/admin/calendari/riepilogo?data=${D(n)}`);const school=all.scuole.find(s=>Number(s.plesso_id)===pid);assert.equal(school.attivo,active,label);assert.equal(school.motivo,v.motivo_servizio,label);
    const report=await get(`/api/report/pasti?dal=${D(n)}&al=${D(n)}&plesso_id=${pid}`);assert.equal(report.righe.length,1);assert.equal(report.righe[0].personale,qty,label);assert.deepEqual(canonical(report.righe[0].tipologie_personale),canonical(v.righe),label);
+   // Same mutations must reach the catering's operational screen, not only reports.
+   const cr=await catering.evaluate(path=>API.get(path),`/api/catering/report?data=${D(n)}&plesso_id=${pid}`);
+   assert.equal(cr.totale_personale,qty,label+' catering staff');assert.equal(cr.totale_alunni,0,label+' no synthetic pupils');assert.equal(cr.totale_pasti,qty,label+' no double counting');
+   assert.equal(report.righe[0].alunni,0,label+' summary must not mistake staff for pupils');
+   if(active){assert.equal(cr.plessi.length,1);assert.deepEqual(canonical(cr.plessi[0].personale.map(r=>({categoria:r.categoria,tipologia_menu_id:r.tipologia_id,quantita:r.pasti}))),canonical(v.righe));assert.equal(cr.plessi[0].tipologie.reduce((s,t)=>s+Number(t.pasti),0),qty);}
+   else assert.equal(cr.plessi.length,0);
+   await catering.locator('#report-data').fill(D(n));await catering.locator('#btn-report:not([disabled])').waitFor();await catering.locator('#btn-report').click();await catering.locator('#btn-report:not([disabled])').waitFor();
+   const card=catering.locator(`[data-testid="report-plesso-${pid}"]`);assert.equal(await card.count(),active?1:0,label+' catering UI');
+   if(active){assert.equal(Number(await card.locator('.saldo').innerText()),qty);assert.equal(await card.locator(`[data-testid="report-personale-${pid}"] > h4`).innerText(),'Pasti del personale · '+qty);assert((await card.innerText()).includes('senza cutoff'));}
    const stored=sql(`SELECT righe FROM pasti_personale_giorni WHERE plesso_id=${pid} AND data='${D(n)}'`);
    if(stored&&active)assert.deepEqual(canonical(JSON.parse(stored)),canonical(v.righe),label);
    const rows=sql(`SELECT JSON_OBJECT('dal',dal,'giorno',giorno,'categoria',categoria,'tipologia_menu_id',tipologia_menu_id,'quantita',quantita) FROM pasti_personale_regole WHERE plesso_id=${pid} ORDER BY dal,giorno,categoria,tipologia_menu_id`).split('\n').filter(Boolean).map(JSON.parse);
    assert.deepEqual(rows,v.programmazione,label+' SQL recurrence/API');
-   pass(`${width}px ${label}: UI/API/DB/calendario/report concordi (${D(n)}, ${qty} effettivi, ${baseQty} abituali)`);
+   pass(`${width}px ${label}: UI/API/DB/calendario/report/catering concordi (${D(n)}, ${qty} effettivi, ${baseQty} abituali)`);
   }
   async function calendar(startOffset=0,endOffset=25,week=[1,2,3,4,5]){
    await p.locator('[data-vista=calendario]').click();const read=p.waitForResponse(r=>r.url().endsWith('/api/admin/calendari/'+pid));await p.locator('#calendario-plesso').selectOption(String(pid));await read;
@@ -124,6 +136,7 @@ const log=[];function pass(s){console.log('PASS '+s);log.push(s);}
   await officeCalendar();await p.locator('#aut-config [name=primo_giorno_sospensione]').fill('');await p.locator('#aut-config [name=motivazione]').fill('Annullamento sospensione futura');await submit('#aut-config button',`/api/servizio/plessi/${pid}`,'PUT');await p.locator('#aut-servizio-stato').filter({hasText:'Impostazioni salvate'}).waitFor();await check(28,14,14,true,'annullamento sospensione futura',false);
   await p.reload();await check(7,18,17,true,'persistenza dopo ricaricamento completo');assert.equal(hash(`SELECT * FROM pasti_personale_giorni WHERE plesso_id=${pid} ORDER BY data`),dailyHash);
   assert.deepEqual(errors,[]);assert(!await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth));fs.mkdirSync('staging/ticket2-artifacts',{recursive:true});await p.screenshot({path:`staging/ticket2-artifacts/ciclo-personale-calendario-${width}.png`,fullPage:true});await p.close();
+  assert(!await catering.evaluate(()=>document.documentElement.scrollWidth>innerWidth));await catering.screenshot({path:`staging/ticket2-artifacts/catering-personale-${width}.png`,fullPage:true});await catering.close();
  }
  assert.deepEqual(financial(),before);pass('intero ciclo senza modifiche a saldi, consumi, presenze alunni, assegnazioni o invii email');
  }finally{fs.mkdirSync('staging/ticket2-artifacts',{recursive:true});fs.writeFileSync('staging/ticket2-artifacts/ciclo-personale-calendario.json',JSON.stringify(log,null,2));await b.close();}

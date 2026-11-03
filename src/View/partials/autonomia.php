@@ -11,7 +11,6 @@
  <p id="aut-report-stato" role="status"></p><div id="aut-report-totali"></div>
  <div class="aut-report-esportazioni" role="group" aria-label="Esporta riepilogo">
  <button id="aut-export" class="btn btn-outline-primary" disabled>Esporta CSV</button>
- <button id="aut-export-mensile" class="btn btn-outline-primary" disabled>Esporta mensile CSV</button>
  <button id="aut-export-excel" class="btn btn-outline-primary" disabled>Esporta Excel</button>
  </div>
  <h2>Riepilogo mensile per ordine scolastico</h2>

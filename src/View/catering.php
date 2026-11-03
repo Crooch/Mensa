@@ -25,7 +25,7 @@ require __DIR__ . '/partials/testa.php';
     </div>
     <p class="nota" id="report-stato" role="status" aria-live="polite" data-testid="report-stato">Seleziona una data per consultare i pasti.</p>
     <div id="report-riepilogo" class="riepilogo-mensa" aria-live="polite"></div>
-    <p class="nota catering-distribuzione-nota">Ogni classe mostra i pasti da consegnare per tipo di menu. La pasta in bianco è compresa nel totale e si trova evidenziata nella classe interessata.</p>
+    <p class="nota catering-distribuzione-nota">Il totale comprende alunni e personale. Ogni scuola mostra i pasti per classe e quelli del personale, distinti per categoria e menù. La pasta in bianco è compresa nel totale e si trova evidenziata nella classe interessata.</p>
     <div id="report" class="griglia-cards catering-distribuzione" data-testid="report-plessi"></div>
 </section>
 

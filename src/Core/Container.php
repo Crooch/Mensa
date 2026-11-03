@@ -165,7 +165,8 @@ final class Container
             $this->presenzaService(),
             $this->calendario(),
             $this->jobRepo(),
-            $this->menuSettimanali()
+            $this->menuSettimanali(),
+            $this->autonomia()
         ));
     }
 

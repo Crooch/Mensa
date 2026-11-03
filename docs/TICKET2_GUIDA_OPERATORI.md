@@ -137,7 +137,7 @@ Percorso: **Riepilogo pasti**.
 3. Controllare **Riepilogo mensile per ordine scolastico**: una riga per mese e ordine, aggregando i plessi autorizzati. Sono indicati alunni elaborati, personale delle giornate elaborate, totale disponibile, pasti previsti, giornate da verificare e previste. Il totale disponibile somma solo giornate complete; se mancano dati o restano previsioni è segnalato come parziale. Il periodo indicato chiarisce se è stato selezionato un mese incompleto. Le giornate sono conteggiate per plesso. Il **Dettaglio giornaliero** permette di verificare i singoli valori.
 4. Leggere lo stato di ciascuna riga: **Previsto**, **Confermato**, **Non elaborato**, **Fuori servizio**. Il dato non disponibile non equivale a zero.
 5. Aprire **Dettaglio** per tipologie degli alunni e categorie/menù del personale.
-6. Premere **Esporta CSV** per il dettaglio giornaliero, **Esporta mensile CSV** per il riepilogo per mese/ordine, oppure **Esporta Excel** per entrambi i fogli. Si scarica esattamente il risultato caricato, con stati, totali, dettagli e note. Excel produce un file `.xlsx` con periodo e filtri, intestazioni evidenziate e bloccate, filtri sulle colonne, righe alternate, date e quantità native. I dati mancanti restano “Non disponibile”. Se si cambiano i filtri, i dati precedenti vengono rimossi e i pulsanti di esportazione disabilitati: premere nuovamente **Mostra riepilogo**. Dopo una modifica a personale, calendario o chiusure, tornando a **Riepilogo pasti** i dati vengono ricaricati con i filtri impostati. Anche le modifiche eseguite nel calendario Admin aggiornano le viste Personale e Calendario e servizio quando vi si ritorna, senza dover ricaricare l’intera pagina.
+6. Premere **Esporta CSV** per il dettaglio giornaliero oppure **Esporta Excel** per il dettaglio e il riepilogo mensile per ordine in due fogli. Si scarica esattamente il risultato caricato, con stati, totali, dettagli e note. Excel produce un file `.xlsx` con periodo e filtri, intestazioni evidenziate e bloccate, filtri sulle colonne, righe alternate, date e quantità native. I dati mancanti restano “Non disponibile”. Se si cambiano i filtri, i dati precedenti vengono rimossi e i pulsanti di esportazione disabilitati: premere nuovamente **Mostra riepilogo**. Dopo una modifica a personale, calendario o chiusure, tornando a **Riepilogo pasti** i dati vengono ricaricati con i filtri impostati. Anche le modifiche eseguite nel calendario Admin aggiornano le viste Personale e Calendario e servizio quando vi si ritorna, senza dover ricaricare l’intera pagina.
 
 Se l'ordine compare come **Da configurare**, impostarlo in **Calendario e servizio**. Per «Non elaborato» verificare l’elaborazione degli alunni; per personale «Da configurare» verificare le regole o registrare le quantità. I conteggi del personale sono disponibili senza attendere il job degli alunni e restano rettificabili secondo i permessi. Non considerare definitivo un totale con giornate incomplete o previste. Non lanciare ripetutamente il job. Le tipologie delle presenze pregresse prive di fotografia compaiono come **Non storicizzata**, senza inventare la dieta originaria.
 
@@ -171,6 +171,12 @@ La scheda **Riepilogo pasti** consente consultazione ed esportazione del solo pr
 
 ## Catering — accesso con ruolo Catering
 
+### Pasti da preparare
+
+La scheda include alunni e personale nel totale generale e in quello di ogni scuola. Le quantità per tipologia di menù comprendono entrambi; sotto le classi compare **Pasti del personale**, distinto per categoria e dieta, con il menù efficace della data. Anche una scuola senza classi può avere pasti del personale.
+
+Le quantità del personale derivano dalle regole abituali o dalla variazione della singola data, che prevale. Chiusure e sospensioni escludono i pasti della giornata. **Aggiorna i pasti** rilegge le modifiche; la lettura si aggiorna anche tornando alla scheda. Il cutoff e il conteggio confermato si riferiscono agli alunni: il personale resta modificabile oggi e in futuro dalla scuola, e nel passato dal Comune. Se il personale non è configurato, il totale è segnalato come incompleto; uno zero esplicito è invece un dato disponibile.
+
 ### T03 — Riepilogo e rendicontazione
 
 Percorso: **Riepilogo pasti**.
@@ -178,7 +184,7 @@ Percorso: **Riepilogo pasti**.
 1. Impostare **Dal**, **Al**, eventualmente **Plesso** e **Ordine scolastico**.
 2. Premere **Mostra riepilogo** e controllare gli stati delle giornate.
 3. Aprire **Dettaglio** per le tipologie degli alunni e i pasti del personale.
-4. Premere **Esporta CSV**, **Esporta mensile CSV** oppure **Esporta Excel** (due fogli). Il motore e i conteggi sono gli stessi del Comune; non vengono esposti saldi, fidi, pagamenti o anagrafiche delle famiglie.
+4. Premere **Esporta CSV** oppure **Esporta Excel** (dettaglio e riepilogo in due fogli). Il motore e i conteggi sono gli stessi del Comune; non vengono esposti saldi, fidi, pagamenti o anagrafiche delle famiglie.
 
 Per una rendicontazione mensile attendere che le giornate interessate siano complete. Segnalare al Comune giornate non elaborate, personale da configurare o ordine scolastico da configurare.
 
