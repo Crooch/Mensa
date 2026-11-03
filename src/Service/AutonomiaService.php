@@ -153,7 +153,7 @@ final class AutonomiaService
  }
  public function personale(array $u,int $id,string $data): array {
   $this->ambito($u,$id,true); self::data($data);
-  $g=$this->r->giorno($id,$data); $attivo=$this->c->calendario()->previsto($id,$data)['attivo'];
+  $g=$this->r->giorno($id,$data); $calendario=$this->c->calendario()->previsto($id,$data); $attivo=$calendario['attivo'];
   $base=$this->ricorrenti($id,$data);
   $storico=$g && (bool)$g['consolidato'] && $data<=date('Y-m-d');
   $usaGiorno=$g && ($g['origine']!=='programmazione' || $data<date('Y-m-d'));
@@ -163,7 +163,7 @@ final class AutonomiaService
   if (!$attivo && !$storico) { $righe=[]; $disponibile=true; $fonte='Fuori servizio'; }
   $ufficio=in_array($u['ruolo'],['admin','operatore'],true);
   $modificabile=($attivo || ($ufficio && $storico)) && ($ufficio || ($u['ruolo']==='scuola' && $data>=date('Y-m-d')));
-  return ['plesso_id'=>$id,'data'=>$data,'attivo'=>$attivo,'righe'=>$righe,'disponibile'=>$disponibile,'fonte'=>$fonte,
+  return ['plesso_id'=>$id,'data'=>$data,'attivo'=>$attivo,'motivo_servizio'=>$calendario['motivo'],'righe'=>$righe,'disponibile'=>$disponibile,'fonte'=>$fonte,
    'consolidato'=>$g?(bool)$g['consolidato']:false,'modificabile'=>$modificabile,
    'ripristinabile'=>$modificabile && $data>=date('Y-m-d') && $g && $g['origine']!=='programmazione',
    'regole'=>$ufficio?$this->r->regole($id):[],

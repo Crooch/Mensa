@@ -2845,3 +2845,5 @@ body[data-ruolo="operatore"] .operatore-risultati .table tbody tr.famiglia-selez
 .personale-sintesi > span { display:flex; justify-content:space-between; gap:.4rem; margin-top:.25rem; }
 #aut-programmazione-futura > h3 { font-size:1.1rem; margin:1.5rem 0 .7rem; }
 .personale-futura h4 { font-size:1rem; }
+
+.personale-fonte-inattiva { background:#edf0f3; color:#405363; }
