@@ -15,25 +15,37 @@ require __DIR__ . '/partials/testa.php';
 
 <section id="vista-famiglie" class="vista">
     <header class="area-intro"><h1>Famiglie e buoni mensa</h1><p>Cerca una famiglia per vedere figli, buoni disponibili e operazioni.</p></header>
-    <div class="riga-filtri operatore-ricerca">
-        <label class="visivamente-nascosto" for="ricerca-famiglie">Cerca per cognome, telefono o email</label>
-        <input type="search" id="ricerca-famiglie" placeholder="Scrivi un cognome, un telefono o un'email" data-testid="famiglie-ricerca-input">
-        <button class="btn btn-primary btn-sm" id="btn-cerca" data-testid="famiglie-cerca-button">Cerca</button>
-        <button class="btn btn-outline-primary btn-sm" id="btn-nuovo-genitore" data-testid="nuovo-genitore-button">Aggiungi famiglia</button>
-    </div>
+    <form id="famiglie-filtri" class="operatore-ricerca">
+        <div class="famiglie-ricerca-barra">
+            <label class="visivamente-nascosto" for="ricerca-famiglie">Cerca per nome, cognome, telefono o email</label>
+            <input type="search" id="ricerca-famiglie" placeholder="Nome, cognome, telefono o email" maxlength="120" data-testid="famiglie-ricerca-input">
+            <button type="submit" class="btn btn-primary" id="btn-cerca" data-testid="famiglie-cerca-button">Cerca</button>
+        </div>
+        <label class="famiglie-stato">Mostra <select id="famiglie-stato"><option value="attive">Famiglie attive</option><option value="tutte">Tutte le famiglie</option><option value="disattivate">Famiglie disattivate</option></select></label>
+        <button type="button" class="btn btn-outline-primary" id="btn-nuovo-genitore" data-testid="nuovo-genitore-button">Aggiungi famiglia</button>
+    </form>
     <p id="ricerca-stato" role="status" aria-live="polite" class="stato-operazione" hidden></p>
     <div class="due-colonne operatore-layout">
         <section class="operatore-risultati" aria-label="Risultati della ricerca">
-            <h2>Famiglie trovate</h2>
+            <div class="famiglie-elenco-testa"><h2>Famiglie trovate</h2><label>Per pagina <select id="famiglie-per-pagina"><option value="10">10</option><option value="25">25</option><option value="50">50</option></select></label></div>
+            <p id="famiglie-intervallo" class="nota" aria-live="polite"></p>
             <div class="tabella-scroll">
             <table class="table" data-testid="famiglie-tabella">
                 <thead><tr><th>Genitore</th><th>Telefono</th><th>Email</th><th></th></tr></thead>
                 <tbody id="famiglie-corpo"></tbody>
             </table>
             </div>
+            <nav class="famiglie-paginazione" aria-label="Pagine delle famiglie">
+                <button type="button" id="famiglie-precedente" class="btn btn-outline-primary" disabled>Precedente</button>
+                <span id="famiglie-pagina" aria-live="polite">Pagina 1 di 1</span>
+                <button type="button" id="famiglie-successiva" class="btn btn-outline-primary" disabled>Successiva</button>
+            </nav>
         </section>
-        <div id="scheda-famiglia" class="pannello" data-testid="scheda-famiglia">
-            <p class="vuoto">Premi «Apri» accanto a una famiglia per vedere i figli e i buoni mensa.</p>
+        <div class="famiglia-dettaglio">
+            <button type="button" id="famiglie-indietro" class="btn btn-outline-primary">← Torna all’elenco</button>
+            <div id="scheda-famiglia" class="pannello" data-testid="scheda-famiglia" tabindex="-1" aria-label="Dettaglio famiglia">
+                <p class="vuoto">Premi «Apri» accanto a una famiglia per vedere i figli e i buoni mensa.</p>
+            </div>
         </div>
     </div>
 </section>

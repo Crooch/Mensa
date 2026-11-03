@@ -6,12 +6,20 @@ Le denominazioni riportate sono quelle delle interfacce implementate e verificat
 
 ## Comune — accesso con ruolo Operatore comunale
 
+### Cercare e gestire molte famiglie
+
+La lista mostra inizialmente **10 famiglie attive per pagina**, ordinate per cognome e nome. Con 100 famiglie ci sono 10 pagine; **Per pagina** permette di mostrarne 25 o 50. **Precedente** e **Successiva** scorrono i risultati e il contatore indica il totale effettivo, anche oltre 200 famiglie.
+
+La ricerca per nome, cognome, nome completo, telefono o email riguarda **l’intero archivio**, non soltanto la pagina visibile. Si aggiorna durante la digitazione; si può anche premere **Cerca** o Invio. Una nuova ricerca o un cambio di filtro riparte dalla prima pagina. **Mostra** consente di scegliere famiglie attive, disattivate oppure tutte.
+
+Su telefono e tablet, **Apri** mostra direttamente la scheda della famiglia. **Torna all’elenco** riporta alla stessa pagina, mantenendo ricerca e filtri. **Registra buoni acquistati** rimane subito visibile; **Altre operazioni** apre modifica dati, aggiunta figlio, verifica/disattivazione, tariffa agevolata e correzione saldo. Su desktop elenco e scheda restano affiancati.
+
 ### T01 — Verificare associazioni e disattivare un genitore
 
 Percorso: **Ufficio comunale → Famiglie → Cerca → Apri → Verifica associazioni e disattivazione**.
 
-1. Cercare il genitore per cognome, telefono o email e premere **Apri**. La ricerca include le famiglie disattivate, riconoscibili nella scheda.
-2. Confrontare nominativo, telefono, email e utenza. Premere **Verifica associazioni e disattivazione**.
+1. Cercare il genitore per cognome, telefono o email e premere **Apri**. Per cercare anche i genitori disattivati scegliere **Tutte le famiglie** oppure **Famiglie disattivate** nel filtro Mostra.
+2. Confrontare nominativo, telefono, email e utenza. Su telefono/tablet aprire **Altre operazioni**. Premere **Verifica associazioni e disattivazione**.
 3. Nel riepilogo controllare ID della famiglia/utenza, alunni e relativi ID, classi/plessi, date delle assegnazioni, figli attivi, posizioni con saldo non nullo e numero di movimenti conservati.
 4. Esaminare **Possibili omonimie**. La corrispondenza esatta di nome/cognome è un indizio: non dimostra che due record appartengano allo stesso alunno.
 5. Se compare **Disattiva genitore**, compilare **Motivazione**, premere il pulsante e confermare il nominativo e l'ID nella finestra di conferma.

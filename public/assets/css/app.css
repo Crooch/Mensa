@@ -2730,3 +2730,49 @@ body[data-ruolo="admin"] .admin-verifica-pagine .btn:disabled { opacity: .45; }
 #vista-personale .aut-giorni { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:1rem; border:1px solid var(--grigio-bordo); padding:1rem; }
 #vista-personale .aut-giorni label { flex-direction:row; align-items:center; }
 #vista-personale .aut-giorni input { width:auto; }
+
+/* Famiglie: pagine brevi, elenco compatto e dettaglio separato su telefono/tablet. */
+body[data-ruolo="operatore"] .operatore-ricerca { display:grid; grid-template-columns:minmax(0,1fr) 210px auto; align-items:end; }
+.famiglie-ricerca-barra { display:flex; align-items:center; gap:.5rem; min-width:0; }
+.famiglie-ricerca-barra input { flex:1; min-width:0; margin:0; }
+.famiglie-ricerca-barra .btn { flex:0 0 auto; margin:0; }
+.famiglie-stato { display:flex; flex-direction:column; gap:.25rem; margin:0; font-size:.85rem; }
+.famiglie-stato select { min-height:44px; margin:0; }
+.famiglie-elenco-testa { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+.famiglie-elenco-testa label { display:flex; align-items:center; gap:.35rem; font-size:.8rem; margin:0; }
+.famiglie-elenco-testa select { width:auto; min-height:44px; margin:0; padding:.4rem; }
+#famiglie-intervallo { margin:.5rem .2rem; }
+.famiglie-paginazione { display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:.45rem; margin-top:.8rem; }
+.famiglie-paginazione .btn { margin:0; min-height:44px; padding:.5rem; font-size:.85rem; }
+#famiglie-pagina { grid-column:1/-1; grid-row:1; text-align:center; font-size:.85rem; }
+.famiglia-dettaglio { min-width:0; }
+#famiglie-indietro, #btn-altre-operazioni { display:none; }
+#famiglia-azioni-secondarie { grid-column:1/-1; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,185px),1fr)); gap:.5rem; }
+body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:.2rem .5rem; align-items:center; }
+body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] td:not(:last-child) { grid-column:1; }
+body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] td:last-child { grid-column:2; grid-row:1/4; align-self:center; }
+body[data-ruolo="operatore"] .operatore-risultati .btn-azione { min-height:44px; min-width:58px; margin:0; }
+body[data-ruolo="operatore"] .operatore-risultati .table tbody tr.famiglia-selezionata { border-color:#0066cc; background:#f0f7ff; }
+.famiglia-stato-badge { display:block; color:#8b3232; font-size:.78rem; font-weight:400; }
+@media(max-width:980px) {
+    body[data-ruolo="operatore"] .operatore-ricerca { grid-template-columns:minmax(0,1fr) auto; }
+    .famiglie-ricerca-barra { grid-column:1/-1; }
+    body[data-ruolo="operatore"] .operatore-ricerca .famiglie-ricerca-barra .btn { width:auto; }
+    #vista-famiglie:not(.famiglia-aperta) .famiglia-dettaglio { display:none; }
+    #vista-famiglie.famiglia-aperta > .area-intro,
+    #vista-famiglie.famiglia-aperta > #famiglie-filtri,
+    #vista-famiglie.famiglia-aperta > #ricerca-stato,
+    #vista-famiglie.famiglia-aperta .operatore-risultati { display:none; }
+    #famiglie-indietro { display:block; min-height:44px; margin:0 0 .75rem; scroll-margin-top:1rem; }
+    #btn-altre-operazioni { display:block; }
+    #famiglia-azioni-secondarie:not(.azioni-aperte) { display:none; }
+    #vista-famiglie .operatore-layout { gap:0; }
+    body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] td:nth-child(3) { display:none; }
+    body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] td:last-child { grid-row:1/3; }
+    body[data-ruolo="operatore"] .operatore-famiglia-testa h2 { font-size:1.2rem; }
+}
+@media(max-width:420px) {
+    body[data-ruolo="operatore"] .operatore-ricerca { padding:.75rem; gap:.6rem; grid-template-columns:minmax(0,1fr); }
+    body[data-ruolo="operatore"] .operatore-ricerca > .btn { padding:.5rem; font-size:.85rem; }
+    .famiglie-stato select { font-size:.85rem; }
+}

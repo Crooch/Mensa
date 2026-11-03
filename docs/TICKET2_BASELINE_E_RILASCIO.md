@@ -30,6 +30,12 @@ Le funzioni sono nelle aree esistenti. Nessun nuovo ruolo, utente di sistema o p
 
 Tutti i casi reali devono ancora essere eseguiti dagli utenti dopo il rilascio autorizzato. Il collaudo sintetico non attesta la risoluzione delle singole posizioni comunali.
 
+## Elenco famiglie e uso da mobile
+
+L’elenco usa paginazione lato server da 10/25/50 record, conteggio totale e ricerca sull’intero archivio, anche oltre il precedente limite di 200 risultati. Filtri attive/disattivate/tutte, ordinamento stabile per cognome/nome/ID, ricerca letterale anche per nome completo. La vecchia risposta API ad array resta compatibile per i client che non richiedono `pagina`.
+
+Su telefono/tablet fino a 980 px, elenco e dettaglio sono due viste: apertura immediata della scheda e ritorno alla stessa pagina/ricerca. Le azioni secondarie si espandono con «Altre operazioni». Sul desktop rimangono affiancati. Nessuna migrazione aggiuntiva per questa modifica.
+
 ## Migrazione 010
 
 `database/migrations/010_autonomia_operatori.sql` contiene esclusivamente CREATE TABLE IF NOT EXISTS:
@@ -46,6 +52,7 @@ Il codice nuovo richiede la 010 e la **011_origine_personale.sql**. La 011 aggiu
 
 ## Collaudo effettuato
 
+- Famiglie: 220 record sintetici, 22 pagine senza duplicati o troncamenti, limiti 10/25/50, filtri, ricerca completa/literalità, validazioni e permessi; navigazione, schede, figli/buoni e moduli a 320/375/768/1366 px, ritorno e risposte ritardate, senza overflow o errori JavaScript.
 - API T01–T10: percorso positivo, conferme, validazioni, accessi diretti vietati, anonimi, isolamento Scuola, conservazione delle tabelle contabili, ripetizione senza duplicazioni.
 - Cinque ruoli in Chrome automatizzato: 375, 768, 1366 px; navigazione, moduli, salvataggi, disattivazione, nome alunno, chiusure, fido/fine servizio, ricorrenze, correzione Scuola, filtri, download CSV; assenza di errori JavaScript e overflow della pagina. Le operazioni complete sono state eseguite a 1366 px; a 375/768 px sono state verificate le schermate, i controlli e le esportazioni. Nessun collaudo su telefono fisico.
 - Consolidamento: job sintetico completo, ripetizione con un solo consumo, pasti personale senza addebiti, cambio dieta che conserva lo storico, rettifica motivata, fine servizio che azzera le sole previsioni future e lascia disponibili storico e attività amministrative.
