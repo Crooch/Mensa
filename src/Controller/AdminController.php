@@ -17,11 +17,17 @@ final class AdminController
     /** Dati di riferimento comuni a piu' aree (plessi, tipologie, classi attive). */
     public function riferimenti(Request $r, array $utente): array
     {
-        return [
-            'plessi'    => $this->c->configurazione()->plessi(),
-            'tipologie' => $this->c->configurazione()->tipologie(),
-            'classi'    => $this->c->configurazione()->classi(),
-        ];
+        $plessi = $this->c->configurazione()->plessi();
+        $classi = $this->c->configurazione()->classi();
+        if ($utente['ruolo'] === 'scuola') {
+            $pid = (int)($utente['plesso_id'] ?? 0);
+            $plessi = array_values(array_filter($plessi, fn($p) => (int)$p['id'] === $pid));
+            $classi = array_values(array_filter($classi, fn($c) => (int)$c['plesso_id'] === $pid));
+        }
+        if (!in_array($utente['ruolo'], ['admin', 'operatore'], true)) {
+            $plessi = array_map(fn($p) => array_intersect_key($p, array_flip(['id','nome','cutoff_orario'])), $plessi);
+        }
+        return ['plessi'=>$plessi, 'tipologie'=>$this->c->configurazione()->tipologie(), 'classi'=>$classi];
     }
 
     // ---------------- plessi ----------------
@@ -266,9 +272,13 @@ final class AdminController
         return ['salvate' => true];
     }
 
+    public function verificaSmtp(Request $r, array $utente): array
+    {
+        return $this->c->solleciti()->verificaSmtp();
+    }
+
     public function emailDiProva(Request $r, array $utente): array
     {
-        $this->c->solleciti()->inviaEmailDiProva((string) $r->obbligatorio('email'));
-        return ['inviata' => true];
+        return $this->c->solleciti()->inviaEmailDiProva((string) $r->obbligatorio('email'), (int) $r->obbligatorio('plesso_id'));
     }
 }

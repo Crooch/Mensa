@@ -4,6 +4,7 @@ $ruoloPagina = 'admin';
 $scriptPagina = 'admin';
 require __DIR__ . '/partials/testa.php';
 ?>
+<p><a class="btn btn-outline-primary" href="<?= $basePath ?>/operatore">Ufficio comunale — famiglie e solleciti</a></p>
 <nav class="schede" role="tablist">
     <button class="scheda attiva" data-vista="plessi" data-testid="tab-plessi">Plessi</button>
     <button class="scheda" data-vista="calendario" data-testid="tab-calendario">Calendario mensa</button>
@@ -12,6 +13,9 @@ require __DIR__ . '/partials/testa.php';
     <button class="scheda" data-vista="email" data-testid="tab-email">Email e solleciti</button>
     <button class="scheda" data-vista="utenti" data-testid="tab-utenti">Utenze</button>
     <button class="scheda" data-vista="job" data-testid="tab-job">Chiusura pasti</button>
+<button class="scheda" data-vista="riepilogo-pasti">Riepilogo pasti</button>
+<button class="scheda" data-vista="personale">Pasti del personale</button>
+<button class="scheda" data-vista="servizio">Calendario e servizio</button>
 </nav>
 
 <section id="vista-plessi" class="vista">
@@ -266,7 +270,15 @@ require __DIR__ . '/partials/testa.php';
 </section>
 
 <section id="vista-email" class="vista" hidden>
-    <header class="area-intro"><h1>Testi e destinatari dei solleciti</h1></header>
+    <header class="area-intro"><h1>Email e solleciti</h1></header>
+    <form id="form-email-automatici" class="pannello admin-config">
+        <h2>Solleciti automatici</h2>
+        <label class="email-opzione"><input type="checkbox" id="email-automatici"><span>Abilita l'invio automatico dei solleciti</span></label>
+        <p class="nota">Al prossimo conteggio giornaliero utile, invia alle famiglie oltre fido e ai destinatari configurati, per le scuole con un modello attivo. Non invia arretrati al momento dell'attivazione.</p>
+        <p id="email-automatici-stato" role="status"></p>
+        <p id="email-ambiente" class="nota"></p>
+        <div class="admin-form-azioni"><button class="btn btn-primary">Salva attivazione</button></div>
+    </form>
     <h2 class="admin-form-titolo">Testo della comunicazione</h2>
     <form id="form-modello" class="pannello admin-config" data-testid="modello-form">
         <div class="riga-filtri">
@@ -276,6 +288,7 @@ require __DIR__ . '/partials/testa.php';
         <label for="modello-testo">Testo della comunicazione (puoi usare: {genitore} {alunno} {plesso} {saldo} {fido} {data})</label>
         <p class="nota">Le parole tra { } sono compilate automaticamente.</p>
         <textarea id="modello-testo" rows="6" data-testid="modello-testo-input"></textarea>
+        <label class="email-opzione"><input type="checkbox" id="modello-attivo"><span>Usa questo modello per i solleciti automatici della scuola</span></label>
         <div class="admin-form-azioni"><button type="submit" class="btn btn-primary" data-testid="modello-submit-button">Salva modello</button></div>
     </form>
 
@@ -301,7 +314,7 @@ require __DIR__ . '/partials/testa.php';
     <form id="form-smtp" class="pannello admin-config" data-testid="smtp-form">
         <div class="riga-filtri">
             <label for="smtp-host">Server</label><input type="text" id="smtp-host" data-testid="smtp-host-input">
-            <label for="smtp-port">Porta</label><input type="number" id="smtp-port" data-testid="smtp-port-input">
+            <label for="smtp-port">Porta</label><input type="number" min="1" max="65535" required id="smtp-port" data-testid="smtp-port-input">
             <label for="smtp-security">Sicurezza</label>
             <select id="smtp-security" data-testid="smtp-security-select">
                 <option value="tls">STARTTLS</option><option value="ssl">SSL</option><option value="none">Nessuna</option>
@@ -310,13 +323,27 @@ require __DIR__ . '/partials/testa.php';
         <div class="riga-filtri">
             <label for="smtp-username">Utente</label><input type="text" id="smtp-username" data-testid="smtp-username-input">
             <label for="smtp-password">Password</label><input type="password" id="smtp-password" data-testid="smtp-password-input">
-            <label for="smtp-from">Mittente</label><input type="text" id="smtp-from" data-testid="smtp-from-input">
-            <label for="email-protocollo">Email protocollo</label><input type="text" id="email-protocollo" data-testid="email-protocollo-input">
+            <label for="smtp-from_name">Nome mittente</label><input type="text" id="smtp-from_name" maxlength="120">
+            <label for="smtp-from">Mittente</label><input type="email" id="smtp-from" data-testid="smtp-from-input">
+            <label for="email-protocollo">Email protocollo</label><input type="email" id="email-protocollo" data-testid="email-protocollo-input">
         </div>
         <div class="admin-form-azioni">
             <button type="submit" class="btn btn-primary" data-testid="smtp-submit-button">Salva configurazione</button>
-            <button type="button" class="btn btn-outline-primary" id="btn-email-prova" data-testid="smtp-prova-button">Invio di prova</button>
+            <button type="button" class="btn btn-outline-primary" id="btn-smtp-verifica">Verifica connessione SMTP</button>
         </div>
+    </form>
+    <p id="smtp-verifica-stato" role="status"></p>
+    <h2>Prova un modello</h2>
+    <form id="form-email-prova" class="pannello admin-config">
+        <div class="riga-filtri">
+            <label>Modello della scuola <select id="email-prova-plesso" required></select></label>
+            <label>Email di prova <input type="email" id="email-prova-indirizzo" required autocomplete="email"></label>
+        </div>
+        <p class="nota">Usa la configurazione SMTP e il modello salvati, anche se i solleciti sono disabilitati. I segnaposto vengono compilati con dati dimostrativi. Invia soltanto all'indirizzo di prova, senza copie a famiglie, protocollo o altri destinatari.</p>
+        <p id="email-prova-avviso" class="nota"></p>
+        <div class="admin-form-azioni"><button type="submit" class="btn btn-primary" id="btn-email-prova" data-testid="smtp-prova-button">Invia modello di prova</button></div>
+        <p id="email-prova-stato" role="status"></p>
+        <details id="email-prova-anteprima" hidden><summary>Contenuto della prova</summary><p id="email-prova-oggetto"></p><pre id="email-prova-testo" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details>
     </form>
 </section>
 
@@ -392,4 +419,5 @@ require __DIR__ . '/partials/testa.php';
         </div>
     </details>
 </section>
+<?php require __DIR__ . '/partials/autonomia.php'; ?>
 <?php require __DIR__ . '/partials/piede.php'; ?>

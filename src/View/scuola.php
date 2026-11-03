@@ -7,6 +7,8 @@ require __DIR__ . '/partials/testa.php';
 <nav class="schede" role="tablist">
     <button class="scheda attiva" data-vista="giornata" data-testid="tab-giornata">Pasti del giorno</button>
     <button class="scheda" data-vista="assenze" data-testid="tab-assenze">Assenza di tutta la classe</button>
+<button class="scheda" data-vista="riepilogo-pasti">Riepilogo pasti</button>
+<button class="scheda" data-vista="personale">Pasti del personale</button>
 </nav>
 
 <section id="vista-giornata" class="vista">
@@ -65,4 +67,5 @@ require __DIR__ . '/partials/testa.php';
         </table>
     </div>
 </section>
+<?php require __DIR__ . '/partials/autonomia.php'; ?>
 <?php require __DIR__ . '/partials/piede.php'; ?>

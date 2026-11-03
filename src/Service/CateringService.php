@@ -16,7 +16,7 @@ use App\Repository\MenuSettimanaleRepository;
 /**
  * Vista catering: report pasti, pubblicazione menu del giorno.
  * Il catering non riceve mai informazioni economiche o di credito: il report e'
- * calcolato esclusivamente dalle presenze effettive.
+ * calcolato dalle presenze degli alunni e dalle quantità efficaci del personale.
  */
 final class CateringService
 {
@@ -28,7 +28,8 @@ final class CateringService
         private PresenzaService $presenzaService,
         private CalendarioService $calendario,
         private JobRepository $job,
-        private MenuSettimanaleRepository $settimanali
+        private MenuSettimanaleRepository $settimanali,
+        private AutonomiaService $autonomia
     ) {
     }
 
@@ -39,6 +40,7 @@ final class CateringService
      */
     public function report(string $data, ?int $plessoId = null): array
     {
+        AutonomiaService::data($data);
         $righe = $this->presenze->reportPasti($data, $plessoId);
         $perPlesso = [];
         foreach ($righe as $riga) {
@@ -48,20 +50,7 @@ final class CateringService
                 continue;
             }
             if (!isset($perPlesso[$pid])) {
-                $plesso = $this->plessi->trova($pid);
-                $esecuzione = $this->job->esecuzione($pid, $data);
-                $perPlesso[$pid] = [
-                    'plesso_id'            => $pid,
-                    'plesso_nome'          => $riga['plesso_nome'],
-                    'cutoff_orario'        => substr((string) $plesso['cutoff_orario'], 0, 5),
-                    'definitivo'           => $esecuzione !== null && $esecuzione['esito'] === 'ok',
-                    'totale_pasti'         => 0,
-                    'pasti_ordinari'       => 0,
-                    'tipologie'            => [],
-                    'sezioni'              => [],
-                    'pasta_in_bianco'      => [],
-                    'totale_pasta_in_bianco' => 0,
-                ];
+                $perPlesso[$pid] = $this->nuovoPlesso($this->plessi->trova($pid), $data);
             }
 
             $pasti = (int) $riga['pasti'];
@@ -132,6 +121,35 @@ final class CateringService
             $perPlesso[$pid]['tipologie'][$tid]['pasta_in_bianco']++;
             $perPlesso[$pid]['tipologie'][$tid]['pasti_ordinari']--;
         }
+        // Il personale usa la stessa precedenza regole/variazioni del riepilogo.
+        // Includere anche scuole senza classi: possono avere soli pasti personale.
+        foreach ($this->plessi->elenco() as $scuola) {
+            $pid = (int) $scuola['id'];
+            if (($plessoId !== null && $pid !== $plessoId) ||
+                !$this->calendario->previsto($pid, $data)['attivo']) continue;
+            $perPlesso[$pid] ??= $this->nuovoPlesso($scuola, $data);
+            $p = &$perPlesso[$pid];
+            $p['totale_alunni'] = $p['totale_pasti'];
+            $p['tipologie_alunni'] = array_values($p['tipologie']);
+            $personale = $this->autonomia->personale(['ruolo' => 'catering'], $pid, $data);
+            $p['personale_disponibile'] = $personale['disponibile'];
+            $p['fonte_personale'] = $personale['fonte'];
+            foreach ($personale['righe'] as $riga) {
+                $tid = (int) $riga['tipologia_menu_id'];
+                $n = (int) $riga['quantita'];
+                if ($n <= 0) continue;
+                $nome = $this->tipologie->trova($tid)['nome'] ?? ('Tipologia ' . $tid);
+                $p['personale'][] = ['categoria' => $riga['categoria'],
+                    'tipologia_id' => $tid, 'tipologia_nome' => $nome, 'pasti' => $n];
+                $p['totale_personale'] += $n;
+                $p['totale_pasti'] += $n;
+                $p['tipologie'][$tid] ??= ['tipologia_id' => $tid, 'tipologia_nome' => $nome,
+                    'pasti' => 0, 'pasti_ordinari' => 0, 'pasta_in_bianco' => 0];
+                $p['tipologie'][$tid]['pasti'] += $n;
+                $p['tipologie'][$tid]['pasti_ordinari'] += $n;
+            }
+            unset($p);
+        }
         // Il report di distribuzione deve usare esattamente il menu efficace
         // per data/plesso/tipologia: modello settimanale o override giornaliero.
         // Non modifichiamo mai la tipologia dietetica del bambino, ne' i conteggi.
@@ -154,6 +172,11 @@ final class CateringService
                 $tipo['menu_origine'] = $menu['menu_origine'] ?? null;
             }
             unset($tipo);
+            foreach ($plesso['personale'] as &$voce) {
+                $menu = $menuEfficaci[$pid . ':' . $voce['tipologia_id']] ?? [];
+                $voce += $menu;
+            }
+            unset($voce);
             foreach ($plesso['sezioni'] as &$sezione) {
                 foreach ($sezione['tipologie'] as $tid => &$tipo) {
                     $menu = $menuEfficaci[$pid . ':' . $tid] ?? null;
@@ -178,6 +201,25 @@ final class CateringService
             'data' => $data,
             'plessi' => array_values($perPlesso),
             'totale_pasti' => array_sum(array_column($perPlesso, 'totale_pasti')),
+            'totale_alunni' => array_sum(array_column($perPlesso, 'totale_alunni')),
+            'totale_personale' => array_sum(array_column($perPlesso, 'totale_personale')),
+        ];
+    }
+
+    private function nuovoPlesso(array $plesso, string $data): array
+    {
+        $pid = (int) $plesso['id'];
+        $esecuzione = $this->job->esecuzione($pid, $data);
+        return [
+            'plesso_id' => $pid, 'plesso_nome' => $plesso['nome'],
+            'cutoff_orario' => substr((string) $plesso['cutoff_orario'], 0, 5),
+            // La conferma automatica riguarda esclusivamente gli alunni.
+            'definitivo' => $esecuzione !== null && $esecuzione['esito'] === 'ok',
+            'totale_pasti' => 0, 'totale_alunni' => 0, 'totale_personale' => 0,
+            'pasti_ordinari' => 0, 'tipologie' => [], 'tipologie_alunni' => [],
+            'sezioni' => [], 'personale' => [], 'personale_disponibile' => false,
+            'fonte_personale' => 'Da configurare',
+            'pasta_in_bianco' => [], 'totale_pasta_in_bianco' => 0,
         ];
     }
 

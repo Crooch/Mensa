@@ -106,7 +106,7 @@ def controlla_profili_riordinati(page, ruolo, larghezza):
         )
         if larghezza <= 760:
             assert page.locator('#famiglie-corpo tr').first.evaluate(
-                "(e) => getComputedStyle(e).display") in ('flex', 'block')
+                "(e) => getComputedStyle(e).display") in ('flex', 'block', 'grid')
         page.screenshot(path=str(OUTPUT / f"operatore-famiglia-nuova-{larghezza}.png"),
                         full_page=True)
         page.locator('#scheda-famiglia .operatore-storico').first.locator('summary').click()
@@ -453,6 +453,8 @@ def controlla_modali_operatore(page):
 def controlla_modale_mobile(page):
     """Un modulo completo su 375px, Escape e focus, senza salvataggi."""
     page.locator('nav.schede [data-vista="famiglie"]').click()
+    if page.locator('#famiglie-indietro').is_visible():
+        page.locator('#famiglie-indietro').click()
     page.locator('#btn-nuovo-genitore').click()
     page.locator('#modale [data-testid="genitore-form"]').wait_for(state="visible")
     assert page.locator('#modale [data-testid="genitore-form"] > .campo-filtro').count() == 6

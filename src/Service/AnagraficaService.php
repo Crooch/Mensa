@@ -33,6 +33,19 @@ final class AnagraficaService
         return $this->genitori->cerca($testo, $includiCancellati);
     }
 
+    public function paginaGenitori(array $filtri): array
+    {
+        $q = $filtri['q'] ?? '';
+        $stato = $filtri['stato'] ?? 'attive';
+        $pagina = filter_var($filtri['pagina'] ?? 1, FILTER_VALIDATE_INT);
+        $perPagina = filter_var($filtri['per_pagina'] ?? 10, FILTER_VALIDATE_INT);
+        if (!is_string($q) || mb_strlen($q) > 120 || !in_array($stato, ['attive', 'disattivate', 'tutte'], true)
+            || $pagina === false || $pagina < 1 || !in_array($perPagina, [10, 25, 50], true)) {
+            throw HttpException::nonValido('Controlla ricerca, stato e pagina. Sono ammesse 10, 25 o 50 famiglie per pagina.');
+        }
+        return $this->genitori->pagina(trim($q), $stato, $pagina, $perPagina);
+    }
+
     /**
      * Scheda completa della famiglia: genitore, figli con storico classi,
      * override tariffari e situazione crediti per plesso.
@@ -114,6 +127,8 @@ final class AnagraficaService
             }
         }
         return Database::inTransazione(function () use ($dati) {
+            $g = (new \App\Repository\AutonomiaRepository())->famiglia((int)$dati['genitore_id'], true);
+            if (!$g || (int)$g['cancellato_logicamente']) throw HttpException::nonValido('Famiglia non attiva.');
             $bambinoId = $this->bambini->crea([
                 'nome'              => trim((string) $dati['nome']),
                 'cognome'           => trim((string) $dati['cognome']),

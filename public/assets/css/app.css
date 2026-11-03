@@ -2708,3 +2708,235 @@ body[data-ruolo="admin"] .admin-verifica-pagine .btn:disabled { opacity: .45; }
         padding: .55rem;
     }
 }
+
+/* Moduli operativi: campi leggibili anche su telefono, senza overflow della pagina. */
+#vista-servizio form, #vista-personale .griglia-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:1rem; align-items:end; margin-block:1rem; }
+#vista-servizio label, #vista-personale label, #vista-riepilogo-pasti label, #solleciti-filtri label { display:flex; flex-direction:column; gap:.35rem; min-width:0; }
+#vista-servizio input, #vista-servizio select, #vista-personale input, #vista-personale select { max-width:100%; min-width:0; }
+#vista-personale input[type=number] { width:6rem; }
+#vista-servizio form h2, #vista-servizio form p { grid-column:1/-1; }
+#vista-servizio form button, #vista-personale form button { justify-self:start; }
+@media (max-width: 640px) {
+    #vista-personale .tabella-scroll, #vista-riepilogo-pasti .tabella-scroll { border:0; background:transparent; overflow:visible; }
+    #vista-personale table.table, #vista-riepilogo-pasti table.table { display:block; width:100%; min-width:0; }
+    #vista-personale table.table thead, #vista-riepilogo-pasti table.table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+    #vista-personale table.table tbody, #vista-riepilogo-pasti table.table tbody { display:block; }
+    #vista-personale table.table tr, #vista-riepilogo-pasti table.table tr { display:block; background:white; border:1px solid var(--grigio-bordo); border-radius:8px; margin-bottom:1rem; padding:.5rem; }
+    #vista-personale table.table td, #vista-riepilogo-pasti table.table td { display:grid; grid-template-columns:35% minmax(0,1fr); gap:.7rem; min-width:0; width:auto; padding:.65rem .25rem; white-space:normal; overflow-wrap:anywhere; }
+    #vista-personale table.table td::before, #vista-riepilogo-pasti table.table td::before { content:attr(data-label); font-weight:600; font-size:.85rem; }
+    #vista-personale table.table td:last-child, #vista-riepilogo-pasti table.table td:last-child { border-bottom:0; }
+}
+
+#vista-personale .aut-giorni { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:1rem; border:1px solid var(--grigio-bordo); padding:1rem; }
+#vista-personale .aut-giorni label { flex-direction:row; align-items:center; }
+#vista-personale .aut-giorni input { width:auto; }
+
+/* Famiglie: pagine brevi, elenco compatto e dettaglio separato su telefono/tablet. */
+body[data-ruolo="operatore"] .operatore-ricerca { display:grid; grid-template-columns:minmax(0,1fr) 210px auto; align-items:end; }
+.famiglie-ricerca-barra { display:flex; align-items:center; gap:.5rem; min-width:0; }
+.famiglie-ricerca-barra input { flex:1; min-width:0; margin:0; }
+.famiglie-ricerca-barra .btn { flex:0 0 auto; margin:0; }
+.famiglie-stato { display:flex; flex-direction:column; gap:.25rem; margin:0; font-size:.85rem; }
+.famiglie-stato select { min-height:44px; margin:0; }
+.famiglie-elenco-testa { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+.famiglie-elenco-testa label { display:flex; align-items:center; gap:.35rem; font-size:.8rem; margin:0; }
+.famiglie-elenco-testa select { width:auto; min-height:44px; margin:0; padding:.4rem; }
+#famiglie-intervallo { margin:.5rem .2rem; }
+.famiglie-paginazione { display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:.45rem; margin-top:.8rem; }
+.famiglie-paginazione .btn { margin:0; min-height:44px; padding:.5rem; font-size:.85rem; }
+#famiglie-pagina { grid-column:1/-1; grid-row:1; text-align:center; font-size:.85rem; }
+.famiglia-dettaglio { min-width:0; }
+#famiglie-indietro, #btn-altre-operazioni { display:none; }
+#famiglia-azioni-secondarie { grid-column:1/-1; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,185px),1fr)); gap:.5rem; }
+body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:.2rem .5rem; align-items:center; }
+body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] td:not(:last-child) { grid-column:1; }
+body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] td:last-child { grid-column:2; grid-row:1/4; align-self:center; }
+body[data-ruolo="operatore"] .operatore-risultati .btn-azione { min-height:44px; min-width:58px; margin:0; }
+body[data-ruolo="operatore"] .operatore-risultati .table tbody tr.famiglia-selezionata { border-color:#0066cc; background:#f0f7ff; }
+.famiglia-stato-badge { display:block; color:#8b3232; font-size:.78rem; font-weight:400; }
+@media(max-width:980px) {
+    body[data-ruolo="operatore"] .operatore-ricerca { grid-template-columns:minmax(0,1fr) auto; }
+    .famiglie-ricerca-barra { grid-column:1/-1; }
+    body[data-ruolo="operatore"] .operatore-ricerca .famiglie-ricerca-barra .btn { width:auto; }
+    #vista-famiglie:not(.famiglia-aperta) .famiglia-dettaglio { display:none; }
+    #vista-famiglie.famiglia-aperta > .area-intro,
+    #vista-famiglie.famiglia-aperta > #famiglie-filtri,
+    #vista-famiglie.famiglia-aperta > #ricerca-stato,
+    #vista-famiglie.famiglia-aperta .operatore-risultati { display:none; }
+    #famiglie-indietro { display:block; min-height:44px; margin:0 0 .75rem; scroll-margin-top:1rem; }
+    #btn-altre-operazioni { display:block; }
+    #famiglia-azioni-secondarie:not(.azioni-aperte) { display:none; }
+    #vista-famiglie .operatore-layout { gap:0; }
+    body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] td:nth-child(3) { display:none; }
+    body[data-ruolo="operatore"] .operatore-risultati .table tbody tr[data-genitore] td:last-child { grid-row:1/3; }
+    body[data-ruolo="operatore"] .operatore-famiglia-testa h2 { font-size:1.2rem; }
+}
+@media(max-width:420px) {
+    body[data-ruolo="operatore"] .operatore-ricerca { padding:.75rem; gap:.6rem; grid-template-columns:minmax(0,1fr); }
+    body[data-ruolo="operatore"] .operatore-ricerca > .btn { padding:.5rem; font-size:.85rem; }
+    .famiglie-stato select { font-size:.85rem; }
+}
+
+/* Personale: consultazione della settimana distinta dalle variazioni del giorno. */
+#vista-personale .personale-contesto { background:#fff; border:1px solid var(--grigio-bordo); border-radius:10px; padding:1rem; align-items:end; }
+.personale-viste { display:flex; gap:.5rem; margin:1rem 0; }
+.personale-viste button { flex:1; padding:.9rem; min-height:48px; border:1px solid #b8cbdc; background:white; border-radius:8px; color:#174a70; font-weight:700; }
+.personale-viste button.attiva { background:#0066cc; border-color:#0066cc; color:white; }
+.personale-sezione { background:white; border:1px solid var(--grigio-bordo); border-radius:12px; padding:1.25rem; margin-bottom:1rem; }
+.personale-sezione-testa { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; }
+.personale-sezione-testa h2 { margin:.15rem 0; font-size:1.4rem; }
+.personale-sezione-testa > span { font-size:.9rem; max-width:100%; }
+.personale-sopratitolo { margin:0; font-size:.8rem; font-weight:700; color:#526d82; text-transform:uppercase; letter-spacing:.04em; }
+.personale-settimana { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:.6rem; margin:1.25rem 0; align-items:start; }
+.personale-giorno { min-width:0; border:1px solid #c3d6e5; border-radius:10px; background:#f5f9fd; padding:.7rem; }
+.personale-giorno summary { cursor:pointer; list-style:none; padding:0; }
+.personale-giorno summary::-webkit-details-marker { display:none; }
+.personale-giorno summary::after { content:'Dettaglio ⌄'; display:block; font-size:.75rem; color:#0066cc; margin-top:.5rem; }
+.personale-giorno[open] summary::after { content:'Chiudi ⌃'; }
+.personale-giorno h3 { margin:0; font-size:.9rem; }
+.personale-numero { margin:.45rem 0 0; font-size:1.6rem; font-weight:700; line-height:1.1; }
+.personale-numero span { display:block; font-size:.8rem; font-weight:400; margin-top:.3rem; }
+.personale-da-impostare { background:#f7f7f7; border-style:dashed; color:#536575; }
+.personale-voci { list-style:none; padding:0; margin:.8rem 0 0; }
+.personale-voci li { display:flex; align-items:baseline; justify-content:space-between; gap:.4rem; border-top:1px solid #dce5ed; padding:.6rem 0; font-size:.85rem; }
+.personale-voci small { display:block; color:#526575; font-size:.75rem; }
+.personale-voci strong { flex-shrink:0; }
+.personale-editor { margin-top:1rem; border-top:1px solid #dce5ed; padding-top:1rem; }
+.personale-editor > summary { color:#0066cc; font-weight:700; cursor:pointer; padding:.6rem 0; min-height:44px; }
+.personale-editor form { margin-top:1rem; }
+.personale-form-nota { grid-column:1/-1; margin:.25rem 0; }
+.personale-futura { border-left:3px solid #0878ca; background:#f5f9fd; padding:.75rem 1rem; margin:.75rem 0; }
+.personale-futura h4 { margin:0 0 .5rem; }
+.personale-futura ul { margin:0; padding-left:1.2rem; }
+.personale-futura li { padding:.3rem 0; }
+.personale-avviso { border-left:3px solid #d7941e; background:#fff8e8; padding:1rem; }
+.personale-fonte { padding:.4rem .7rem; background:#e8f3ed; color:#24543a; border-radius:6px; }
+.personale-fonte-variazione { background:#fff0ce; color:#745207; }
+.personale-confronto { display:grid; grid-template-columns:1fr 1fr; border:1px solid #dce5ed; border-radius:10px; margin:1rem 0; overflow:hidden; }
+.personale-confronto > div { padding:1rem; background:#f5f9fd; }
+.personale-confronto > div:first-child { background:#eaf3fc; }
+.personale-confronto span { display:block; font-size:.85rem; }
+.personale-confronto strong { display:block; font-size:2rem; margin-top:.3rem; }
+.personale-confronto small { font-size:.9rem; font-weight:400; }
+.personale-categorie, .personale-campi { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+.personale-categorie article { padding:1rem; border:1px solid #dce5ed; border-radius:8px; }
+.personale-categorie h3 { display:flex; justify-content:space-between; margin:0; font-size:1rem; }
+.personale-campi fieldset { min-width:0; border:1px solid #b8cbdc; padding:1rem; border-radius:8px; }
+.personale-campi legend { width:auto; padding:0 .3rem; font-size:1rem; font-weight:700; }
+#vista-personale .personale-campi label { display:grid; grid-template-columns:minmax(0,1fr) 6rem; align-items:center; margin-bottom:.5rem; }
+.personale-totale-bozza { font-weight:700; background:#eaf3fc; border-radius:6px; padding:.8rem; }
+.personale-salvataggio { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1rem; }
+@media(max-width:1100px) { .personale-settimana { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+@media(max-width:640px) {
+ .personale-sezione { padding:.85rem; }
+ .personale-sezione-testa h2 { font-size:1.2rem; }
+ .personale-viste button { padding:.65rem .4rem; font-size:.9rem; }
+ .personale-settimana { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .personale-categorie, .personale-campi { grid-template-columns:minmax(0,1fr); }
+ .personale-confronto > div { padding:.75rem; }
+ .personale-confronto strong { font-size:1.6rem; }
+ .personale-confronto small { display:block; }
+ .personale-salvataggio .btn { width:100%; min-height:44px; }
+ #vista-personale .aut-giorni { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; padding:.75rem; }
+}
+
+#aut-personale-stato:empty { display:none; }
+.personale-sintesi { display:block; margin-top:.65rem; font-size:.8rem; }
+.personale-sintesi > span { display:flex; justify-content:space-between; gap:.4rem; margin-top:.25rem; }
+#aut-programmazione-futura > h3 { font-size:1.1rem; margin:1.5rem 0 .7rem; }
+.personale-futura h4 { font-size:1rem; }
+
+.personale-fonte-inattiva { background:#edf0f3; color:#405363; }
+
+/* Spaziatura delle aree operative: 4 px nei campi, 8 tra controlli,
+   12 nei gruppi e 16 tra sezioni. I pulsanti restano alti almeno 44 px. */
+:is(#vista-famiglie, #vista-personale, #vista-riepilogo-pasti, #vista-servizio) {
+    --spazio-campo: 4px;
+    --spazio-elementi: 8px;
+    --spazio-gruppi: 12px;
+    --spazio-sezioni: 16px;
+}
+:is(#vista-famiglie, #vista-personale, #vista-riepilogo-pasti, #vista-servizio) > .area-intro {
+    margin: var(--spazio-gruppi) 0;
+    padding-bottom: var(--spazio-elementi);
+}
+:is(#vista-famiglie, #vista-personale, #vista-riepilogo-pasti, #vista-servizio) > .area-intro h1 { margin: 0 0 var(--spazio-campo); }
+:is(#vista-famiglie, #vista-personale, #vista-riepilogo-pasti, #vista-servizio) > .area-intro p { margin: 0; line-height: 1.45; }
+:is(#vista-personale, #vista-riepilogo-pasti, #vista-servizio) .riga-filtri {
+    gap: var(--spazio-elementi) var(--spazio-gruppi); margin: 0 0 var(--spazio-gruppi); align-items: end;
+}
+:is(#vista-personale, #vista-riepilogo-pasti, #vista-servizio) form label { margin: 0; gap: var(--spazio-campo); line-height: 1.4; }
+:is(#vista-personale, #vista-riepilogo-pasti, #vista-servizio) form label :is(input,select,textarea) { margin: 0; }
+:is(#vista-personale, #vista-riepilogo-pasti, #vista-servizio) form .btn { margin: 0; min-height: 44px; }
+:is(#vista-famiglie, #vista-personale, #vista-riepilogo-pasti, #vista-servizio) .stato-operazione {
+    margin: var(--spazio-elementi) 0 var(--spazio-gruppi); padding: var(--spazio-elementi) var(--spazio-gruppi); line-height: 1.45;
+}
+:is(#vista-famiglie, #vista-personale, #vista-riepilogo-pasti, #vista-servizio) .tabella-scroll > table { margin-bottom: 0; }
+:is(#vista-riepilogo-pasti, #vista-servizio) > h2 { margin: var(--spazio-sezioni) 0 var(--spazio-elementi); }
+#vista-servizio form, #vista-personale .griglia-form { gap: var(--spazio-gruppi); margin-block: var(--spazio-gruppi); }
+#vista-personale .personale-contesto { padding: var(--spazio-gruppi); }
+#vista-personale .personale-viste { margin: var(--spazio-gruppi) 0; gap: var(--spazio-elementi); }
+#vista-personale .personale-viste button { min-height: 44px; padding: var(--spazio-elementi) var(--spazio-gruppi); }
+#vista-personale .personale-sezione { padding: var(--spazio-sezioni); margin-bottom: var(--spazio-gruppi); }
+#vista-personale .personale-sezione-testa { gap: var(--spazio-elementi); margin-bottom: var(--spazio-elementi); }
+#vista-personale .personale-sezione > p { margin: 0 0 var(--spazio-gruppi); line-height: 1.45; }
+#vista-personale .personale-settimana { gap: var(--spazio-elementi); margin: var(--spazio-gruppi) 0; }
+#vista-personale .personale-giorno { padding: var(--spazio-gruppi); }
+#vista-personale .personale-voci { margin: var(--spazio-elementi) 0 0; }
+#vista-personale .personale-voci li { padding: 6px 0; }
+#vista-personale .personale-voci li:last-child { padding-bottom: 0; }
+#vista-personale .personale-editor { margin-top: var(--spazio-gruppi); padding-top: var(--spazio-elementi); }
+#vista-personale .personale-editor > summary { padding: var(--spazio-elementi) 0; }
+#vista-personale .personale-editor > p { margin: var(--spazio-elementi) 0 var(--spazio-gruppi); line-height: 1.45; }
+#vista-personale .personale-editor form { margin: var(--spazio-elementi) 0 0; }
+#vista-personale :is(.personale-categorie, .personale-campi) { gap: var(--spazio-gruppi); }
+#vista-personale :is(.personale-categorie article, .personale-campi fieldset, .aut-giorni, .personale-confronto > div) { padding: var(--spazio-gruppi); }
+#vista-personale .personale-campi label { gap: var(--spazio-elementi); margin-bottom: var(--spazio-elementi); }
+#vista-personale .personale-campi label:last-child { margin-bottom: 0; }
+#vista-personale .personale-confronto { margin: var(--spazio-gruppi) 0; }
+#vista-personale .personale-totale-bozza { padding: var(--spazio-elementi) var(--spazio-gruppi); margin: var(--spazio-gruppi) 0; }
+#vista-personale .personale-salvataggio { margin-top: var(--spazio-gruppi); gap: var(--spazio-elementi); }
+#vista-personale .personale-salvataggio + .nota { margin: var(--spazio-elementi) 0 0; }
+#vista-personale .personale-futura { padding: var(--spazio-gruppi); margin: var(--spazio-elementi) 0; }
+#vista-personale #aut-programmazione-futura > h3 { margin: var(--spazio-sezioni) 0 var(--spazio-elementi); }
+#vista-personale .personale-futuro-vuoto { margin: var(--spazio-gruppi) 0 0; }
+#vista-famiglie .operatore-ricerca { padding: var(--spazio-gruppi); gap: var(--spazio-elementi); }
+#vista-famiglie #scheda-famiglia { padding: var(--spazio-sezioni); }
+#vista-famiglie .operatore-famiglia-testa { padding-bottom: var(--spazio-gruppi); margin-bottom: var(--spazio-gruppi); }
+#vista-famiglie .operatore-contatti { gap: var(--spazio-elementi) var(--spazio-gruppi); margin-top: var(--spazio-elementi); }
+#vista-famiglie .operatore-azioni { gap: var(--spazio-elementi); margin-bottom: var(--spazio-gruppi); }
+#vista-famiglie .area-sezione-testa { margin: var(--spazio-sezioni) 0 var(--spazio-elementi); padding-bottom: var(--spazio-elementi); }
+@media(max-width:640px) {
+    #vista-personale .personale-sezione, #vista-famiglie #scheda-famiglia { padding: var(--spazio-gruppi); }
+    #vista-personale .personale-viste button { padding-inline: var(--spazio-elementi); }
+}
+
+#vista-personale form :is(input:not([type=checkbox]):not([type=hidden]), select) { min-height: 44px; }
+
+#vista-riepilogo-pasti > label { margin: 0 0 var(--spazio-gruppi); gap: var(--spazio-campo); }
+#vista-riepilogo-pasti > p { margin: var(--spazio-elementi) 0 var(--spazio-gruppi); }
+#aut-report-totali:not(:empty) { margin: var(--spazio-elementi) 0; line-height: 1.45; }
+.aut-report-esportazioni { display:flex; flex-wrap:wrap; gap:var(--spazio-elementi); margin:var(--spazio-gruppi) 0; }
+.aut-report-esportazioni .btn { margin:0; min-height:44px; }
+
+.personale-storico { margin-top:16px; border-top:1px solid #dce5ed; padding-top:12px; }
+.personale-storico h3 { font-size:1.05rem; margin:0 0 8px; }
+.personale-storico-voce { background:#f5f9fd; border-left:3px solid #8baabd; padding:10px 12px; margin:8px 0; overflow-wrap:anywhere; }
+.personale-storico-voce p { margin:0 0 6px; }
+.personale-storico-voce ul { margin:6px 0 0; padding-left:18px; }
+.personale-storico > details > summary { min-height:44px; padding:10px 0; cursor:pointer; }
+
+/* Configurazione email: opzioni compatte con etichetta interamente cliccabile. */
+body[data-ruolo="admin"] #vista-email .pannello { padding: 16px; margin: 12px 0; }
+body[data-ruolo="admin"] #vista-email form h2 { margin: 0 0 12px; }
+body[data-ruolo="admin"] #vista-email > h2 { margin: 20px 0 8px; }
+body[data-ruolo="admin"] #vista-email p { margin: 8px 0; }
+body[data-ruolo="admin"] #vista-email .email-opzione { display: flex; flex-direction: row; align-items: center; gap: 10px; min-height: 44px; margin: 8px 0; }
+body[data-ruolo="admin"] #vista-email .email-opzione input[type="checkbox"] { appearance: checkbox; width: 20px; height: 20px; min-width: 20px; min-height: 20px; flex: 0 0 20px; padding: 0; margin: 0; accent-color: var(--blu-italia); }
+
+/* Personale nella distribuzione catering, distinto dalle classi. */
+.catering-scuola__personale { border-top: 1px solid #d5e2ee; margin-top: .75rem; padding-top: .65rem; }
+.catering-scuola__personale h4 { margin: 0 0 .35rem; }
+.catering-scuola__personale > .nota { margin: .25rem 0 .5rem; }
+
+.catering-scuola__cutoff { margin: .2rem 0 .45rem; font-size: .83rem; }

@@ -165,7 +165,8 @@ final class Container
             $this->presenzaService(),
             $this->calendario(),
             $this->jobRepo(),
-            $this->menuSettimanali()
+            $this->menuSettimanali(),
+            $this->autonomia()
         ));
     }
 
@@ -210,6 +211,11 @@ final class Container
             $this->tipologie(),
             $this->comunicazioni()
         ));
+    }
+
+    public function autonomia(): S\AutonomiaService
+    {
+        return $this->ottieni("s.autonomia", fn () => new S\AutonomiaService($this));
     }
 
     public function autenticazione(): Auth

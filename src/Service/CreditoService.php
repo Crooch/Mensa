@@ -62,6 +62,8 @@ final class CreditoService
             return Database::inTransazione(function () use (
                 $genitoreId, $plessoId, $numeroBuoni, $utenteId, $note, $tariffa, $importo, $richiestaId
             ) {
+                $g = (new \App\Repository\AutonomiaRepository())->famiglia($genitoreId, true);
+                if (!$g || (int)$g['cancellato_logicamente']) throw HttpException::nonValido('Famiglia non attiva: richiedere assistenza per operazioni contabili.');
                 $poolId = $this->crediti->assicuraPool($genitoreId, $plessoId);
                 $movimentoId = $this->crediti->registraMovimento([
                     'pool_id'      => $poolId,
@@ -144,6 +146,8 @@ final class CreditoService
         }
         try {
             return Database::inTransazione(function () use ($genitoreId, $plessoId, $delta, $note, $utenteId, $richiestaId) {
+                $g = (new \App\Repository\AutonomiaRepository())->famiglia($genitoreId, true);
+                if (!$g || (int)$g['cancellato_logicamente']) throw HttpException::nonValido('Famiglia non attiva: richiedere assistenza per operazioni contabili.');
                 $poolId = $this->crediti->assicuraPool($genitoreId, $plessoId);
                 $id = $this->crediti->registraMovimento([
                     'pool_id' => $poolId,

@@ -90,6 +90,7 @@ function sincronizzaMenuSelezionato() {
 
 
 abilitaSchede((vista) => {
+    if (vista === 'report') caricaReport();
     if (vista === 'menu') {
         caricaMenu().catch((e) => UI.stato('menu-stato', 'Non è possibile mostrare il menu: ' + e.message, 'errore'));
         caricaVariazioniProgrammate();
@@ -176,6 +177,27 @@ function rigaDistribuzioneClasse(classe) {
     </li>`;
 }
 
+function distribuzionePersonale(plesso) {
+    const categorie = {insegnanti: 'Docenti', ata: 'Personale ATA', assistenti: 'Assistenti'};
+    const gruppi = {};
+    for (const r of plesso.personale || []) {
+        gruppi[r.categoria] ??= {categoria:r.categoria, pasti:0, tipologie:[]};
+        gruppi[r.categoria].pasti += Number(r.pasti);
+        gruppi[r.categoria].tipologie.push(r);
+    }
+    const righe = Object.values(gruppi);
+    return `<div class="catering-scuola__personale" data-testid="report-personale-${Number(plesso.plesso_id)}">
+        <h4>Pasti del personale · ${Number(plesso.totale_personale || 0)}</h4>
+        ${plesso.personale_disponibile === false
+            ? '<p class="nota">Quantità da configurare: il totale potrebbe essere incompleto.</p>' : ''}
+        ${righe.length ? `<ul class="catering-scuola__classi">${righe.map(r => `<li class="catering-classe">
+            <div class="catering-classe__riga"><h4>${esc(categorie[r.categoria] || r.categoria)}</h4>
+            <strong class="catering-classe__totale">${Number(r.pasti)} <small>pasti</small></strong></div>
+            ${ripartizioneCompatta(r.tipologie)}</li>`).join('')}</ul>`
+            : plesso.personale_disponibile !== false ? '<p class="nota">Nessun pasto del personale previsto.</p>' : ''}
+    </div>`;
+}
+
 function schedaDistribuzioneScuola(plesso) {
     const totale = Number(plesso.totale_pasti);
     const bianchi = Number(plesso.totale_pasta_in_bianco || 0);
@@ -185,12 +207,14 @@ function schedaDistribuzioneScuola(plesso) {
         <div class="catering-scuola__intestazione">
             <div>
                 <strong class="saldo">${totale}</strong>
-                <p class="nota">pasti previsti · modifiche fino alle ${esc(plesso.cutoff_orario)}</p>
+                <p class="nota">pasti totali · alunni e personale</p>
             </div>
             <span class="badge-stato badge-${plesso.definitivo ? 'verde' : 'giallo'}">
-                ${plesso.definitivo ? 'Conteggio confermato' : 'Conteggio provvisorio'}
+                ${plesso.definitivo ? 'Alunni: conteggio confermato' : 'Alunni: conteggio provvisorio'}
             </span>
         </div>
+        <p class="catering-scuola__sintesi">${Number(plesso.totale_alunni ?? totale)} alunni · ${Number(plesso.totale_personale || 0)} personale</p>
+        <p class="nota catering-scuola__cutoff">Alunni: modifiche fino alle ${esc(plesso.cutoff_orario)}.</p>
         <p class="catering-scuola__sintesi">${totale - bianchi} da menu
             ${bianchi ? ` · <strong>${bianchi} pasta in bianco</strong>` : ''}</p>
         <div class="catering-scuola__tipologie">
@@ -198,8 +222,9 @@ function schedaDistribuzioneScuola(plesso) {
             ${ripartizioneCompatta(plesso.tipologie)}
             ${dettaglioPiattiScuola(plesso)}
         </div>
-        <h4 class="catering-scuola__titolo-classi">Pasti per classe o sezione</h4>
-        <ul class="catering-scuola__classi">${classi.map(rigaDistribuzioneClasse).join('')}</ul>
+        ${classi.length ? `<h4 class="catering-scuola__titolo-classi">Pasti per classe o sezione</h4>
+        <ul class="catering-scuola__classi">${classi.map(rigaDistribuzioneClasse).join('')}</ul>` : ''}
+        ${distribuzionePersonale(plesso)}
     </article>`;
 }
 
@@ -227,12 +252,16 @@ async function caricaReport() {
         const dato = (numero, etichetta) => '<div class="riepilogo-mensa__dato"><strong>' + numero +
             '</strong><span>' + etichetta + '</span></div>';
         riepilogo.innerHTML = dato(Number(report.totale_pasti || 0), 'Pasti da preparare') +
+            dato(Number(report.totale_alunni ?? report.totale_pasti ?? 0), 'Alunni') +
+            dato(Number(report.totale_personale || 0), 'Personale') +
             dato(report.plessi.length, 'Scuole con mensa') +
             dato(pasta, 'Pasta in bianco') +
-            dato(confermati + '/' + report.plessi.length, 'Conteggi confermati');
+            dato(confermati + '/' + report.plessi.length, 'Conteggi confermati alunni');
         stato.textContent = 'Pasti per il ' + dataIt(data) +
             ' · ' + Number(report.totale_pasti || 0) +
-            ' pasti previsti · aggiornato alle ' + UI.oraAggiornamento();
+            ' pasti previsti · aggiornato alle ' + UI.oraAggiornamento() +
+            (report.plessi.some(p => p.personale_disponibile === false)
+                ? ' · Attenzione: personale da configurare in alcune scuole; totale incompleto.' : '');
     } catch (errore) {
         if (numeroRichiesta !== ultimaRichiestaReport) return;
         contenitore.innerHTML = '';

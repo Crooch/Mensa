@@ -6,6 +6,7 @@ namespace App\Service;
 
 use App\Core\Config;
 use App\Core\Mailer;
+use App\Core\HttpException;
 use App\Repository\BambinoRepository;
 use App\Repository\ComunicazioneRepository;
 use App\Repository\CreditoRepository;
@@ -133,12 +134,45 @@ final class SollecitoService
         ];
     }
 
-    /** Invio di prova della configurazione SMTP (funzione Admin). */
-    public function inviaEmailDiProva(string $destinatario): void
+    public function automaticiAbilitati(): bool
+    {
+        return ImpostazioniEmail::automatici($this->comunicazioni->impostazioni());
+    }
+
+    /** Connessione, TLS e autenticazione, senza inviare messaggi. */
+    public function verificaSmtp(): array
     {
         $impostazioni = $this->comunicazioni->impostazioni();
-        $mailer = new Mailer($this->configurazioneSmtp($impostazioni));
-        $mailer->invia([$destinatario], [], 'Test configurazione email - Mensa Caltavuturo', "Email di prova inviata dal sistema di gestione mensa scolastica.\n");
+        ImpostazioniEmail::validaSmtp($impostazioni);
+        try {
+            (new Mailer($this->configurazioneSmtp($impostazioni)))->verifica();
+        } catch (\RuntimeException $e) {
+            throw HttpException::nonValido($e->getMessage());
+        }
+        return ['simulato' => Mailer::simulato(), 'verificata' => !Mailer::simulato()];
+    }
+
+    /** Solo destinatario esplicito e dati fittizi: nessun CC, nessun log di sollecito reale. */
+    public function inviaEmailDiProva(string $destinatario, int $plessoId): array
+    {
+        $destinatario = trim($destinatario);
+        if (!filter_var($destinatario, FILTER_VALIDATE_EMAIL)) throw HttpException::nonValido('Indirizzo email di prova non valido.');
+        $plesso = $this->plessi->trova($plessoId);
+        $modello = $this->comunicazioni->modello($plessoId);
+        if (!$plesso || !$modello) throw HttpException::nonValido('Selezionare una scuola con un modello salvato.');
+        $impostazioni = $this->comunicazioni->impostazioni();
+        ImpostazioniEmail::validaSmtp($impostazioni);
+        $campioni = ['{genitore}' => 'Genitore di prova', '{alunno}' => 'Alunno di prova',
+            '{plesso}' => $plesso['nome'], '{saldo}' => '-15', '{fido}' => '10', '{data}' => date('d/m/Y')];
+        $oggetto = '[PROVA] '.strtr($modello['oggetto'], $campioni);
+        $testo = strtr($modello['testo'], $campioni);
+        try {
+            (new Mailer($this->configurazioneSmtp($impostazioni)))->invia([$destinatario], [], $oggetto, $testo);
+        } catch (\RuntimeException $e) {
+            throw HttpException::nonValido($e->getMessage());
+        }
+        return ['inviata' => !Mailer::simulato(), 'simulato' => Mailer::simulato(),
+            'destinatario' => $destinatario, 'oggetto' => $oggetto, 'testo' => $testo];
     }
 
     public function logSolleciti(): array

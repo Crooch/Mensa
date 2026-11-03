@@ -1,9 +1,12 @@
+import os
+from urllib.parse import urlparse
 import json
 import datetime as dt
 import urllib.request
 import urllib.error
 
-base = "http://127.0.0.1:18080"
+base = os.environ.get("MENSA_STAGING_BASE", "http://127.0.0.1:18080")
+assert urlparse(base).hostname in ("localhost", "127.0.0.1"), "Solo staging locale"
 def call(path, payload=None, token=None, method=None):
     headers = {"Content-Type": "application/json"}
     if token:
@@ -330,6 +333,10 @@ print("OK: gita prevale su famiglia/scuola, pasti zero, niente pasta o nuovi int
 # Test reale HTTP multipart: righe del menu e immagine pubblicata/rimossa.
 # I dati sono esclusivamente di staging e la foto e' un PNG sintetico 1x1.
 import base64
+# I test di scrittura devono restare futuri anche dopo ottobre 2026.
+menu_lunedi = dt.date.today() + dt.timedelta(days=14)
+menu_lunedi += dt.timedelta(days=(7-menu_lunedi.weekday())%7)
+menu_lunedi = menu_lunedi.isoformat()
 
 def invia_menu_multipart(campi, immagine=None):
     boundary = "----MensaStagingSmokeBoundary"
@@ -356,7 +363,7 @@ def invia_menu_multipart(campi, immagine=None):
 riferimenti = call("/api/riferimenti", token=catering)
 plesso_menu = 1
 tipologia_menu = int(riferimenti["tipologie"][0]["id"])
-giorno_menu = "2026-10-21"
+giorno_menu = (dt.date.fromisoformat(menu_lunedi) + dt.timedelta(days=2)).isoformat()
 descrizione_menu = "Primo: pasta\nSecondo: pollo\n\nFrutta"
 campi_menu = {
     "plesso_id": plesso_menu, "tipologia_menu_id": tipologia_menu,
@@ -432,7 +439,7 @@ assert assegnato["valido_dal"] >= dt.date.today().isoformat()
 assegnazioni = call("/api/catering/menu-settimanali/assegnazioni", token=catering)
 assert len([a for a in assegnazioni if int(a["menu_id"]) == modello_id]) == 2
 
-menus_19 = call("/api/catering/menu?data=2026-10-19", token=catering)
+menus_19 = call("/api/catering/menu?data=" + menu_lunedi, token=catering)
 ricorrenti = [m for m in menus_19
     if m.get("origine") == "settimanale" and int(m["tipologia_menu_id"]) == tipologia_menu]
 assert len(ricorrenti) == 2
@@ -442,7 +449,7 @@ assert all(m["descrizione"] == "Primo: pasta\\nSecondo: verdure" for m in ricorr
 # e i piatti giornalieri, a parita' di plesso, data e tipologia.
 for plesso_assegnato in (1, 3):
     report_con_modello = call(
-        "/api/catering/report?data=2026-10-19&plesso_id=" + str(plesso_assegnato),
+        "/api/catering/report?data=" + menu_lunedi + "&plesso_id=" + str(plesso_assegnato),
         token=catering
     )
     scuola = next(p for p in report_con_modello["plessi"]
@@ -465,7 +472,7 @@ for plesso_assegnato in (1, 3):
                 assert t["menu_descrizione"] == tipo["menu_descrizione"]
     verifica_distribuzione(scuola)
 
-menu_genitore = call("/api/genitore/menu?data=2026-10-19", token=genitore)
+menu_genitore = call("/api/genitore/menu?data=" + menu_lunedi, token=genitore)
 assert any(m.get("origine") == "settimanale" for m in menu_genitore)
 assert call("/api/catering/menu?data=2026-10-15", token=catering) == []
 print("OK: modello duplicato e assegnato a piu' plessi, visibile al genitore senza modifiche retroattive.")
@@ -513,12 +520,12 @@ modello_foto = next(m for m in dopo_foto if int(m["id"]) == modello_id)
 foto_settimanale = modello_foto["foto_giorni"]["1"]
 assert foto_settimanale.startswith("menu/settimane/")
 assert foto_settimanale.endswith(".png")
-menus_foto = call("/api/catering/menu?data=2026-10-19", token=catering)
+menus_foto = call("/api/catering/menu?data=" + menu_lunedi, token=catering)
 assert len([m for m in menus_foto if
     int(m["tipologia_menu_id"]) == tipologia_menu and
     m.get("origine") == "settimanale" and
     m["foto_path"] == foto_settimanale]) == 2
-famiglia_foto = call("/api/genitore/menu?data=2026-10-19", token=genitore)
+famiglia_foto = call("/api/genitore/menu?data=" + menu_lunedi, token=genitore)
 assert any(m["foto_path"] == foto_settimanale for m in famiglia_foto)
 # Duplicando il modello, la foto viene ripresa per riferimento immutabile.
 copiato_foto = call("/api/catering/menu-settimanali/" + str(modello_id) + "/duplica", {
@@ -532,18 +539,18 @@ assert next(m for m in modelli_finali
 # in assenza di un upload, non deve riprendere quella del modello settimanale.
 campi_override = {
     "plesso_id": plesso_menu, "tipologia_menu_id": tipologia_menu,
-    "data": "2026-10-19", "descrizione": "Pollo",
+    "data": menu_lunedi, "descrizione": "Pollo",
     "rimuovi_foto": "0"
 }
 eccezione = invia_menu_multipart(campi_override)
-foto_override = call("/api/catering/menu?data=2026-10-19", token=catering)
+foto_override = call("/api/catering/menu?data=" + menu_lunedi, token=catering)
 riga_override = next(m for m in foto_override
     if int(m["plesso_id"]) == plesso_menu and
        int(m["tipologia_menu_id"]) == tipologia_menu)
 assert riga_override["foto_path"] is None
 assert riga_override["descrizione"] == "Pollo"
 assert riga_override["origine"] == "giornaliero"
-report_override = call("/api/catering/report?data=2026-10-19&plesso_id=" +
+report_override = call("/api/catering/report?data=" + menu_lunedi + "&plesso_id=" +
     str(plesso_menu), token=catering)
 tipo_override = next(t for p in report_override["plessi"]
     if int(p["plesso_id"]) == plesso_menu for t in p["tipologie"]
@@ -554,7 +561,7 @@ assert tipo_override["menu_descrizione"] == "Pollo"
 invia_menu_multipart(campi_override, png_1x1)
 campi_override["rimuovi_foto"] = "1"
 invia_menu_multipart(campi_override)
-dopo_rimozione_locale = call("/api/catering/menu?data=2026-10-19", token=catering)
+dopo_rimozione_locale = call("/api/catering/menu?data=" + menu_lunedi, token=catering)
 assert next(m for m in dopo_rimozione_locale
     if int(m["plesso_id"]) == plesso_menu and
        int(m["tipologia_menu_id"]) == tipologia_menu)["foto_path"] is None
@@ -605,7 +612,7 @@ ultima_pagina = call("/api/catering/menu/variazioni?pagina=99999", token=caterin
 assert ultima_pagina["pagina"] == ultima_pagina["pagine"]
 assert len(ultima_pagina["righe"]) <= 10
 assert any(m["descrizione"] == "Menu senza glutine modificato" for m in
-           call("/api/catering/menu?data=2026-10-19", token=catering)) is False
+           call("/api/catering/menu?data=" + menu_lunedi, token=catering)) is False
 try:
     call("/api/catering/menu/annulla", {
         "plesso_id": plesso_menu, "tipologia_menu_id": tipo_senza_modello, "data": giorno

@@ -4,6 +4,16 @@ let riferimenti = { plessi: [], tipologie: [], classi: [] };
 let famigliaCorrente = null;
 let ultimaRicerca = 0;
 let ultimaAperturaFamiglia = 0;
+let paginaFamiglie = 1;
+let pagineFamiglie = 1;
+let totaleFamiglie = 0;
+let filtriFamiglie = {q:'', stato:'attive', per_pagina:10};
+let ricercaInCorso = false;
+let ricercaTimer = null;
+let famigliaAperta = null;
+let posizioneElenco = 0;
+const vistaFamiglie = document.getElementById('vista-famiglie');
+const schermoCompatto = window.matchMedia('(max-width: 980px)');
 
 abilitaSchede((vista) => {
     if (vista === 'crediti') caricaSituazione();
@@ -69,30 +79,80 @@ const opzioniPlessi = () => riferimenti.plessi.map((p) => `<option value="${p.id
 const opzioniTipologie = () => riferimenti.tipologie.map((t) => `<option value="${t.id}">${esc(t.nome)}</option>`).join('');
 const opzioniClassi = () => riferimenti.classi.map((c) => `<option value="${c.id}">${esc(c.plesso_nome)} · ${esc(c.nome)} (${esc(c.anno_scolastico)})</option>`).join('');
 
-async function cerca() {
+function aggiornaPaginazione() {
+    document.getElementById('famiglie-precedente').disabled = ricercaInCorso || paginaFamiglie <= 1;
+    document.getElementById('famiglie-successiva').disabled = ricercaInCorso || paginaFamiglie >= pagineFamiglie;
+    document.getElementById('famiglie-pagina').textContent = `Pagina ${paginaFamiglie} di ${pagineFamiglie}`;
+}
+function evidenziaFamiglia() {
+    document.querySelectorAll('#famiglie-corpo [data-genitore]').forEach(riga => {
+        const attiva = Number(riga.dataset.genitore) === famigliaAperta;
+        riga.classList.toggle('famiglia-selezionata', attiva);
+        riga.querySelector('[data-apri]').setAttribute('aria-current', attiva ? 'true' : 'false');
+    });
+}
+function tornaElenco() {
+    ++ultimaAperturaFamiglia; // Una risposta tardiva non deve riaprire la scheda.
+    const precedente = famigliaAperta;
+    famigliaAperta = null;
+    famigliaCorrente = null;
+    vistaFamiglie.classList.remove('famiglia-aperta');
+    document.getElementById('scheda-famiglia').innerHTML = '<p class="vuoto">Premi «Apri» accanto a una famiglia per vedere i figli e i buoni mensa.</p>';
+    evidenziaFamiglia();
+    requestAnimationFrame(() => {
+        const attivatore = document.querySelector(`#famiglie-corpo [data-apri="${precedente}"]`) || document.getElementById('ricerca-famiglie');
+        attivatore.focus({preventScroll:true});
+        if(schermoCompatto.matches) window.scrollTo({top:posizioneElenco, behavior:'instant'});
+    });
+}
+async function cerca(pagina = 1, mantieniFiltri = false) {
+    clearTimeout(ricercaTimer);
     const versione = ++ultimaRicerca;
-    const q = document.getElementById('ricerca-famiglie').value.trim();
+    if (!mantieniFiltri) {
+        filtriFamiglie = {q:document.getElementById('ricerca-famiglie').value.trim(),
+            stato:document.getElementById('famiglie-stato').value,
+            per_pagina:Number(document.getElementById('famiglie-per-pagina').value)};
+    }
+    ricercaInCorso = true;aggiornaPaginazione();
+    document.getElementById('famiglie-corpo').innerHTML = '<tr><td colspan="4" class="vuoto">Caricamento…</td></tr>';
+    document.getElementById('famiglie-intervallo').textContent = '';
     UI.stato('ricerca-stato', 'Sto cercando le famiglie…', 'caricamento');
-    let elenco;
+    let risultato;
     try {
-        elenco = await API.get('/api/famiglie?q=' + encodeURIComponent(q));
+        risultato = await API.get('/api/famiglie?' + new URLSearchParams({...filtriFamiglie,pagina}));
     } catch (errore) {
-        if (versione === ultimaRicerca) UI.stato('ricerca-stato', 'Ricerca non riuscita: ' + errore.message, 'errore');
+        if (versione === ultimaRicerca) {
+            ricercaInCorso=false;paginaFamiglie=1;pagineFamiglie=1;aggiornaPaginazione();
+            document.getElementById('famiglie-corpo').innerHTML='<tr><td colspan="4" class="vuoto">Ricerca non disponibile. Premi Cerca per riprovare.</td></tr>';
+            UI.stato('ricerca-stato', 'Ricerca non riuscita: ' + errore.message, 'errore');
+        }
         return;
     }
     if (versione !== ultimaRicerca) return;
-    UI.stato('ricerca-stato', elenco.length + ' famiglie trovate · aggiornato alle ' + UI.oraAggiornamento(), 'ok');
-    document.getElementById('famiglie-corpo').innerHTML = elenco.map((g) => `
+    ricercaInCorso=false;paginaFamiglie=risultato.pagina;pagineFamiglie=risultato.pagine;totaleFamiglie=risultato.totale;
+    aggiornaPaginazione();
+    const primo = totaleFamiglie ? (paginaFamiglie-1)*risultato.per_pagina+1 : 0;
+    const ultimo = totaleFamiglie ? primo+risultato.famiglie.length-1 : 0;
+    document.getElementById('famiglie-intervallo').textContent = totaleFamiglie ? `${primo}–${ultimo} di ${totaleFamiglie} famiglie` : 'Nessuna famiglia trovata';
+    UI.stato('ricerca-stato', `${totaleFamiglie} famiglie trovate · ricerca sull’intero archivio`, 'ok');
+    document.getElementById('famiglie-corpo').innerHTML = risultato.famiglie.map((g) => `
         <tr data-genitore="${g.id}">
-            <td>${esc(g.cognome)} ${esc(g.nome)}</td><td>${esc(g.telefono)}</td><td>${esc(g.email || '-')}</td>
-            <td><button class="btn-azione" data-apri="${g.id}" data-testid="apri-famiglia-${g.id}">Apri</button></td>
-        </tr>`).join('') || '<tr><td colspan="4" class="vuoto">Nessun risultato.</td></tr>';
-    document.querySelectorAll('[data-apri]').forEach((b) => b.addEventListener('click', () => apriFamiglia(Number(b.dataset.apri))));
+            <td>${esc(g.cognome)} ${esc(g.nome)}${Number(g.cancellato_logicamente)?'<span class="famiglia-stato-badge">Disattivata</span>':''}</td>
+            <td>${esc(g.telefono || 'Telefono non presente')}</td><td>${esc(g.email || '')}</td>
+            <td><button class="btn-azione" data-apri="${g.id}" data-testid="apri-famiglia-${g.id}" aria-label="Apri famiglia ${esc(g.cognome+' '+g.nome)}">Apri</button></td>
+        </tr>`).join('') || '<tr><td colspan="4" class="vuoto">Nessun risultato. Prova un altro nome o scegli “Tutte le famiglie”.</td></tr>';
+    document.querySelectorAll('#famiglie-corpo [data-apri]').forEach((b) => b.addEventListener('click', () => apriFamiglia(Number(b.dataset.apri))));
+    evidenziaFamiglia();
 }
 
 async function apriFamiglia(id) {
     const versione = ++ultimaAperturaFamiglia;
     const scheda = document.getElementById('scheda-famiglia');
+    const nuovaApertura = famigliaAperta !== id;
+    if (!vistaFamiglie.classList.contains('famiglia-aperta')) posizioneElenco=window.scrollY;
+    famigliaAperta=id;famigliaCorrente=null;
+    vistaFamiglie.classList.add('famiglia-aperta');evidenziaFamiglia();
+    if (nuovaApertura && schermoCompatto.matches) document.getElementById('famiglie-indietro').scrollIntoView({block:'start'});
     scheda.innerHTML = '<p class="nota">Sto caricando i dati della famiglia…</p>';
     let s;
     try {
@@ -117,10 +177,14 @@ async function apriFamiglia(id) {
         </header>
         <div class="operatore-azioni">
             <button class="btn btn-primary btn-sm" id="btn-acquisto" data-testid="acquisto-buoni-button">Registra buoni acquistati</button>
-            <button class="btn btn-outline-primary btn-sm" id="btn-override" data-testid="override-tariffa-button">Tariffa agevolata</button>
-            <button class="btn btn-outline-primary btn-sm" id="btn-rettifica" data-testid="rettifica-button">Correggi il saldo buoni</button>
-            <button class="btn btn-outline-primary btn-sm" id="btn-modifica-genitore" data-testid="modifica-genitore-button">Modifica dati</button>
-            <button class="btn btn-outline-primary btn-sm" id="btn-nuovo-figlio" data-testid="nuovo-figlio-button">Aggiungi figlio</button>
+            <button type="button" class="btn btn-outline-primary" id="btn-altre-operazioni" aria-expanded="false" aria-controls="famiglia-azioni-secondarie">Altre operazioni</button>
+            <div id="famiglia-azioni-secondarie">
+                <button class="btn btn-outline-primary btn-sm" id="btn-modifica-genitore" data-testid="modifica-genitore-button">Modifica dati</button>
+                <button class="btn btn-outline-primary btn-sm" id="btn-nuovo-figlio" data-testid="nuovo-figlio-button">Aggiungi figlio</button>
+                <button class="btn btn-outline-primary btn-sm" id="btn-verifica-famiglia">Verifica associazioni e disattivazione</button>
+                <button class="btn btn-outline-primary btn-sm" id="btn-override" data-testid="override-tariffa-button">Tariffa agevolata</button>
+                <button class="btn btn-outline-primary btn-sm" id="btn-rettifica" data-testid="rettifica-button">Correggi il saldo buoni</button>
+            </div>
         </div>
 
         <div class="area-sezione-testa"><h3>Buoni disponibili</h3></div>
@@ -143,6 +207,7 @@ async function apriFamiglia(id) {
                     <ul class="nota">${f.storico_classi.map((a) => `<li>${esc(a.plesso_nome)} · ${esc(a.classe_nome)} (${esc(a.anno_scolastico)}) dal ${dataIt(a.data_inizio)} ${a.data_fine ? 'al ' + dataIt(a.data_fine) : '(corrente)'}</li>`).join('')}</ul>
                 </details>
                 <div class="operatore-figlio-azioni">
+                    <button class="btn-azione" data-nome="${f.id}">Modifica anagrafica</button>
                     <button class="btn-azione" data-cambio-classe="${f.id}" data-testid="cambia-classe-${f.id}">Cambia classe</button>
                     <button class="btn-azione" data-dieta="${f.id}" data-testid="cambia-dieta-${f.id}">Cambia dieta</button>
                     <button class="btn-azione" data-cancella-figlio="${f.id}" data-testid="cancella-figlio-${f.id}">Disattiva bambino</button>
@@ -170,9 +235,17 @@ async function apriFamiglia(id) {
         </details>`;
 
     collegaAzioniFamiglia(id);
+    document.getElementById('btn-altre-operazioni').onclick = ev => {
+        const open=ev.currentTarget.getAttribute('aria-expanded')!=='true';
+        ev.currentTarget.setAttribute('aria-expanded',String(open));
+        document.getElementById('famiglia-azioni-secondarie').classList.toggle('azioni-aperte',open);
+    };
+    if(nuovaApertura)scheda.focus({preventScroll:true});
 }
 
 function collegaAzioniFamiglia(genitoreId) {
+    document.getElementById('btn-verifica-famiglia').onclick = () => verificaFamiglia(genitoreId).catch(e => avviso(e.message, 'errore'));
+    document.querySelectorAll('[data-nome]').forEach(b => b.onclick = () => formNome(Number(b.dataset.nome)));
     document.getElementById('btn-acquisto').addEventListener('click', () => formAcquisto(genitoreId));
     document.getElementById('btn-override').addEventListener('click', () => formOverride(genitoreId));
     document.getElementById('btn-rettifica').addEventListener('click', () => formRettifica(genitoreId));
@@ -312,6 +385,7 @@ function formModificaGenitore(g) {
         </form>`, async (fd) => {
         await API.put('/api/famiglie/' + g.id, Object.fromEntries(fd.entries()));
         avviso('Dati aggiornati.');
+        await cerca(paginaFamiglie,true);
         apriFamiglia(Number(g.id));
     });
 }
@@ -351,7 +425,8 @@ function formDieta(bambinoId) {
             <label for="op-dieta-select">Nuovo tipo di menu</label><select id="op-dieta-select" name="tipologia_menu_id" data-testid="dieta-select">${opzioniTipologie()}</select>
             <button class="btn btn-primary" type="submit" data-testid="dieta-submit-button">Salva</button>
         </form>`, async (fd) => {
-        await API.put('/api/bambini/' + bambinoId, { tipologia_menu_id: Number(fd.get('tipologia_menu_id')) });
+        if (!confirm('Confermi il nuovo menù per questo alunno?')) return false;
+        await API.put('/api/bambini/' + bambinoId, { tipologia_menu_id: Number(fd.get('tipologia_menu_id')), conferma: true, motivazione: 'Modifica dieta dalla scheda alunno' });
         avviso('Tipologia aggiornata.');
         apriFamiglia(famigliaCorrente.genitore.id);
     });
@@ -368,7 +443,11 @@ async function caricaSituazione() {
 }
 
 async function caricaSolleciti() {
-    const elenco = await API.get('/api/solleciti');
+    const v = Object.fromEntries(new FormData(document.getElementById('solleciti-filtri')));
+    const result = await API.get('/api/solleciti/consultazione?' + new URLSearchParams(v));
+    const elenco = result.log;
+    document.getElementById('solleciti-posizioni').innerHTML = '<h2>Posizioni oltre fido</h2>' + result.posizioni.map(r => `<p>Famiglia ID ${r.genitore_id} · ${esc(r.genitore_cognome)} ${esc(r.genitore_nome)} · ${esc(r.plesso_nome)} · saldo ${r.saldo}, fido ${r.fido_buoni}</p>`).join('');
+    document.getElementById('solleciti-stato').textContent = result.invii + (result.limite_raggiunto ? ' Raggiunto limite di 1000 risultati: restringi i filtri.' : '');
     document.getElementById('solleciti-corpo').innerHTML = elenco.map((r) => `
         <tr><td>${dataIt(r.data_invio)}</td><td>${esc(r.genitore_cognome)} ${esc(r.genitore_nome)}</td>
         <td>${esc(r.plesso_nome)}</td><td>${r.saldo_al_momento_invio}</td>
@@ -377,11 +456,44 @@ async function caricaSolleciti() {
         || '<tr><td colspan="6" class="vuoto">Nessun sollecito inviato.</td></tr>';
 }
 
-document.getElementById('btn-cerca').addEventListener('click', cerca);
-document.getElementById('ricerca-famiglie').addEventListener('keydown', (e) => { if (e.key === 'Enter') cerca(); });
+document.getElementById('famiglie-filtri').addEventListener('submit', e=>{e.preventDefault();cerca();});
+document.getElementById('ricerca-famiglie').addEventListener('input',()=>{
+    clearTimeout(ricercaTimer);ricercaTimer=setTimeout(()=>cerca(),300);
+});
+document.getElementById('famiglie-stato').addEventListener('change',()=>cerca());
+document.getElementById('famiglie-per-pagina').addEventListener('change',()=>cerca());
+document.getElementById('famiglie-precedente').addEventListener('click',()=>{if(!ricercaInCorso&&paginaFamiglie>1)cambiaPaginaFamiglie(paginaFamiglie-1);});
+document.getElementById('famiglie-successiva').addEventListener('click',()=>{if(!ricercaInCorso&&paginaFamiglie<pagineFamiglie)cambiaPaginaFamiglie(paginaFamiglie+1);});
+async function cambiaPaginaFamiglie(pagina) {
+    await cerca(pagina,true);
+    document.querySelector('.operatore-risultati').scrollIntoView({block:'start'});
+    document.querySelector('#famiglie-corpo [data-apri]')?.focus({preventScroll:true});
+}
+document.getElementById('famiglie-indietro').addEventListener('click',tornaElenco);
 document.getElementById('btn-nuovo-genitore').addEventListener('click', formNuovoGenitore);
 
 (async () => {
     riferimenti = await API.get('/api/riferimenti');
     await cerca();
 })().catch((e) => avviso(e.message, 'errore'));
+
+function formNome(bambinoId) {
+    const f = famigliaCorrente.figli.find(f => Number(f.id) === bambinoId);
+    apriModale('Modifica anagrafica', `<form><p>Alunno ID ${f.id} · ${esc(f.cognome)} ${esc(f.nome)}<br>Famiglia ID ${famigliaCorrente.genitore.id} · ${esc(f.genitore_cognome)} ${esc(f.genitore_nome)}<br>${esc(f.plesso_nome || 'Nessun plesso')} · ${esc(f.classe_nome || '')}</p><label>Nome <input name="nome" value="${esc(f.nome)}" maxlength="80" required></label><label>Cognome <input name="cognome" value="${esc(f.cognome)}" maxlength="80" required></label><label>Motivazione <input name="motivazione" maxlength="255" required></label><button type="submit" class="btn btn-primary">Salva anagrafica</button></form>`, async fd => {
+        const v=Object.fromEntries(fd);
+        if(!confirm(`Alunno ID ${f.id}: ${f.cognome} ${f.nome} → ${v.cognome} ${v.nome}. Confermi?`))return false;
+        await API.put('/api/bambini/'+f.id,{...v,precedente:{nome:f.nome,cognome:f.cognome},conferma:true});
+        await apriFamiglia(famigliaCorrente.genitore.id);avviso('Anagrafica aggiornata. Collegamenti e buoni conservati.');
+    });
+}
+async function verificaFamiglia(gid) {
+    const v=await API.get('/api/famiglie/'+gid+'/verifica');
+    apriModale('Verifica associazioni e disattivazione', `<form><p><strong>${esc(v.genitore.cognome)} ${esc(v.genitore.nome)}</strong> · Famiglia ID ${gid} · Utenza ID ${v.genitore.utente_id || 'assente'}</p><p>Figli attivi: ${v.figli_attivi} · Posizioni con saldo non nullo: ${v.saldi_non_zero} · Movimenti conservati: ${v.movimenti}</p><h3>Associazioni correnti e storiche</h3>${v.figli.map(f=>`<p>Alunno ID ${f.id} · ${esc(f.cognome)} ${esc(f.nome)} · ${esc(f.plesso_nome||'Nessuno')} / ${esc(f.classe_nome||'')} · dal ${esc(f.data_inizio||'—')} al ${esc(f.data_fine||'aperta')} · ${Number(f.cancellato_logicamente)?'disattivato':'attivo'}</p>`).join('')||'<p>Nessun alunno associato.</p>'}<h3>Possibili omonimie</h3>${v.possibili_duplicati.map(f=>`<p>Alunno ID ${f.id} · ${esc(f.cognome)} ${esc(f.nome)} · Famiglia ID ${f.genitore_id}: ${esc(f.genitore_cognome)} ${esc(f.genitore_nome)}</p>`).join('')||'<p>Nessuna omonimia esatta trovata. Verificare comunque le anagrafiche.</p>'}<p>${esc(v.avvertenza)}</p>${v.disattivabile&&!Number(v.genitore.cancellato_logicamente)?'<p>La disattivazione revoca l’accesso del genitore e conserva lo storico.</p><label>Motivazione <input name="motivazione" maxlength="255" required></label><button type="submit" class="btn btn-primary">Disattiva genitore</button>':'<p>Disattivazione non disponibile: genitore già disattivato oppure figli attivi o saldi non nulli. Per conflitti anagrafici o contabili richiedere assistenza.</p>'}</form>`,async fd=>{
+        if(!confirm(`Disattivare ${v.genitore.cognome} ${v.genitore.nome}, famiglia ID ${gid}, revocando gli accessi?`))return false;
+        await API.del('/api/famiglie/'+gid,{conferma:true,motivazione:fd.get('motivazione')});await cerca(paginaFamiglie,true);await apriFamiglia(gid);avviso('Genitore disattivato. Storico conservato e accessi revocati.');
+    });
+}
+
+document.getElementById('solleciti-filtri').addEventListener('submit',ev=>{ev.preventDefault();caricaSolleciti().catch(err=>avviso(err.message,'errore'));});
+document.getElementById('solleciti-filtri').elements.dal.value=oggi().slice(0,7)+'-01';
+document.getElementById('solleciti-filtri').elements.al.value=oggi();

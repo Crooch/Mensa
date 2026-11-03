@@ -131,11 +131,12 @@ final class JobGiornalieroService
                 }
             }
 
+            (new \App\Core\Container())->autonomia()->consolidaPersonale($plessoId, $data);
             $report = $this->presenze->reportPasti($data, $plessoId);
             // Dopo T0 i saldi ripartono da zero: non inviare automaticamente
             // solleciti di debito alla prima giornata. La riattivazione
-            // richiede una decisione distinta e configurazione esplicita.
-            $solleciti = \App\Core\Config::get('app.solleciti_automatici_enabled', false) === true
+            // richiede una scelta esplicita dell’Admin in Email e solleciti.
+            $solleciti = $this->solleciti->automaticiAbilitati()
                 ? $this->solleciti->inviaSollecitiPlesso($plessoId, $data)
                 : ['inviati' => 0, 'errori' => 0, 'disabilitati' => true];
 

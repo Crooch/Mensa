@@ -64,6 +64,7 @@ async function caricaPlessi() {
     if (plessi.some(p => String(p.id) === utPlesso)) utenza.value = utPlesso;
     // La scelta della scuola guida immediatamente la lista delle classi.
     aggiornaSceltaClasse();
+    if (emailCaricata && JSON.parse(modelloSalvato).plesso_id === 0) mostraModelloEmail();
 }
 
 document.getElementById('form-plesso').addEventListener('submit', async (e) => {
@@ -176,8 +177,8 @@ document.getElementById('eccezioni-calendario-corpo').addEventListener('click', 
         try {
             await API.del('/api/admin/calendari/' + id + '/periodi/' + p.id);
             avviso('Periodo eliminato. Ora vale il calendario ordinario.');
-            await caricaCalendario();
             segnalaVerificaDaAggiornare();
+            await caricaCalendario();
         } catch (err) {
             messaggioPeriodo(err.message, true);
         }
@@ -204,8 +205,8 @@ document.getElementById('form-calendario').addEventListener('submit', async ev =
     try {
         await API.put('/api/admin/calendari/' + id, dati);
         avviso('Calendario ordinario salvato per la scuola selezionata.');
-        await caricaCalendario();
         segnalaVerificaDaAggiornare();
+        await caricaCalendario();
     } catch (err) { avviso(err.message, 'errore'); }
 });
 document.getElementById('form-eccezione-calendario').addEventListener('submit', async ev => {
@@ -235,8 +236,8 @@ document.getElementById('form-eccezione-calendario').addEventListener('submit', 
             await API.post(percorso, dati);
         }
         avviso('Periodo straordinario salvato.');
-        await caricaCalendario();
         segnalaVerificaDaAggiornare();
+        await caricaCalendario();
     } catch (err) {
         messaggioPeriodo(err.message, true);
     } finally {
@@ -244,13 +245,16 @@ document.getElementById('form-eccezione-calendario').addEventListener('submit', 
     }
 });
 function segnalaVerificaDaAggiornare() {
+    document.dispatchEvent(new Event('mensa:calendario-modificato'));
+}
+document.addEventListener('mensa:calendario-modificato', () => {
     if (!verificaCalendarioDati) return;
     ++verificaCalendarioRichiesta;
     verificaCalendarioDati = null;
     document.getElementById('calendario-verifica-pannello').hidden = true;
     document.getElementById('calendario-verifica-esito').textContent =
         'Calendario modificato. Premi «Controlla tutte le scuole» per aggiornare la verifica.';
-}
+});
 /* Verifica generale, distinta dalla scuola selezionata per la modifica. */
 let verificaCalendarioDati = null;
 let verificaCalendarioPagina = 1;
@@ -552,87 +556,106 @@ document.getElementById('form-tipologia').addEventListener('submit', async (e) =
 });
 
 /* ---------------- email ---------------- */
-async function caricaEmail() {
-    const [modelli, destinatari, impostazioni] = await Promise.all([
-        API.get('/api/admin/modelli-email'),
-        API.get('/api/admin/destinatari'),
-        API.get('/api/admin/impostazioni')
-    ]);
-    const plessoSelezionato = document.getElementById('modello-plesso').value;
-    const modello = modelli.find((m) => String(m.plesso_id) === plessoSelezionato);
-    document.getElementById('modello-oggetto').value = modello ? modello.oggetto : 'Sollecito pagamento mensa scolastica - {plesso}';
-    document.getElementById('modello-testo').value = modello ? modello.testo : '';
-
-    document.getElementById('destinatari-corpo').innerHTML = destinatari.map((d) => `
-        <tr><td>${esc(d.etichetta)}</td><td>${esc(d.email)}</td>
-        <td>${Number(d.attivo) === 1 ? 'sì' : 'no'}</td>
-        <td><button class="btn-azione" data-toggle-dest="${d.id}" data-attivo="${d.attivo}" data-testid="destinatario-toggle-${d.id}">${Number(d.attivo) === 1 ? 'Disattiva' : 'Attiva'}</button></td></tr>`).join('');
-    document.querySelectorAll('[data-toggle-dest]').forEach((b) => b.addEventListener('click', async () => {
-        await API.put('/api/admin/destinatari/' + b.dataset.toggleDest, { attivo: Number(b.dataset.attivo) === 1 ? 0 : 1 });
-        caricaEmail();
-    }));
-
-    document.getElementById('smtp-host').value = impostazioni.smtp_host || '';
-    document.getElementById('smtp-port').value = impostazioni.smtp_port || 587;
-    document.getElementById('smtp-security').value = impostazioni.smtp_security || 'tls';
-    document.getElementById('smtp-username').value = impostazioni.smtp_username || '';
-    document.getElementById('smtp-password').value = impostazioni.smtp_password || '';
-    document.getElementById('smtp-from').value = impostazioni.smtp_from || '';
-    document.getElementById('email-protocollo').value = impostazioni.email_protocollo || '';
+let modelliEmail = [], emailCaricata = false, emailCaricamento = 0, smtpSalvato = '', modelloSalvato = '';
+let testEmailInCorso = false;
+const campoEmail = id => document.getElementById(id);
+function datiSmtp() {
+    return Object.fromEntries(['host','port','security','username','password','from','from_name'].map(n=>['smtp_'+n,campoEmail('smtp-'+n).value]).concat([['email_protocollo',campoEmail('email-protocollo').value]]));
 }
-
-document.getElementById('modello-plesso').addEventListener('change', caricaEmail);
-
-document.getElementById('form-modello').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    try {
-        await API.post('/api/admin/modelli-email', {
-            plesso_id: Number(document.getElementById('modello-plesso').value),
-            oggetto: document.getElementById('modello-oggetto').value,
-            testo: document.getElementById('modello-testo').value,
-            attivo: true
-        });
-        avviso('Modello salvato.');
-    } catch (err) { avviso(err.message, 'errore'); }
+function datiModelloEmail() {
+    return {plesso_id:Number(campoEmail('modello-plesso').value),oggetto:campoEmail('modello-oggetto').value,testo:campoEmail('modello-testo').value,attivo:campoEmail('modello-attivo').checked};
+}
+function aggiornaProveEmail() {
+    const smtpModificato=JSON.stringify(datiSmtp())!==smtpSalvato;
+    const modelloModificato=JSON.stringify(datiModelloEmail())!==modelloSalvato;
+    campoEmail('btn-smtp-verifica').disabled=!emailCaricata||smtpModificato||testEmailInCorso;
+    campoEmail('btn-email-prova').disabled=!emailCaricata||smtpModificato||modelloModificato||!campoEmail('email-prova-plesso').value||testEmailInCorso;
+    campoEmail('email-prova-avviso').textContent=smtpModificato||modelloModificato?'Salva le modifiche a SMTP e modello prima di eseguire le prove.':!modelliEmail.length?'Salva un modello per poterlo provare.':'';
+}
+function mostraModelloEmail() {
+    const modello=modelliEmail.find(m=>String(m.plesso_id)===campoEmail('modello-plesso').value);
+    campoEmail('modello-oggetto').value=modello?.oggetto||'Sollecito pagamento mensa scolastica - {plesso}';
+    campoEmail('modello-testo').value=modello?.testo||'';
+    campoEmail('modello-attivo').checked=modello?Number(modello.attivo)===1:true;
+    modelloSalvato=JSON.stringify(datiModelloEmail());
+    if(modello)campoEmail('email-prova-plesso').value=String(modello.plesso_id);
+    aggiornaProveEmail();
+}
+function opzioniProvaEmail() {
+    const old=campoEmail('email-prova-plesso').value;
+    campoEmail('email-prova-plesso').innerHTML=modelliEmail.length?modelliEmail.map(m=>`<option value="${m.plesso_id}">${esc(m.plesso_nome)}${Number(m.attivo)?'':' (automatici disattivati)'}</option>`).join(''):'<option value="">Nessun modello salvato</option>';
+    if(modelliEmail.some(m=>String(m.plesso_id)===old))campoEmail('email-prova-plesso').value=old;
+}
+async function caricaDestinatariEmail() {
+    const destinatari=await API.get('/api/admin/destinatari');
+    campoEmail('destinatari-corpo').innerHTML=destinatari.map(d=>`<tr><td>${esc(d.etichetta)}</td><td>${esc(d.email)}</td><td>${Number(d.attivo)===1?'sì':'no'}</td><td><button class="btn-azione" data-toggle-dest="${d.id}" data-attivo="${d.attivo}" data-testid="destinatario-toggle-${d.id}">${Number(d.attivo)===1?'Disattiva':'Attiva'}</button></td></tr>`).join('');
+    document.querySelectorAll('[data-toggle-dest]').forEach(b=>b.addEventListener('click',async()=>{
+        b.disabled=true;
+        try{await API.put('/api/admin/destinatari/'+b.dataset.toggleDest,{attivo:Number(b.dataset.attivo)===1?0:1});await caricaDestinatariEmail();}
+        catch(err){avviso(err.message,'errore');b.disabled=false;}
+    }));
+}
+function mostraImpostazioniEmail(impostazioni) {
+    for(const n of ['host','port','security','username','password','from','from_name'])campoEmail('smtp-'+n).value=impostazioni['smtp_'+n]||(n==='port'?587:n==='security'?'tls':'');
+    campoEmail('email-protocollo').value=impostazioni.email_protocollo||'';
+    campoEmail('email-automatici').checked=impostazioni.solleciti_automatici_enabled;
+    campoEmail('email-automatici-stato').textContent=impostazioni.solleciti_automatici_enabled?'Solleciti automatici abilitati.':'Solleciti automatici disabilitati.';
+    campoEmail('email-ambiente').textContent=impostazioni.invio_simulato?'Ambiente demo: gli invii e le verifiche SMTP sono simulati. Nessuna email viene spedita.':!impostazioni.scheduler_abilitato?'La pianificazione del servizio non è attiva: l’invio automatico richiede il job giornaliero.':'L’invio automatico avviene durante il job giornaliero programmato.';
+    smtpSalvato=JSON.stringify(datiSmtp());
+}
+async function caricaEmail() {
+    // Conserva eventuali bozze quando si torna alla scheda.
+    if(emailCaricata&&(JSON.stringify(datiSmtp())!==smtpSalvato||JSON.stringify(datiModelloEmail())!==modelloSalvato))return;
+    const versione=++emailCaricamento;
+    try{
+        const [modelli,impostazioni]=await Promise.all([API.get('/api/admin/modelli-email'),API.get('/api/admin/impostazioni'),caricaDestinatariEmail()]);
+        if(versione!==emailCaricamento)return;
+        modelliEmail=modelli;mostraImpostazioniEmail(impostazioni);opzioniProvaEmail();emailCaricata=true;mostraModelloEmail();
+    }catch(err){avviso(err.message,'errore');}
+}
+campoEmail('modello-plesso').addEventListener('change',mostraModelloEmail);
+for(const id of ['form-smtp','form-modello'])campoEmail(id).addEventListener('input',()=>{
+    aggiornaProveEmail();campoEmail('smtp-verifica-stato').textContent='';campoEmail('email-prova-stato').textContent='';campoEmail('email-prova-anteprima').hidden=true;
 });
-
-document.getElementById('form-destinatario').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    try {
-        await API.post('/api/admin/destinatari', {
-            etichetta: document.getElementById('dest-etichetta').value,
-            email: document.getElementById('dest-email').value
-        });
-        document.getElementById('dest-etichetta').value = '';
-        document.getElementById('dest-email').value = '';
-        avviso('Destinatario aggiunto.');
-        caricaEmail();
-    } catch (err) { avviso(err.message, 'errore'); }
+campoEmail('email-prova-plesso').addEventListener('change',()=>{campoEmail('email-prova-stato').textContent='';campoEmail('email-prova-anteprima').hidden=true;aggiornaProveEmail();});
+campoEmail('form-modello').addEventListener('submit',async e=>{
+    e.preventDefault();const b=e.target.querySelector('button');if(b.disabled)return;b.disabled=true;
+    try{await API.post('/api/admin/modelli-email',datiModelloEmail());modelliEmail=await API.get('/api/admin/modelli-email');opzioniProvaEmail();mostraModelloEmail();avviso('Modello salvato.');}
+    catch(err){avviso(err.message,'errore');}finally{b.disabled=false;}
 });
-
-document.getElementById('form-smtp').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    try {
-        await API.post('/api/admin/impostazioni', {
-            smtp_host: document.getElementById('smtp-host').value,
-            smtp_port: document.getElementById('smtp-port').value,
-            smtp_security: document.getElementById('smtp-security').value,
-            smtp_username: document.getElementById('smtp-username').value,
-            smtp_password: document.getElementById('smtp-password').value,
-            smtp_from: document.getElementById('smtp-from').value,
-            email_protocollo: document.getElementById('email-protocollo').value
-        });
-        avviso('Configurazione salvata.');
-    } catch (err) { avviso(err.message, 'errore'); }
+campoEmail('form-destinatario').addEventListener('submit',async e=>{
+    e.preventDefault();try{await API.post('/api/admin/destinatari',{etichetta:campoEmail('dest-etichetta').value,email:campoEmail('dest-email').value});campoEmail('dest-etichetta').value='';campoEmail('dest-email').value='';await caricaDestinatariEmail();avviso('Destinatario aggiunto.');}catch(err){avviso(err.message,'errore');}
 });
-
-document.getElementById('btn-email-prova').addEventListener('click', async () => {
-    const email = prompt('Indirizzo per l\'invio di prova:');
-    if (!email) return;
-    try {
-        await API.post('/api/admin/email-prova', { email });
-        avviso('Email di prova inviata.');
-    } catch (err) { avviso(err.message, 'errore'); }
+campoEmail('form-smtp').addEventListener('submit',async e=>{
+    e.preventDefault();const b=e.target.querySelector('button');if(b.disabled)return;b.disabled=true;
+    try{await API.post('/api/admin/impostazioni',datiSmtp());mostraImpostazioniEmail(await API.get('/api/admin/impostazioni'));aggiornaProveEmail();avviso('Configurazione salvata.');}
+    catch(err){avviso(err.message,'errore');}finally{b.disabled=false;}
+});
+campoEmail('email-automatici').addEventListener('change',()=>{campoEmail('email-automatici-stato').textContent='Modifica non salvata. Premi Salva attivazione.';});
+campoEmail('form-email-automatici').addEventListener('submit',async e=>{
+    e.preventDefault();const b=e.target.querySelector('button');if(b.disabled)return;b.disabled=true;
+    try{
+        await API.post('/api/admin/impostazioni',{solleciti_automatici_enabled:campoEmail('email-automatici').checked});
+        const v=await API.get('/api/admin/impostazioni');campoEmail('email-automatici').checked=v.solleciti_automatici_enabled;
+        campoEmail('email-automatici-stato').textContent=v.solleciti_automatici_enabled?'Solleciti automatici abilitati. Nessuna email inviata durante il salvataggio.':'Solleciti automatici disabilitati.';
+    }catch(err){
+        campoEmail('email-automatici-stato').textContent=err.message;
+        try{const v=await API.get('/api/admin/impostazioni');campoEmail('email-automatici').checked=v.solleciti_automatici_enabled;}catch{}
+    }finally{b.disabled=false;}
+});
+campoEmail('btn-smtp-verifica').addEventListener('click',async()=>{
+    if(testEmailInCorso)return;testEmailInCorso=true;aggiornaProveEmail();campoEmail('smtp-verifica-stato').textContent='Verifica in corso…';
+    const configurazioneProvata=JSON.stringify(datiSmtp());
+    try{const v=await API.post('/api/admin/smtp-verifica',{});if(JSON.stringify(datiSmtp())!==configurazioneProvata){campoEmail('smtp-verifica-stato').textContent='Configurazione modificata: salva e ripeti la verifica.';return;}campoEmail('smtp-verifica-stato').textContent=v.simulato?'Configurazione valida. Demo: connessione SMTP simulata, nessun server contattato.':'Connessione SMTP riuscita con le impostazioni salvate. Nessuna email inviata.';}
+    catch(err){campoEmail('smtp-verifica-stato').textContent=err.message;}finally{testEmailInCorso=false;aggiornaProveEmail();}
+});
+campoEmail('form-email-prova').addEventListener('submit',async e=>{
+    e.preventDefault();if(campoEmail('btn-email-prova').disabled||testEmailInCorso)return;testEmailInCorso=true;aggiornaProveEmail();campoEmail('email-prova-stato').textContent='Invio della prova in corso…';campoEmail('email-prova-anteprima').hidden=true;
+    try{
+        const v=await API.post('/api/admin/email-prova',{email:campoEmail('email-prova-indirizzo').value,plesso_id:Number(campoEmail('email-prova-plesso').value)});
+        campoEmail('email-prova-stato').textContent=v.simulato?'Prova simulata: nessuna email spedita. Il contenuto è disponibile qui sotto.':'Email di prova accettata dal server SMTP per '+v.destinatario+'. Controlla la casella di posta e lo spam.';
+        campoEmail('email-prova-oggetto').textContent=v.oggetto;campoEmail('email-prova-testo').textContent=v.testo;campoEmail('email-prova-anteprima').hidden=false;campoEmail('email-prova-anteprima').open=true;
+    }catch(err){campoEmail('email-prova-stato').textContent=err.message;}finally{testEmailInCorso=false;aggiornaProveEmail();}
 });
 
 /* ---------------- utenti ---------------- */

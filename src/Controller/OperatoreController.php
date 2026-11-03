@@ -16,6 +16,13 @@ final class OperatoreController
 
     public function cercaFamiglie(Request $r, array $utente): array
     {
+        if ($r->query('pagina') !== null) {
+            return $this->c->anagrafica()->paginaGenitori([
+                'q' => $r->query('q', ''), 'stato' => $r->query('stato', 'attive'),
+                'pagina' => $r->query('pagina'), 'per_pagina' => $r->query('per_pagina', 10),
+            ]);
+        }
+        // Compatibilità con i client precedenti che si aspettano un array.
         return $this->c->anagrafica()->cercaGenitori(
             $r->query('q'),
             (string) $r->query('includi_cancellati') === '1'

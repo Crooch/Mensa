@@ -59,7 +59,7 @@ const API = {
     get: (p) => chiamata(p),
     post: (p, corpo) => chiamata(p, { metodo: 'POST', corpo }),
     put: (p, corpo) => chiamata(p, { metodo: 'PUT', corpo }),
-    del: (p) => chiamata(p, { metodo: 'DELETE' })
+    del: (p, corpo) => chiamata(p, { metodo: 'DELETE', corpo })
 };
 
 /** Notifiche visibili, con chiusura manuale e senza perdere gli errori. */

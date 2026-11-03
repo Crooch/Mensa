@@ -21,7 +21,8 @@ $config = [
         // Vale per bin/cron_daily.php e /scheduler?key=...
         'scheduler_enabled' => false,
         // Prima giornata a saldo zero: nessun invio massivo di solleciti.
-        // Attivare separatamente solo dopo conferma con il Comune.
+        // Default per installazioni senza una scelta Admin salvata.
+        // La scelta in Email e solleciti prevale su questo valore.
         'solleciti_automatici_enabled' => false,
         // Senza chiave locale casuale l'endpoint HTTP non e' accessibile.
         'scheduler_key' => '',
