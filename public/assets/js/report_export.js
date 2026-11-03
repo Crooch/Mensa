@@ -1,0 +1,86 @@
+/* Esportazione del risultato già autorizzato e caricato, senza nuove richieste dati. */
+(() => {
+ 'use strict';
+ const scriptUrl = typeof document !== 'undefined' ? document.currentScript.src : null;
+ const headers = ['Data','Plesso','Ordine','Stato','Alunni','Personale','Totale','Dettaglio tipologie','Nota'];
+ const categorie = {insegnanti:'Insegnanti',ata:'ATA',assistenti:'Assistenti mensa',asacom:'ASACOM'};
+ function rows(report, nomeTipo) {
+  return report.righe.map(r => [r.data,r.plesso_nome,r.ordine,r.stato,r.alunni,r.personale,r.totale,
+   [...r.tipologie_alunni.map(t=>`Alunni ${t.tipologia_nome}: ${t.pasti}`),
+    ...r.tipologie_personale.map(t=>`${categorie[t.categoria]} ${nomeTipo(t.tipologia_menu_id)}: ${t.quantita}`)].join(' | '),r.nota]);
+ }
+ let loading;
+ async function library() {
+  if (globalThis.ExcelJS) return globalThis.ExcelJS;
+  if (!loading) loading = new Promise((resolve,reject) => {
+   const script=document.createElement('script');
+   script.src=new URL('vendor/exceljs-4.4.0.min.js',scriptUrl).href;
+   script.onload=()=>resolve(globalThis.ExcelJS);
+   script.onerror=()=>{script.remove();loading=null;reject(new Error('Impossibile caricare l’esportazione Excel. Riprova.'));};
+   document.head.append(script);
+  });
+  return loading;
+ }
+ function workbook(ExcelJS,report,filters,nomeTipo) {
+  const book=new ExcelJS.Workbook();
+  book.creator='Comune di Caltavuturo';
+  const sheet=book.addWorksheet('Riepilogo pasti',{
+   views:[{state:'frozen',ySplit:6,showGridLines:false}],
+   pageSetup:{orientation:'landscape',paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0,printTitlesRow:'1:6'}
+  });
+  const widths=[14,32,18,21,18,18,18,60,60];
+  widths.forEach((width,i)=>sheet.getColumn(i+1).width=width);
+  const t=report.totali;
+  const texts=[
+   'Comune di Caltavuturo · Riepilogo pasti',
+   `Periodo: ${filters.dal} – ${filters.al} · Plesso: ${filters.plesso} · Ordine: ${filters.ordine}`,
+   `Alunni confermati: ${t.alunni_confermati} · Personale confermato: ${t.personale_confermato} · Totale giornate complete: ${t.totale_confermato} · Giornate/plessi incompleti: ${t.giorni_non_consolidati}`,
+   'I totali confermati escludono i dati provvisori. “Non disponibile” indica un dato mancante, non zero.'
+  ];
+  texts.forEach((text,i)=>{
+   sheet.mergeCells(i+1,1,i+1,9);
+   const cell=sheet.getCell(i+1,1);cell.value=text;
+   cell.font={name:'Calibri',size:i===0?16:11,bold:i===0,color:{argb:i===0?'FFFFFFFF':'FF334155'}};
+   cell.alignment={vertical:'middle',wrapText:true};
+   cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:i===0?'FF164E63':'FFF1F5F9'}};
+   sheet.getRow(i+1).height=i===0?32:30;
+  });
+  const header=sheet.getRow(6);header.values=headers;header.height=30;
+  header.eachCell(cell=>{
+   cell.font={name:'Calibri',size:11,bold:true,color:{argb:'FFFFFFFF'}};
+   cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF164E63'}};
+   cell.alignment={vertical:'middle',wrapText:true};
+  });
+  rows(report,nomeTipo).forEach((values,i)=>{
+   // String values remain strings (including =, +, - and @); never create formulas.
+   const row=sheet.addRow(values.map((v,j)=>j===0?new Date(v+'T00:00:00Z'):v===''?null:v??'Non disponibile'));
+   let lines=1;
+   row.eachCell({includeEmpty:true},(cell,j)=>{
+    cell.font={name:'Calibri',size:11,color:{argb:'FF1E293B'}};
+    cell.alignment={vertical:'top',wrapText:true};
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:i%2?'FFF1F5F9':'FFFFFFFF'}};
+    if (j===1) cell.numFmt='dd/mm/yyyy';
+    if (j>=5 && j<=7 && typeof cell.value==='number') {cell.numFmt='0';cell.alignment.horizontal='right';}
+    lines=Math.max(lines,Math.ceil(String(values[j-1]??'Non disponibile').length/Math.max(8,widths[j-1]-4)));
+   });
+   row.height=Math.min(409,Math.max(30,lines*16+8));
+   const colors={'Confermato':'FFDCFCE7','Previsto':'FFDBEAFE','Non elaborato':'FFFEF3C7','Fuori servizio':'FFE2E8F0'};
+   row.getCell(4).fill={type:'pattern',pattern:'solid',fgColor:{argb:colors[values[3]]||'FFFFFFFF'}};
+  });
+  sheet.autoFilter={from:'A6',to:`I${Math.max(6,sheet.rowCount)}`};
+  if (!report.righe.length) {sheet.mergeCells('A7:I7');sheet.getCell('A7').value='Nessun dato per i filtri selezionati.';}
+  return book;
+ }
+ function download(data,type,name) {
+  const url=URL.createObjectURL(new Blob([data],{type}));
+  const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }
+ async function excel(report,filters,nomeTipo) {
+  const book=workbook(await library(),report,filters,nomeTipo);
+  download(await book.xlsx.writeBuffer(),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',`riepilogo-pasti_${filters.dal}_${filters.al}.xlsx`);
+ }
+ const api={headers,rows,workbook,excel,download};
+ if (typeof module!=='undefined' && module.exports) module.exports=api;
+ else globalThis.MensaReportExport=api;
+})();

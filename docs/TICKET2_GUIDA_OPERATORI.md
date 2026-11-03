@@ -119,7 +119,7 @@ Percorso: **Riepilogo pasti**.
 3. Controllare alunni confermati, personale confermato, totale delle giornate complete e numero di giornate/plessi incompleti.
 4. Leggere lo stato di ciascuna riga: **Previsto**, **Confermato**, **Non elaborato**, **Fuori servizio**. Il dato non disponibile non equivale a zero.
 5. Aprire **Dettaglio** per tipologie degli alunni e categorie/menù del personale.
-6. Premere **Esporta CSV** per scaricare esattamente il risultato caricato, con stati, totali, dettagli e note. Verificare il periodo e il plesso nel file.
+6. Premere **Esporta CSV** oppure **Esporta Excel** per scaricare esattamente il risultato caricato, con stati, totali, dettagli e note. Excel produce un file `.xlsx` con periodo e filtri, intestazioni evidenziate e bloccate, filtri sulle colonne, righe alternate, date e quantità native. I dati mancanti restano “Non disponibile”. Se si cambiano i filtri, premere nuovamente **Mostra riepilogo** prima di esportare il nuovo risultato.
 
 Se l'ordine compare come **Da configurare**, impostarlo in **Calendario e servizio**. Per «Non elaborato» o «Personale non consolidato» non usare i totali come rendiconto definitivo: verificare la giornata e richiedere assistenza per eventuali anomalie del job. Non lanciare ripetutamente il job. Le tipologie delle presenze pregresse prive di fotografia compaiono come **Non storicizzata**, senza inventare la dieta originaria.
 
@@ -160,7 +160,7 @@ Percorso: **Riepilogo pasti**.
 1. Impostare **Dal**, **Al**, eventualmente **Plesso** e **Ordine scolastico**.
 2. Premere **Mostra riepilogo** e controllare gli stati delle giornate.
 3. Aprire **Dettaglio** per le tipologie degli alunni e i pasti del personale.
-4. Premere **Esporta CSV**. Il motore e i conteggi sono gli stessi del Comune; non vengono esposti saldi, fidi, pagamenti o anagrafiche delle famiglie.
+4. Premere **Esporta CSV** oppure **Esporta Excel**. Il motore e i conteggi sono gli stessi del Comune; non vengono esposti saldi, fidi, pagamenti o anagrafiche delle famiglie.
 
 Per una rendicontazione mensile attendere che le giornate interessate siano complete. Segnalare al Comune giornate non elaborate, personale non consolidato o ordine scolastico da configurare.
 
@@ -187,7 +187,7 @@ Per nominativi o associazioni errate rivolgersi al Comune. Dopo la conclusione d
 | Fido, ordine, sospensione | Sì | Sì | No | No | No |
 | Ricorrenze personale | Sì | Sì | No | No | No |
 | Quantità giornaliere personale | Sì, motivate | Sì, motivate | Solo proprio plesso, oggi prima cutoff | Lettura | No |
-| Riepilogo pasti e CSV | Tutti | Tutti | Proprio plesso | Dati operativi, tutti i plessi previsti dal ruolo esistente | No |
+| Riepilogo pasti, CSV ed Excel | Tutti | Tutti | Proprio plesso | Dati operativi, tutti i plessi previsti dal ruolo esistente | No |
 | Posizioni oltre fido/storico solleciti | Sì | Sì | No | No | No |
 | Saldi familiari | Tutti | Tutti | No | No | Solo propri, correnti e storici |
 | Gestione utenti privilegiati/SMTP/job | Ruolo esistente | No | No | No | No |

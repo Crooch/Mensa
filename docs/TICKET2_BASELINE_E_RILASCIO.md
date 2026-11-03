@@ -18,7 +18,7 @@ Le funzioni sono nelle aree esistenti. Nessun nuovo ruolo, utente di sistema o p
 | Ticket | Funzione predisposta | Natura |
 |---|---|---|
 | T01 | Verifica associazioni e omonimie, disattivazione logica sicura, revoca accessi | Assistenza anagrafica supportata da correttivo |
-| T02 | Riepilogo per intervallo/plesso/ordine, alunni/personale, CSV, stati distinti | Sviluppo evolutivo |
+| T02 | Riepilogo per intervallo/plesso/ordine, alunni/personale, CSV ed Excel formattato, stati distinti | Sviluppo evolutivo |
 | T03 | Stesso report per Catering, senza anagrafiche o dati economici | Sviluppo evolutivo |
 | T04 | Ricorrenze con decorrenza, quantità giornaliere per plesso, rettifiche motivate, consolidamento | Sviluppo evolutivo |
 | T05 | Filtri, posizioni oltre fido, storico/esiti/errori; sola consultazione | Completamento funzionale; nessuna attivazione invii |
@@ -88,3 +88,9 @@ I test sono riproducibili con `.github/workflows/ticket2.yml`. Gli script rifiut
 - Un ripristino del DB richiede backup collaudato e riconciliazione delle operazioni successive. Non effettuare automaticamente DROP delle nuove tabelle o rettifiche dei saldi.
 
 Stato rilascio: NON ESEGUITO. La verifica di ripristino su copia protetta e l'autorizzazione al deploy/migrazione restano prerequisiti del rilascio, non prove già effettuate.
+
+### Estensione Excel
+
+Esportazione `.xlsx` dal medesimo risultato autorizzato del CSV, disponibile a Comune, Admin, Scuola e Catering. Nessuna migrazione o nuova API. La libreria ExcelJS 4.4.0 (MIT) è inclusa in `public/assets/js/vendor`, caricata solo alla richiesta di Excel e servita dallo stesso sito, anche con installazione in sottocartella; nessun CDN. Distribuire anche `report_export.js`, la cartella vendor e i partial aggiornati.
+
+Verifiche: `node tests/report_excel.cjs` riapre il file e verifica tipi data/numeri, zero e dati mancanti, testo non interpretato come formula, Unicode, stili, filtri, intestazioni bloccate e risultato vuoto. `staging/ticket2_excel_browser.cjs` verifica i download Excel/CSV per i quattro ruoli abilitati a 375/768/1366 px, confronta ogni cella con il risultato API e verifica che filtri modificati ma non ricaricati non cambino il contenuto esportato.

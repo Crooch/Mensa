@@ -9,6 +9,7 @@
  </form>
  <p id="aut-report-stato" role="status"></p><div id="aut-report-totali"></div>
  <button id="aut-export" class="btn btn-outline-primary" disabled>Esporta CSV</button>
+ <button id="aut-export-excel" class="btn btn-outline-primary" disabled>Esporta Excel</button>
  <div class="tabella-scroll"><table class="table"><thead><tr><th>Data</th><th>Plesso / ordine</th><th>Stato</th><th>Alunni</th><th>Personale</th><th>Totale</th><th>Tipologie</th></tr></thead><tbody id="aut-report-corpo"></tbody></table></div>
 </section>
 <section id="vista-personale" class="vista" hidden>

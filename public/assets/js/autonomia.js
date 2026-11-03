@@ -24,21 +24,30 @@
   try { await fn(dati(form)); } catch(err) { stato(target,err.message,true); } finally { if(b)b.disabled=false; }
  }
  function conferma(testo) { return window.confirm(testo+'\nConfermi il salvataggio?'); }
- let report=null;
+ let report=null, reportFiltri=null;
  id('aut-report').addEventListener('submit', ev=>{ev.preventDefault();operazione(ev.target,'aut-report-stato',async v=>{
-  report=null;id('aut-export').disabled=true;id('aut-report-corpo').innerHTML='';id('aut-report-totali').textContent='';
+  report=null;reportFiltri=null;id('aut-export').disabled=true;id('aut-export-excel').disabled=true;id('aut-report-corpo').innerHTML='';id('aut-report-totali').textContent='';
   stato('aut-report-stato','Caricamento…');
   report=await API.get('/api/report/pasti?'+new URLSearchParams(v));
+  reportFiltri={dal:v.dal,al:v.al,plesso:v.plesso_id?nomePlesso(v.plesso_id):(ruolo==='scuola'?nomePlesso(utente.plesso_id):'Tutti'),ordine:v.ordine||'Tutti'};
   const t=report.totali;
   id('aut-report-totali').textContent=`Alunni confermati: ${t.alunni_confermati} · Personale confermato: ${t.personale_confermato} · Totale delle giornate complete: ${t.totale_confermato} · Giornate/plessi incompleti: ${t.giorni_non_consolidati}`;
   id('aut-report-corpo').innerHTML=report.righe.map(r=>`<tr><td>${e(r.data)}</td><td>${e(r.plesso_nome)}<br>${e(r.ordine)}</td><td>${e(r.stato)}${r.stato==='Confermato'&&!r.personale_consolidato?'<br>Personale non consolidato':''}</td><td>${valore(r.alunni)}</td><td>${valore(r.personale)}</td><td>${valore(r.totale)}</td><td><details><summary>Dettaglio</summary>${r.tipologie_alunni.map(t=>`<p>Alunni · ${e(t.tipologia_nome)}: ${Number(t.pasti)}</p>`).join('')}${r.tipologie_personale.map(t=>`<p>${e(categorie[t.categoria])} · ${e(nomeTipo(t.tipologia_menu_id))}: ${Number(t.quantita)}</p>`).join('')}<p>${e(r.nota)}</p></details></td></tr>`).join('');
   etichetteTabella(id('vista-riepilogo-pasti'));
-  stato('aut-report-stato',`${report.righe.length} giornate/plessi. I dati non disponibili non sono conteggiati come zero.`);id('aut-export').disabled=false;
+  stato('aut-report-stato',`${report.righe.length} giornate/plessi. I dati non disponibili non sono conteggiati come zero.`);id('aut-export').disabled=false;id('aut-export-excel').disabled=false;
  });});
  id('aut-export').addEventListener('click',()=>{
   if(!report)return;
-  const csv=[['Data','Plesso','Ordine','Stato','Alunni','Personale','Totale','Dettaglio tipologie','Nota'],...report.righe.map(r=>[r.data,r.plesso_nome,r.ordine,r.stato,r.alunni,r.personale,r.totale,[...r.tipologie_alunni.map(t=>`Alunni ${t.tipologia_nome}: ${t.pasti}`),...r.tipologie_personale.map(t=>`${categorie[t.categoria]} ${nomeTipo(t.tipologia_menu_id)}: ${t.quantita}`)].join(' | '),r.nota])].map(row=>row.map(v=>'"'+String(v??'Non disponibile').replace(/^(?:\s*[=+@\-]|[\t\r\n])/,"'$&").replaceAll('"','""')+'"').join(';')).join('\r\n');
-  const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='riepilogo-pasti.csv';a.click();URL.revokeObjectURL(url);
+  const csv=[MensaReportExport.headers,...MensaReportExport.rows(report,nomeTipo)].map(row=>row.map(v=>'"'+String(v??'Non disponibile').replace(/^(?:\s*[=+@\-]|[\t\r\n])/,"'$&").replaceAll('"','""')+'"').join(';')).join('\r\n');
+  MensaReportExport.download('\ufeff'+csv,'text/csv;charset=utf-8','riepilogo-pasti.csv');
+ });
+ id('aut-export-excel').addEventListener('click',async()=>{
+  if(!report || id('aut-export-excel').disabled)return;
+  const current=report, filters=reportFiltri;
+  id('aut-export-excel').disabled=true;id('aut-export-excel').textContent='Preparazione Excel…';
+  try {await MensaReportExport.excel(current,filters,nomeTipo);}
+  catch(err) {avviso(err.message||'Esportazione Excel non riuscita. Riprova.','errore');}
+  finally {id('aut-export-excel').disabled=!report;id('aut-export-excel').textContent='Esporta Excel';}
  });
  let personale=null;
  async function caricaPersonale(v) {
