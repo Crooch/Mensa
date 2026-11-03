@@ -8,7 +8,8 @@ assert(['127.0.0.1','localhost'].includes(new URL(base).hostname));assert(/^mens
 const sql=q=>cp.execFileSync('docker',['exec','-i',db,'sh','-c','test "$MARIADB_DATABASE" = mensa_staging && exec mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" --batch --skip-column-names mensa_staging'],{input:q,encoding:'utf8'}).trim();
 const hash=q=>crypto.createHash('sha256').update(sql(q)).digest('hex');
 const financial=()=>Object.fromEntries(['pool_crediti','movimenti_crediti','presenze_giornaliere','assegnazioni_classe','log_solleciti_inviati'].map(t=>[t,hash('SELECT * FROM '+t+' ORDER BY 1')]));
-const today=new Date().toLocaleDateString('en-CA',{timeZone:'Europe/Rome'}),start=new Date(today+'T12:00:00Z');start.setUTCDate(start.getUTCDate()+((8-start.getUTCDay())%7||7)+14);
+// Four weeks in February avoid national holidays without opening fixture exceptions.
+const today=new Date().toLocaleDateString('en-CA',{timeZone:'Europe/Rome'}),start=new Date(Date.UTC(Number(today.slice(0,4))+1,1,1,12));start.setUTCDate(start.getUTCDate()+(8-start.getUTCDay())%7);
 const D=n=>{const d=new Date(start);d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
 const canonical=rows=>rows.filter(r=>Number(r.quantita)>0).map(r=>[r.categoria,Number(r.tipologia_menu_id),Number(r.quantita)]).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
 const log=[];function pass(s){console.log('PASS '+s);log.push(s);}
@@ -24,7 +25,7 @@ const log=[];function pass(s){console.log('PASS '+s);log.push(s);}
   await p.reload();await p.locator('#calendario-plesso option[value="'+pid+'"]').waitFor({state:'attached'});
   async function get(path){return p.evaluate(path=>API.get(path),path);}
   async function submit(selector,url,method='POST'){
-   const response=p.waitForResponse(r=>r.url().endsWith(url)&&r.request().method()===method);
+   const response=p.waitForResponse(r=>r.url().endsWith(url)&&r.request().method()===method);response.catch(()=>{});
    await p.locator(selector).click();const r=await response,body=await r.json();assert.equal(r.status(),200,JSON.stringify(body));return body.dati;
   }
   async function selectStaff(n){
@@ -66,7 +67,7 @@ const log=[];function pass(s){console.log('PASS '+s);log.push(s);}
   async function editDay(n,changes,reason='Variazione ciclo'){
    await selectStaff(n);await p.locator('#aut-editor-giorno > summary').click();
    for(const [key,qty]of Object.entries(changes))await p.locator(`#aut-giorno [name="${key}"]`).fill(String(qty));
-   await p.locator('#aut-giorno [name=motivazione]').fill(reason);const result=await submit('#aut-giorno button',root+'/giorno','PUT');
+   await p.locator('#aut-giorno [name=motivazione]').fill(reason);const result=await submit('#aut-giorno button:not([type=button])',root+'/giorno','PUT');
    await p.locator('#aut-personale-stato').filter({hasText:result.modificato?'Pasti del personale salvati':'Quantità invariate'}).waitFor();
    if(result.modificato){assert.equal(sql(`SELECT motivazione FROM audit_amministrativo WHERE riferimento='${pid}:${D(n)}' AND operazione='personale_giorno' ORDER BY id DESC LIMIT 1`),reason);assert((await p.locator('#aut-personale-corpo .personale-storico').innerText()).includes(reason));}
    return result;
@@ -79,7 +80,7 @@ const log=[];function pass(s){console.log('PASS '+s);log.push(s);}
    await p.locator('#eccezione-data').fill(D(from));await p.locator('#eccezione-fine').fill(D(to));await p.locator('#eccezione-attivo').selectOption(open?'1':'0');await p.locator('#eccezione-motivazione').fill('Periodo ciclo');
    const result=await submit('[data-testid=eccezione-salva]',`/api/admin/calendari/${pid}/periodi${id?'/'+id:''}`,id?'PUT':'POST');
    await p.locator('#eccezioni-calendario-corpo').filter({hasText:'Periodo ciclo'}).waitFor();
-   const periodId=id||Number(result.id);assert.equal(sql(`SELECT CONCAT(giorno,'|',giorno_fine,'|',servizio_attivo) FROM eccezioni_calendario WHERE id=${periodId} AND plesso_id=${pid}`),`${D(from)}|${D(to)}|${open?1:0}`);return periodId;
+   const periodId=id||Number(result.id);assert.equal(sql(`SELECT CONCAT(giorno,'|',COALESCE(giorno_fine,giorno),'|',servizio_attivo) FROM eccezioni_calendario WHERE id=${periodId} AND plesso_id=${pid}`),`${D(from)}|${D(to)}|${open?1:0}`);return periodId;
   }
   await calendar();await rule(9);await rule(3,'ata');await rule(2,'insegnanti',2);
   await check(0,14,14,true,'aggiunta tre regole');await check(-3,0,0,false,'prima dell’avvio');await check(5,0,14,false,'sabato escluso dal calendario');
@@ -95,15 +96,19 @@ const log=[];function pass(s){console.log('PASS '+s);log.push(s);}
   await editDay(7,{'insegnanti:1':13},'Variazione da conservare in chiusura');const dailyHash=hash(`SELECT * FROM pasti_personale_giorni WHERE plesso_id=${pid} ORDER BY data`);
   await officeCalendar();await p.locator('#aut-chiusura [name=data_inizio]').fill(D(7));await p.locator('#aut-chiusura [name=data_fine]').fill(D(9));await p.locator('#aut-chiusura [name=motivazione]').fill('Chiusura ciclo');
   const closure=await submit('#aut-chiusura button',`/api/servizio/plessi/${pid}/chiusure`);await p.locator('#aut-servizio-stato').filter({hasText:'Chiusura registrata'}).waitFor();
-  assert.equal(sql(`SELECT CONCAT(giorno,'|',giorno_fine,'|',servizio_attivo) FROM eccezioni_calendario WHERE id=${closure.id}`),`${D(7)}|${D(9)}|0`);
+  assert.equal(sql(`SELECT CONCAT(giorno,'|',COALESCE(giorno_fine,giorno),'|',servizio_attivo) FROM eccezioni_calendario WHERE id=${closure.id}`),`${D(7)}|${D(9)}|0`);
   await check(7,0,17,false,'chiusura: aggiornamento automatico entrando nei pasti',false);await check(9,0,16,false,'ultimo giorno della chiusura incluso');await check(10,16,16,true,'giorno successivo alla chiusura');
   await officeCalendar();await p.locator(`[data-chiusura="${closure.id}"]`).click();await p.locator('#aut-modifica-chiusura [name=data_inizio]').fill(D(8));await p.locator('#aut-modifica-chiusura [name=data_fine]').fill(D(10));await p.locator('#aut-modifica-chiusura [name=motivazione]').fill('Chiusura spostata');
-  await submit('#aut-modifica-chiusura button',`/api/servizio/plessi/${pid}/chiusure/${closure.id}`,'PUT');await p.locator('#aut-servizio-stato').filter({hasText:'Chiusura modificata'}).waitFor();
+  await submit('#aut-modifica-chiusura button:not([type=button])',`/api/servizio/plessi/${pid}/chiusure/${closure.id}`,'PUT');await p.locator('#aut-servizio-stato').filter({hasText:'Chiusura modificata'}).waitFor();
   await check(7,18,17,true,'spostamento chiusura: riemerge la variazione');await check(10,0,16,false,'nuova fine inclusa');
   await officeCalendar();await p.locator(`[data-chiusura="${closure.id}"]`).click();await p.locator('#aut-modifica-chiusura [name=motivazione]').fill('Eliminazione chiusura ciclo');await submit('#aut-elimina-chiusura',`/api/servizio/plessi/${pid}/chiusure/${closure.id}`,'DELETE');await p.locator('#aut-servizio-stato').filter({hasText:'Chiusura eliminata'}).waitFor();
   assert.equal(sql(`SELECT COUNT(*) FROM eccezioni_calendario WHERE id=${closure.id}`),'0');await check(10,16,16,true,'eliminazione chiusura');assert.equal(hash(`SELECT * FROM pasti_personale_giorni WHERE plesso_id=${pid} ORDER BY data`),dailyHash,'chiusure non cancellano la variazione');
+  // Load a report before the Admin calendar mutation, to test invalidation as well.
+  await p.locator('[data-vista=riepilogo-pasti]').click();await p.locator('#aut-report [name=plesso_id]').selectOption(String(pid));for(const name of ['dal','al'])await p.locator(`#aut-report [name=${name}]`).fill(D(5));
+  await p.locator('#aut-report button').click();await p.locator('#aut-export:not([disabled])').waitFor();assert.equal(await p.locator('#aut-report-corpo tr td').nth(4).innerText(),'0');
   await selectStaff(5);const opening=await adminPeriod(5,6,true);
   await check(5,14,14,true,'apertura Admin: aggiornamento automatico entrando nei pasti',false);await check(6,14,14,true,'domenica aperta straordinariamente');
+  assert(await p.locator('#aut-export').isDisabled(),'report invalidated after Admin calendar write');await p.locator('[data-vista=riepilogo-pasti]').click();await p.locator('#aut-export:not([disabled])').waitFor();assert.equal(await p.locator('#aut-report-corpo tr td').nth(4).innerText(),'14');pass(`${width}px riepilogo già aperto aggiornato dopo apertura Admin`);
   await adminPeriod(6,6,true,opening);await check(5,0,14,false,'spostamento apertura');await check(6,14,14,true,'apertura singola inclusiva');
   await p.locator('[data-vista=calendario]').click();await submit(`[data-cancella-periodo="${opening}"]`,`/api/admin/calendari/${pid}/periodi/${opening}`,'DELETE');await p.locator(`[data-cancella-periodo="${opening}"]`).waitFor({state:'detached'});
   await check(6,0,14,false,'eliminazione apertura: ritorno al calendario',false);
