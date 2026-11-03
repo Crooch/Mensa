@@ -288,7 +288,8 @@ ridotti alle iniziali secondo le regole applicative: non include saldi e crediti
 | GET/POST | `/api/admin/destinatari` | Lista unica destinatari in CC |
 | PUT | `/api/admin/destinatari/{id}` | Modifica/attivazione destinatario |
 | GET/POST | `/api/admin/impostazioni` | Configurazione SMTP ed email protocollo |
-| POST | `/api/admin/email-prova` | Invio email di prova |
+| POST | `/api/admin/email-prova` | Modello salvato di `plesso_id` a `email`, con dati dimostrativi e senza CC |
+| POST | `/api/admin/smtp-verifica` | Verifica connessione SMTP senza invio |
 
 **POST /api/admin/plessi**
 ```json
@@ -426,3 +427,6 @@ il cron esterno sul server sia attivo. La periodicità (ad esempio 5 minuti)
 dipende dalla configurazione effettiva del sistema e deve essere verificata
 separatamente. Non avviare scheduler o comandi manuali sulla produzione per
 verificarne lo stato.
+
+
+L'Admin può salvare `solleciti_automatici_enabled` (booleano) in `/api/admin/impostazioni`. La scelta prevale sul precedente flag nel file di configurazione; nessuna email viene inviata dal salvataggio. La lettura include `scheduler_abilitato`, `invio_simulato` e password SMTP mascherata. Le prove email restituiscono `simulato`, e `inviata`/`verificata` è falso nella demo. L'invio di prova restituisce anche `destinatario`, `oggetto` e `testo` effettivamente usati.

@@ -127,6 +127,7 @@ $router->post('/api/admin/destinatari', [$admin, 'creaDestinatario'], ['admin'])
 $router->put('/api/admin/destinatari/{id}', [$admin, 'modificaDestinatario'], ['admin']);
 $router->get('/api/admin/impostazioni', [$admin, 'impostazioni'], ['admin']);
 $router->post('/api/admin/impostazioni', [$admin, 'salvaImpostazioni'], ['admin']);
+$router->post('/api/admin/smtp-verifica', [$admin, 'verificaSmtp'], ['admin']);
 $router->post('/api/admin/email-prova', [$admin, 'emailDiProva'], ['admin']);
 
 // ---------------- job giornaliero ----------------

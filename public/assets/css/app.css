@@ -2925,3 +2925,11 @@ body[data-ruolo="operatore"] .operatore-risultati .table tbody tr.famiglia-selez
 .personale-storico-voce p { margin:0 0 6px; }
 .personale-storico-voce ul { margin:6px 0 0; padding-left:18px; }
 .personale-storico > details > summary { min-height:44px; padding:10px 0; cursor:pointer; }
+
+/* Configurazione email: opzioni compatte con etichetta interamente cliccabile. */
+body[data-ruolo="admin"] #vista-email .pannello { padding: 16px; margin: 12px 0; }
+body[data-ruolo="admin"] #vista-email form h2 { margin: 0 0 12px; }
+body[data-ruolo="admin"] #vista-email > h2 { margin: 20px 0 8px; }
+body[data-ruolo="admin"] #vista-email p { margin: 8px 0; }
+body[data-ruolo="admin"] #vista-email .email-opzione { display: flex; flex-direction: row; align-items: center; gap: 10px; min-height: 44px; margin: 8px 0; }
+body[data-ruolo="admin"] #vista-email .email-opzione input[type="checkbox"] { appearance: checkbox; width: 20px; height: 20px; min-width: 20px; min-height: 20px; flex: 0 0 20px; padding: 0; margin: 0; accent-color: var(--blu-italia); }

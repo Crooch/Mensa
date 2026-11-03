@@ -272,9 +272,13 @@ final class AdminController
         return ['salvate' => true];
     }
 
+    public function verificaSmtp(Request $r, array $utente): array
+    {
+        return $this->c->solleciti()->verificaSmtp();
+    }
+
     public function emailDiProva(Request $r, array $utente): array
     {
-        $this->c->solleciti()->inviaEmailDiProva((string) $r->obbligatorio('email'));
-        return ['inviata' => true];
+        return $this->c->solleciti()->inviaEmailDiProva((string) $r->obbligatorio('email'), (int) $r->obbligatorio('plesso_id'));
     }
 }

@@ -151,7 +151,7 @@ Percorso: **Solleciti pagamento**.
 4. Nella tabella verificare data, famiglia, plesso, saldo al momento dell'invio, esito, eventuale errore e destinatari registrati.
 5. Se viene indicato il limite di 1.000 risultati, restringere il periodo o gli altri filtri.
 
-La sezione non invia email e non abilita nuovi automatismi. Per errori di invio o per richiedere l'attivazione dei solleciti contattare l'assistenza: destinatari e configurazione effettiva devono essere verificati separatamente. L'assenza di invii non prova che non esistano posizioni oltre fido.
+La sezione non invia email e non abilita nuovi automatismi. L'attivazione, la configurazione SMTP e le prove sono disponibili al solo Admin in **Email e solleciti**. L'assenza di invii non prova che non esistano posizioni oltre fido.
 
 ## Scuole — accesso con ruolo Scuola
 
@@ -210,4 +210,20 @@ Per nominativi o associazioni errate rivolgersi al Comune. Dopo la conclusione d
 | Saldi familiari | Tutti | Tutti | No | No | Solo propri, correnti e storici |
 | Gestione utenti privilegiati/SMTP/job | Ruolo esistente | No | No | No | No |
 
-Admin mantiene gli accessi precedenti; per le funzioni di famiglia e i solleciti utilizza il collegamento **Ufficio comunale — famiglie e solleciti** nella propria area. Nessun nuovo invio di email viene autorizzato dalla presente guida.
+Admin mantiene gli accessi precedenti; per le funzioni di famiglia e i solleciti utilizza il collegamento **Ufficio comunale — famiglie e solleciti** nella propria area. Le impostazioni e le prove email sono riservate al profilo Admin.
+
+
+## Admin — configurare, provare e abilitare le email
+
+Percorso: **Admin → Email e solleciti**.
+
+1. Nelle impostazioni SMTP inserire server, porta, sicurezza, utente/password, nome mittente e indirizzo mittente; indicare il protocollo se previsto. Premere **Salva configurazione**. La password viene mascherata dopo il salvataggio: mantenere gli asterischi per conservarla.
+2. Premere **Verifica connessione SMTP** per verificare connessione, sicurezza e autenticazione configurata senza spedire messaggi. Gli errori vengono mostrati nella pagina.
+3. Selezionare la scuola, compilare oggetto e testo del modello e salvarlo. **Usa questo modello per i solleciti automatici della scuola** consente di abilitarlo o disabilitarlo per quel plesso.
+4. In **Prova un modello**, scegliere un modello salvato e l'indirizzo email di prova, quindi **Invia modello di prova**. Funziona anche con automatismi o modello disattivati. Usa dati dimostrativi nei segnaposto, oggetto con prefisso `[PROVA]` e un solo destinatario: non aggiunge famiglia, protocollo, dirigente o CC. Il contenuto della prova è visibile nella pagina. Il test non compare nello storico dei solleciti alle famiglie e non modifica saldi o buoni.
+5. Se ci sono modifiche non salvate a SMTP o modello, salvarle prima delle prove. L'esito positivo significa che il server SMTP ha accettato il messaggio: controllare anche la casella destinataria e lo spam.
+6. Per avviare gli automatismi, selezionare **Abilita l'invio automatico dei solleciti** e premere **Salva attivazione**. Servono SMTP completo e almeno un modello attivo. Per fermarli, deselezionare e salvare. Il salvataggio non invia email né recupera giornate già elaborate: la scelta vale per i prossimi conteggi utili del job giornaliero.
+
+L'attivazione salvata dall'Admin prevale sul precedente interruttore email nel file di configurazione. Dopo il rilascio non occorre modificare quel file per attivare o disattivare i solleciti. Il cron del servizio deve essere già configurato e attivo: il pannello segnala quando il job è disabilitato, ma non cambia la pianificazione dei pasti o dei buoni.
+
+**Demo locale:** connessioni e invii restano simulati, anche compilando SMTP. La pagina lo indica espressamente e mostra il contenuto della prova; nessuna email lascia la demo. La nuova funzione non abilita automaticamente gli invii al rilascio.
