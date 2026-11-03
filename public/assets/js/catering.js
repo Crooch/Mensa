@@ -188,10 +188,8 @@ function distribuzionePersonale(plesso) {
     const righe = Object.values(gruppi);
     return `<div class="catering-scuola__personale" data-testid="report-personale-${Number(plesso.plesso_id)}">
         <h4>Pasti del personale · ${Number(plesso.totale_personale || 0)}</h4>
-        <p class="nota">${plesso.personale_disponibile === false
-            ? 'Quantità da configurare: il totale potrebbe essere incompleto.'
-            : esc(plesso.fonte_personale || 'Quantità della data selezionata') +
-              ' · Scuola: oggi e futuro senza cutoff; passato: Comune.'}</p>
+        ${plesso.personale_disponibile === false
+            ? '<p class="nota">Quantità da configurare: il totale potrebbe essere incompleto.</p>' : ''}
         ${righe.length ? `<ul class="catering-scuola__classi">${righe.map(r => `<li class="catering-classe">
             <div class="catering-classe__riga"><h4>${esc(categorie[r.categoria] || r.categoria)}</h4>
             <strong class="catering-classe__totale">${Number(r.pasti)} <small>pasti</small></strong></div>

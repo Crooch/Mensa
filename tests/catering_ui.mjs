@@ -558,10 +558,10 @@ const staffHtml = renderStaff({plesso_id: 7, plesso_nome: 'Scuola test', totale_
  personale_disponibile: true, fonte_personale: 'Variazione giornaliera',
  personale: [{categoria:'insegnanti',tipologia_nome:'Senza glutine',pasti:6,menu_nome:'Menu personale <test>'}],sezioni:[],tipologie:[]});
 assert.match(staffHtml,/4 alunni · 6 personale/);assert.match(staffHtml,/Pasti del personale · 6/);
-assert.match(staffHtml,/Alunni: conteggio confermato/);assert.match(staffHtml,/senza cutoff/);
+assert.match(staffHtml,/Alunni: conteggio confermato/);assert.doesNotMatch(staffHtml,/senza cutoff|Variazione giornaliera/);
 assert.match(staffHtml,/Docenti/);assert.match(staffHtml,/Senza glutine/);assert.match(staffHtml,/Menu personale &lt;test&gt;/);
 assert.match(renderStaff({plesso_id:7,totale_pasti:4,personale_disponibile:false}),/totale potrebbe essere incompleto/);
-console.log('OK: totale alunni/personale distinto, menù personale, nessun cutoff personale e dati mancanti espliciti.');
+console.log('OK: totale alunni/personale distinto, menù personale, solo avvisi per dati mancanti.');
 
 const grouped = renderStaff({plesso_id:7,totale_pasti:5,personale_disponibile:true,
  personale:[{categoria:'insegnanti',pasti:3,tipologia_nome:'Standard'},{categoria:'insegnanti',pasti:2,tipologia_nome:'Vegetariano'}]});

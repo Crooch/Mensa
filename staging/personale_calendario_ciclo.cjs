@@ -53,7 +53,7 @@ const log=[];function pass(s){console.log('PASS '+s);log.push(s);}
    else assert.equal(cr.plessi.length,0);
    await catering.locator('#report-data').fill(D(n));await catering.locator('#btn-report:not([disabled])').waitFor();await catering.locator('#btn-report').click();await catering.locator('#btn-report:not([disabled])').waitFor();
    const card=catering.locator(`[data-testid="report-plesso-${pid}"]`);assert.equal(await card.count(),active?1:0,label+' catering UI');
-   if(active){assert.equal(Number(await card.locator('.saldo').innerText()),qty);assert.equal(await card.locator(`[data-testid="report-personale-${pid}"] > h4`).innerText(),'Pasti del personale · '+qty);assert((await card.innerText()).includes('senza cutoff'));}
+   if(active){assert.equal(Number(await card.locator('.saldo').innerText()),qty);assert.equal(await card.locator(`[data-testid="report-personale-${pid}"] > h4`).innerText(),'Pasti del personale · '+qty);assert(!(await card.innerText()).includes('senza cutoff'));}
    const stored=sql(`SELECT righe FROM pasti_personale_giorni WHERE plesso_id=${pid} AND data='${D(n)}'`);
    if(stored&&active)assert.deepEqual(canonical(JSON.parse(stored)),canonical(v.righe),label);
    const rows=sql(`SELECT JSON_OBJECT('dal',dal,'giorno',giorno,'categoria',categoria,'tipologia_menu_id',tipologia_menu_id,'quantita',quantita) FROM pasti_personale_regole WHERE plesso_id=${pid} ORDER BY dal,giorno,categoria,tipologia_menu_id`).split('\n').filter(Boolean).map(JSON.parse);
